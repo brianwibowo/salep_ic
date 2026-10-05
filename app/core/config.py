@@ -96,7 +96,7 @@ class Settings(BaseSettings):
             return self.llm_model
         prov = self.active_llm_provider
         if prov == "gemini":
-            return "gemini-2.5-flash"
+            return "gemini-3.5-flash"
         elif prov == "groq":
             return "llama-3.3-70b-versatile"
         elif prov == "openrouter":
@@ -105,7 +105,7 @@ class Settings(BaseSettings):
             return "qwen2.5:7b"
         elif prov == "openai":
             return self.openai_model or "gpt-4o-mini"
-        return "gemini-2.5-flash"
+        return "gemini-3.8-flash"
 
 
 settings = Settings()
