@@ -38,6 +38,16 @@ class Settings(BaseSettings):
         alias="LINKEDIN_ACTOR_ID",
     )
 
+    # Automated Background Scheduler
+    auto_search_enabled: bool = Field(default=True, alias="AUTO_SEARCH_ENABLED")
+    auto_search_interval_minutes: int = Field(default=120, alias="AUTO_SEARCH_INTERVAL_MINUTES")
+    auto_search_keywords: str = Field(
+        default="butuh vendor IT,rekomendasi software house,butuh bikin website,cari programmer",
+        alias="AUTO_SEARCH_KEYWORDS",
+    )
+    auto_search_sources: str = Field(default="threads,linkedin", alias="AUTO_SEARCH_SOURCES")
+    auto_search_limit_per_run: int = Field(default=5, alias="AUTO_SEARCH_LIMIT_PER_RUN")
+
     # App
     app_env: str = Field(default="development", alias="APP_ENV")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
