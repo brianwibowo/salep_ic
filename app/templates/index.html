@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SALEP — AI Sales Intelligence Dashboard</title>
+  <meta name="description" content="Dashboard kontrol SALEP untuk pencarian prospek dan kualifikasi otomatis berbasis AI">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090D16;
+      --card-bg: #111827;
+      --card-hover: #162032;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: #3B82F6;
+      --text: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --primary: #3B82F6;
+      --primary-hover: #2563EB;
+      --primary-glow: rgba(59, 130, 246, 0.25);
+      --accent: #10B981;
+      --accent-glow: rgba(16, 185, 129, 0.2);
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --purple: #8B5CF6;
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Ambient background gradient glow */
+    .ambient-glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 80%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #3B82F6 0%, #10B981 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.25rem;
+      padding: 6px 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px var(--primary-glow);
+      letter-spacing: 0.5px;
+    }
+
+    .brand-text h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-text p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      border: 1px solid transparent;
+      text-decoration: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #2563EB 100%);
+      color: white;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent) 0%, #059669 100%);
+      color: white;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .btn-accent:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    @media (min-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1.2fr 0.8fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      position: relative;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Form controls */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .form-input:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .chips-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.775rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      user-select: none;
+    }
+
+    .chip:hover {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.35);
+      color: #93C5FD;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-label input {
+      accent-color: var(--primary);
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Live Progress Card */
+    .progress-box {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(59, 130, 246, 0.07);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 10px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .progress-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #93C5FD;
+      margin-bottom: 10px;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(147, 197, 253, 0.3);
+      border-top-color: #93C5FD;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Lead Result Cards */
+    .results-container {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .lead-item {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      transition: all 0.15s ease;
+    }
+
+    .lead-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .lead-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .author-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .author-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: white;
+      font-size: 0.9rem;
+    }
+
+    .author-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #fff;
+    }
+
+    .author-platform {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+    }
+
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .score-high {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .score-medium {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .score-low {
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .lead-content {
+      font-size: 0.875rem;
+      color: #E5E7EB;
+      margin-bottom: 12px;
+      line-height: 1.55;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px 12px;
+      border-radius: 8px;
+      border-left: 3px solid var(--primary);
+    }
+
+    .lead-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .tag-intent {
+      background: rgba(139, 92, 246, 0.15);
+      color: #C4B5FD;
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .lead-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .link-out {
+      color: #60A5FA;
+      font-size: 0.825rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+
+    .link-out:hover {
+      text-decoration: underline;
+    }
+
+    /* Scheduler & Stats Table */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    th {
+      padding: 10px 14px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1F2937;
+      border: 1px solid var(--border);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 1000;
+      animation: slideUp 0.25s ease;
+      font-size: 0.9rem;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="logo-badge">SALEP</div>
+        <div class="brand-text">
+          <h1>SALEP Intelligence Dashboard</h1>
+          <p>AI Sales Engine • Lead Qualification • Autonomous Scheduler</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="status-badge" id="scheduler-badge">
+          <span class="status-dot"></span>
+          <span id="scheduler-badge-text">Scheduler: Aktif (15 min)</span>
+        </div>
+        <a id="btn-open-sheet" href="https://docs.google.com/spreadsheets/d/15O65gK2bTEoj2vRUgpBZNUQYU6dgzYAzU6zRPppiDPw/edit" target="_blank" rel="noopener noreferrer" class="btn btn-accent">
+          📊 Buka Google Sheet
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+      <!-- Left Column: Manual Discovery & URL Inspector -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Card 1: Hit Manual Search -->
+        <div class="card" id="card-search">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">🚀 Cari Lead Sekarang (Manual Hit)</h2>
+              <p class="card-subtitle">Scrape postingan Threads & LinkedIn terbaru, lalu kualifikasi otomatis dengan Gemini AI</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="input-keywords">Kata Kunci Pencarian (Pisahkan dengan koma):</label>
+            <input type="text" id="input-keywords" class="form-input" value="buatkan website, butuh website, jasa website, rekomendasi software house">
+            <div class="chips-group">
+              <span class="chip" onclick="addKeyword('buatkan website')">+ buatkan website</span>
+              <span class="chip" onclick="addKeyword('butuh website')">+ butuh website</span>
+              <span class="chip" onclick="addKeyword('jasa landing page')">+ jasa landing page</span>
+              <span class="chip" onclick="addKeyword('rekomendasi vendor IT')">+ vendor IT</span>
+              <span class="chip" onclick="addKeyword('cari programmer')">+ cari programmer</span>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-bottom: 20px;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="check-threads" checked> Threads
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="check-linkedin" checked> LinkedIn
+            </label>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+              <label for="select-limit" style="font-size: 0.85rem; color: var(--text-muted);">Limit per sumber:</label>
+              <select id="select-limit" class="form-input" style="width: auto; padding: 6px 10px;">
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="btn-trigger-search" class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="triggerManualSearch()">
+            ⚡ Hit & Temukan Lead Sekarang
+          </button>
+
+          <!-- Live Progress Box -->
+          <div id="search-progress" class="progress-box">
+            <div class="progress-header">
+              <div class="spinner"></div>
+              <span id="progress-status-text">Sedang memproses pencarian...</span>
+            </div>
+            <div class="progress-steps">
+              <div class="progress-step" id="step-scrape">⏳ 1. Menghubungi scraper Threads & LinkedIn...</div>
+              <div class="progress-step" id="step-ai">⏳ 2. Menganalisis intent & kualifikasi AI Gemini...</div>
+              <div class="progress-step" id="step-sheet">⏳ 3. Menyimpan lead valid ke Google Spreadsheet...</div>
+            </div>
+          </div>
+
+          <!-- Results from Manual Search -->
+          <div id="search-results" class="results-container"></div>
+        </div>
+
+        <!-- Card 2: Direct URL Inspector -->
+        <div class="card" id="card-url-inspector">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">🎯 Inspeksi URL Langsung (Direct Post)</h2>
+              <p class="card-subtitle">Punya link post spesifik di Threads / LinkedIn? Masukkan di sini untuk langsung dianalisis & disimpan</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="input-direct-url">URL Postingan:</label>
+            <input type="url" id="input-direct-url" class="form-input" placeholder="https://www.threads.net/@username/post/..." value="https://www.threads.net/@dillamndaaa29/post/DeEAm1MgQeo">
+            <div class="chips-group">
+              <span class="chip" onclick="setTestUrl('https://www.threads.net/@dillamndaaa29/post/DeEAm1MgQeo')">Contoh: @dillamndaaa29 (Butuh web konseling)</span>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-bottom: 20px;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="check-save-sheet" checked> Otomatis simpan ke Google Sheet jika valid
+            </label>
+          </div>
+
+          <button id="btn-analyze-url" class="btn btn-secondary" style="width: 100%; padding: 12px;" onclick="analyzeDirectUrl()">
+            🔍 Analisis & Kualifikasi URL Ini
+          </button>
+
+          <div id="url-progress" class="progress-box">
+            <div class="progress-header">
+              <div class="spinner"></div>
+              <span>Mengekstrak metadata postingan & kualifikasi AI...</span>
+            </div>
+          </div>
+
+          <div id="url-result" class="results-container"></div>
+        </div>
+      </div>
+
+      <!-- Right Column: Scheduler Controls & Recent Leads Feed -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Card 3: Scheduler Status & Trigger -->
+        <div class="card" id="card-scheduler">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">⏱️ Kontrol Scheduler Otomatis</h2>
+              <p class="card-subtitle">SALEP berjalan di background VPS secara berkala</p>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+            <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">INTERVAL</div>
+              <div id="sched-interval" style="font-size: 1.1rem; font-weight: 700; color: #fff;">15 Menit</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">STATUS</div>
+              <div id="sched-status" style="font-size: 1.1rem; font-weight: 700; color: var(--accent);">Berjalan</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">TOTAL RUN</div>
+              <div id="sched-total-runs" style="font-size: 1.1rem; font-weight: 700; color: #fff;">-</div>
+            </div>
+            <div style="background: rgba(0,0,0,0.25); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">CYCLE BERIKUTNYA</div>
+              <div id="sched-next-run" style="font-size: 0.85rem; font-weight: 600; color: #93C5FD;">Menghitung...</div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button id="btn-trigger-cycle" class="btn btn-secondary" style="flex: 1;" onclick="triggerSchedulerCycle()">
+              ⚡ Jalankan Siklus Sekarang
+            </button>
+            <button id="btn-toggle-sched" class="btn btn-secondary" onclick="toggleScheduler()">
+              ⏸️ Pause
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 4: Recent Live Leads from Google Sheets -->
+        <div class="card" id="card-recent-leads">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">📋 Lead Terbaru di Google Sheet</h2>
+              <p class="card-subtitle">Sinkronisasi langsung dari database spreadsheet</p>
+            </div>
+            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="loadRecentLeads()">
+              🔄 Refresh
+            </button>
+          </div>
+
+          <div id="recent-leads-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto; padding-right: 4px;">
+            <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 20px;">
+              Memuat data dari Google Sheets...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast">
+    <span id="toast-icon">ℹ️</span>
+    <span id="toast-message">Pesan notifikasi</span>
+  </div>
+
+  <script>
+    // Utility Toast
+    function showToast(message, icon = "✅") {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-message").innerText = message;
+      document.getElementById("toast-icon").innerText = icon;
+      toast.style.display = "flex";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 4000);
+    }
+
+    function addKeyword(kw) {
+      const input = document.getElementById("input-keywords");
+      const current = input.value.split(",").map(k => k.trim()).filter(Boolean);
+      if (!current.includes(kw)) {
+        current.push(kw);
+        input.value = current.join(", ");
+      }
+    }
+
+    function setTestUrl(url) {
+      document.getElementById("input-direct-url").value = url;
+    }
+
+    // Trigger Manual Search
+    async function triggerManualSearch() {
+      const btn = document.getElementById("btn-trigger-search");
+      const progress = document.getElementById("search-progress");
+      const resultsContainer = document.getElementById("search-results");
+      const stepScrape = document.getElementById("step-scrape");
+      const stepAi = document.getElementById("step-ai");
+      const stepSheet = document.getElementById("step-sheet");
+
+      const keywords = document.getElementById("input-keywords").value.split(",").map(k => k.trim()).filter(Boolean);
+      if (!keywords.length) {
+        showToast("Masukkan minimal 1 kata kunci pencarian!", "⚠️");
+        return;
+      }
+
+      const sources = [];
+      if (document.getElementById("check-threads").checked) sources.push("threads");
+      if (document.getElementById("check-linkedin").checked) sources.push("linkedin");
+      if (!sources.length) {
+        showToast("Pilih minimal satu sumber (Threads atau LinkedIn)!", "⚠️");
+        return;
+      }
+
+      const limit = parseInt(document.getElementById("select-limit").value) || 5;
+
+      btn.disabled = true;
+      btn.innerText = "⏳ Sedang Menemukan Lead...";
+      progress.style.display = "block";
+      resultsContainer.innerHTML = "";
+
+      stepScrape.innerText = "🔄 1. Menghubungi scraper " + sources.join(" & ") + "...";
+      stepAi.innerText = "⏳ 2. Menunggu hasil ekstraksi...";
+      stepSheet.innerText = "⏳ 3. Menunggu kualifikasi AI...";
+
+      const today = new Date().toISOString().split("T")[0];
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      try {
+        stepScrape.innerText = "✅ 1. Scraper berjalan...";
+        stepAi.innerText = "🔄 2. Menganalisis intent & kualifikasi AI Gemini...";
+
+        const resp = await fetch("/api/v1/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            keywords: keywords,
+            start_date: threeDaysAgo,
+            end_date: today,
+            sources: sources,
+            limit: limit
+          })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || "Gagal melakukan pencarian");
+        }
+
+        const data = await resp.json();
+
+        stepAi.innerText = "✅ 2. AI Gemini selesai menganalisis " + data.total_analyzed + " lead!";
+        stepSheet.innerText = "✅ 3. Disimpan ke Google Spreadsheet!";
+
+        showToast(`Ditemukan ${data.total_found} postingan, ${data.qualified} terbukti lead potensial!`, "🎉");
+
+        renderLeadCards(data.leads, resultsContainer);
+        loadRecentLeads();
+      } catch (err) {
+        showToast("Error: " + err.message, "❌");
+        stepAi.innerText = "❌ Gagal: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "⚡ Hit & Temukan Lead Sekarang";
+      }
+    }
+
+    // Direct URL Analysis
+    async function analyzeDirectUrl() {
+      const btn = document.getElementById("btn-analyze-url");
+      const progress = document.getElementById("url-progress");
+      const resultsContainer = document.getElementById("url-result");
+      const url = document.getElementById("input-direct-url").value.trim();
+      const saveToSheet = document.getElementById("check-save-sheet").checked;
+
+      if (!url) {
+        showToast("Masukkan URL postingan yang valid!", "⚠️");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = "⏳ Sedang Menganalisis...";
+      progress.style.display = "block";
+      resultsContainer.innerHTML = "";
+
+      try {
+        const resp = await fetch("/api/v1/leads/analyze-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url, save_to_sheet: saveToSheet })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || "Gagal menganalisis URL");
+        }
+
+        const lead = await resp.json();
+        progress.style.display = "none";
+
+        showToast(`Sukses menganalisis postingan dari ${lead.author_name || 'pengguna'}! Score: ${lead.lead_score}`, "🎯");
+        renderLeadCards([lead], resultsContainer);
+        loadRecentLeads();
+      } catch (err) {
+        progress.style.display = "none";
+        showToast("Error: " + err.message, "❌");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "🔍 Analisis & Kualifikasi URL Ini";
+      }
+    }
+
+    // Render Lead Cards
+    function renderLeadCards(leads, container) {
+      if (!leads || !leads.length) {
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem; padding: 16px; text-align: center;">Tidak ada lead yang memenuhi kriteria pencarian. Coba keyword lain!</div>';
+        return;
+      }
+
+      container.innerHTML = leads.map(lead => {
+        let scoreClass = "score-low";
+        if (lead.lead_score >= 70) scoreClass = "score-high";
+        else if (lead.lead_score >= 40) scoreClass = "score-medium";
+
+        const needsHtml = (lead.needs || []).map(n => `<span class="tag">Kebutuhan: ${n}</span>`).join("");
+        const painHtml = (lead.pain_points || []).map(p => `<span class="tag">Kendala: ${p}</span>`).join("");
+
+        return `
+          <div class="lead-item">
+            <div class="lead-item-header">
+              <div class="author-info">
+                <div class="author-avatar">${(lead.author_name || 'U')[0].toUpperCase()}</div>
+                <div>
+                  <div class="author-name">${lead.author_name || 'Pengguna'}</div>
+                  <div class="author-platform">${lead.source.toUpperCase()} • ${lead.is_potential_lead ? '✅ Lead Potensial' : 'ℹ️ Diskusi Umum'}</div>
+                </div>
+              </div>
+              <div class="score-badge ${scoreClass}">
+                Score: ${lead.lead_score}/100
+              </div>
+            </div>
+
+            <div class="lead-content">"${lead.content}"</div>
+
+            <div class="lead-tags">
+              <span class="tag tag-intent">Intent: ${lead.intent}</span>
+              ${needsHtml}
+              ${painHtml}
+            </div>
+
+            <div class="lead-actions">
+              <a href="${lead.source_url}" target="_blank" rel="noopener noreferrer" class="link-out">
+                Buka Postingan Asli ↗
+              </a>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // Load Recent Leads from Google Sheets
+    async function loadRecentLeads() {
+      const container = document.getElementById("recent-leads-list");
+      try {
+        const resp = await fetch("/api/v1/leads/recent?limit=15");
+        if (!resp.ok) throw new Error("Gagal mengambil data sheet");
+        const leads = await resp.json();
+
+        if (!leads.length) {
+          container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 20px;">Belum ada lead tersimpan di Google Sheet.</div>';
+          return;
+        }
+
+        container.innerHTML = leads.map(l => {
+          let score = parseInt(l.lead_score) || 0;
+          let badgeColor = score >= 70 ? "#10B981" : (score >= 40 ? "#3B82F6" : "#6B7280");
+          let author = l.author_name || "User";
+          let source = (l.source || "").toLowerCase();
+
+          return `
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: 700; font-size: 0.9rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08);">${source.toUpperCase()}</span>
+                  ${author}
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 700; color: ${badgeColor};">
+                  ${score}/100
+                </div>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                ${l.content || "-"}
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <span style="font-size: 0.75rem; color: #9CA3AF;">${l.intent || ""}</span>
+                <a href="${l.source_url}" target="_blank" rel="noopener noreferrer" style="color: #60A5FA; font-size: 0.75rem; text-decoration: none;">Link Post ↗</a>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        container.innerHTML = `<div style="color: #EF4444; font-size: 0.85rem; text-align: center; padding: 20px;">Gagal memuat: ${err.message}</div>`;
+      }
+    }
+
+    // Scheduler API Controls
+    async function loadSchedulerStatus() {
+      try {
+        const resp = await fetch("/api/v1/scheduler/status");
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        document.getElementById("sched-interval").innerText = `${data.interval_minutes} Menit`;
+        const statusEl = document.getElementById("sched-status");
+        const toggleBtn = document.getElementById("btn-toggle-sched");
+        const badgeEl = document.getElementById("scheduler-badge-text");
+
+        if (data.is_running) {
+          statusEl.innerText = "Aktif (Running)";
+          statusEl.style.color = "var(--accent)";
+          toggleBtn.innerText = "⏸️ Pause";
+          badgeEl.innerText = `Scheduler: Aktif (${data.interval_minutes}m)`;
+        } else {
+          statusEl.innerText = "Dihentikan (Paused)";
+          statusEl.style.color = "var(--warning)";
+          toggleBtn.innerText = "▶️ Resume";
+          badgeEl.innerText = "Scheduler: Dihentikan";
+        }
+
+        document.getElementById("sched-total-runs").innerText = `${data.total_runs} kali`;
+
+        if (data.next_run_at) {
+          const nextDate = new Date(data.next_run_at);
+          document.getElementById("sched-next-run").innerText = nextDate.toLocaleTimeString("id-ID");
+        } else {
+          document.getElementById("sched-next-run").innerText = "-";
+        }
+      } catch (err) {
+        console.error("Scheduler status fetch error:", err);
+      }
+    }
+
+    async function triggerSchedulerCycle() {
+      const btn = document.getElementById("btn-trigger-cycle");
+      btn.disabled = true;
+      btn.innerText = "⏳ Memicu Siklus...";
+      try {
+        const resp = await fetch("/api/v1/scheduler/trigger", { method: "POST" });
+        if (!resp.ok) throw new Error("Gagal memicu scheduler");
+        showToast("Siklus pencarian background berhasil dipicu!", "⚡");
+        setTimeout(loadSchedulerStatus, 2000);
+        setTimeout(loadRecentLeads, 10000);
+      } catch (err) {
+        showToast(err.message, "❌");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "⚡ Jalankan Siklus Sekarang";
+      }
+    }
+
+    async function toggleScheduler() {
+      const statusEl = document.getElementById("sched-status").innerText;
+      const isRunning = statusEl.includes("Aktif") || statusEl.includes("Running");
+      const endpoint = isRunning ? "/api/v1/scheduler/stop" : "/api/v1/scheduler/start";
+
+      try {
+        const resp = await fetch(endpoint, { method: "POST" });
+        if (!resp.ok) throw new Error("Gagal mengubah status scheduler");
+        showToast(isRunning ? "Scheduler dijeda!" : "Scheduler diaktifkan kembali!", "⏱️");
+        setTimeout(loadSchedulerStatus, 500);
+      } catch (err) {
+        showToast(err.message, "❌");
+      }
+    }
+
+    // Initial Load
+    document.addEventListener("DOMContentLoaded", () => {
+      loadSchedulerStatus();
+      loadRecentLeads();
+      setInterval(loadSchedulerStatus, 30000); // refresh scheduler status every 30s
+    });
+  </script>
+</body>
+</html>

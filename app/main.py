@@ -6,7 +6,7 @@ FastAPI application entry point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, search, leads, scheduler
+from app.api.routes import health, search, leads, scheduler, web
 from app.core.config import settings
 from app.core.logging import logger
 from app.services.scheduler import lead_scheduler
@@ -25,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(web.router)
 app.include_router(health.router)
 app.include_router(search.router)
 app.include_router(leads.router)

@@ -166,10 +166,22 @@ class GoogleSheetsService:
             source_url_col = SHEET_HEADERS.index("source_url") + 1
             all_urls = sheet.col_values(source_url_col)
             return source_url in all_urls
-
         except Exception as e:
             logger.error("Failed to check existing lead: %s", e)
             return False
+
+    async def get_recent_leads(self, limit: int = 30) -> list[dict[str, Any]]:
+        """Fetch the most recent leads from the Google Sheet in reverse chronological order."""
+        sheet = self._get_sheet()
+        if sheet is None:
+            return []
+
+        try:
+            records = sheet.get_all_records()
+            return list(reversed(records))[:limit]
+        except Exception as e:
+            logger.error("Failed to read leads from Sheets: %s", e)
+            return []
 
 
 sheets_service = GoogleSheetsService()

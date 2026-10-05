@@ -91,6 +91,7 @@ async def run_search(request: SearchRequest) -> SearchResponse:
             logger.error("Failed to analyze lead %d: %s", i + 1, e)
 
     # Step 5: Save all analyzed leads to Google Sheets (strictly real sources, exclude mock)
+    qualified = [l for l in leads if l.is_potential_lead]
     real_leads_to_save = [l for l in leads if l.source != "mock"]
     saved = await sheets_service.append_leads(real_leads_to_save)
     logger.info(
@@ -105,6 +106,69 @@ async def run_search(request: SearchRequest) -> SearchResponse:
         qualified=len(qualified),
         leads=leads,
     )
+
+
+async def extract_post_from_url(url: str) -> RawLead:
+    """Fetch and extract post content & author from a direct post URL."""
+    import re
+    import html
+    import httpx
+
+    clean_url = url.strip()
+    source = "threads" if "threads." in clean_url else ("linkedin" if "linkedin.com" in clean_url else "web")
+    headers = {"User-Agent": "facebookexternalhit/1.1"}
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.get(clean_url, headers=headers, follow_redirects=True)
+        resp_text = resp.text
+
+    desc_match = re.search(r"<meta\s+property=[\"\x27]og:description[\"\x27]\s+content=[\"\x27](.*?)[\"\x27]", resp_text)
+    if not desc_match:
+        desc_match = re.search(r"<meta\s+name=[\"\x27]description[\"\x27]\s+content=[\"\x27](.*?)[\"\x27]", resp_text)
+
+    title_match = re.search(r"<meta\s+property=[\"\x27]og:title[\"\x27]\s+content=[\"\x27](.*?)[\"\x27]", resp_text)
+
+    desc = html.unescape(desc_match.group(1)) if desc_match else ""
+    title = html.unescape(title_match.group(1)) if title_match else ""
+
+    author_name = "User"
+    author_username = ""
+    author_profile_url = clean_url
+
+    if "threads." in clean_url:
+        author_match = re.search(r"^(.*?)\s*\(@([^)]+)\)\s*on\s*Threads", title)
+        if author_match:
+            author_name = author_match.group(1).strip()
+            author_username = author_match.group(2).strip()
+            author_profile_url = f"https://www.threads.net/@{author_username}"
+        elif title:
+            author_name = title
+    else:
+        if title:
+            author_name = title.split("|")[0].split("-")[0].strip()
+
+    content = desc or title or "No description could be extracted"
+
+    return RawLead(
+        source=source,
+        source_url=clean_url,
+        author_name=author_name,
+        author_profile_url=author_profile_url,
+        content=content,
+        matched_keyword="direct_url_input",
+    )
+
+
+async def analyze_and_save_url(url: str, save_to_sheet: bool = True) -> LeadRecord:
+    """Analyze a direct post URL using Gemini AI and optionally save to Google Sheets."""
+    raw_lead = await extract_post_from_url(url)
+    analysis = await analyze_lead(raw_lead.content)
+    lead_record = build_lead_record(raw_lead, analysis)
+
+    if save_to_sheet:
+        await sheets_service.append_lead(lead_record)
+
+    return lead_record
 
 
 async def analyze_single_lead(content: str) -> LeadAnalysis:

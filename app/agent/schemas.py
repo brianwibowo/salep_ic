@@ -110,6 +110,11 @@ class AnalyzeRequest(BaseModel):
     content: str = Field(min_length=1)
 
 
+class AnalyzeUrlRequest(BaseModel):
+    url: str = Field(min_length=5, description="Full URL to a Threads or LinkedIn post")
+    save_to_sheet: bool = Field(default=True, description="Whether to append the qualified lead to Google Sheets")
+
+
 class SearchResponse(BaseModel):
     query_id: str
     total_found: int

@@ -24,6 +24,7 @@ class LeadScheduler:
         self.total_leads_found: int = 0
         self.total_leads_qualified: int = 0
         self.last_error: str | None = None
+        self._keyword_cursor: int = 0
 
     def start(self) -> None:
         """Start the background scheduler task."""
@@ -75,25 +76,36 @@ class LeadScheduler:
                 break
 
     async def run_cycle(self, trigger_type: str = "manual") -> dict[str, Any]:
-        """Execute a single autonomous discovery cycle."""
+        """Execute a single autonomous discovery cycle with rotated keywords."""
         logger.info("[AutoScheduler] Starting discovery cycle (trigger=%s)...", trigger_type)
         self.last_run_at = datetime.utcnow()
         self.total_runs += 1
 
-        # Parse keywords and sources from config
-        keywords = [k.strip() for k in settings.auto_search_keywords.split(",") if k.strip()]
+        all_keywords = [k.strip() for k in settings.auto_search_keywords.split(",") if k.strip()]
         sources = [s.strip() for s in settings.auto_search_sources.split(",") if s.strip()]
 
-        if not keywords:
-            keywords = ["butuh vendor IT", "rekomendasi software house"]
+        if not all_keywords:
+            all_keywords = ["buatkan website", "butuh website", "jasa website", "rekomendasi vendor IT"]
         if not sources:
             sources = ["threads", "linkedin"]
+
+        # Rotate keywords so different prospect intents are covered each cycle
+        num_kw = len(all_keywords)
+        idx = self._keyword_cursor % num_kw
+        cycle_keywords = [all_keywords[idx], all_keywords[(idx + 1) % num_kw]]
+        self._keyword_cursor = (idx + 2) % num_kw
+
+        logger.info(
+            "[AutoScheduler] Cycle keywords chosen: %s (from pool of %d)",
+            cycle_keywords,
+            num_kw,
+        )
 
         today = datetime.utcnow().strftime("%Y-%m-%d")
         three_days_ago = (datetime.utcnow() - timedelta(days=3)).strftime("%Y-%m-%d")
 
         request = SearchRequest(
-            keywords=keywords,
+            keywords=cycle_keywords,
             start_date=three_days_ago,
             end_date=today,
             sources=sources,
