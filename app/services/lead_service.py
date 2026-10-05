@@ -14,6 +14,7 @@ from app.agent.schemas import (
     SearchResponse,
     LeadAnalysis,
     LeadStatus,
+    IntentType,
 )
 from app.core.logging import logger
 from app.services.scoring_service import calculate_lead_score
