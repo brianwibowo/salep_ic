@@ -90,8 +90,8 @@ async def run_search(request: SearchRequest) -> SearchResponse:
             errors += 1
             logger.error("Failed to analyze lead %d: %s", i + 1, e)
 
-    # Step 5: Save to Google Sheets
-    qualified = [l for l in leads if l.is_potential_lead]
+    # Step 5: Save to Google Sheets (saves qualified leads and relevant discussions)
+    qualified = [l for l in leads if l.is_potential_lead or l.lead_score >= 10]
     saved = await sheets_service.append_leads(qualified)
     logger.info(
         "Search %s complete — analyzed=%d qualified=%d saved=%d errors=%d",

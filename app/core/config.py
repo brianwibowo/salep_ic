@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Automated Background Scheduler
     auto_search_enabled: bool = Field(default=True, alias="AUTO_SEARCH_ENABLED")
-    auto_search_interval_minutes: int = Field(default=120, alias="AUTO_SEARCH_INTERVAL_MINUTES")
+    auto_search_interval_minutes: int = Field(default=15, alias="AUTO_SEARCH_INTERVAL_MINUTES")
     auto_search_keywords: str = Field(
         default="butuh vendor IT,rekomendasi software house,butuh bikin website,cari programmer",
         alias="AUTO_SEARCH_KEYWORDS",
