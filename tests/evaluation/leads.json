@@ -1,0 +1,122 @@
+[
+  {
+    "content": "Mencari vendor untuk membuat aplikasi HRIS.",
+    "expected_is_lead": true,
+    "expected_intent": "looking_for_vendor",
+    "category": "high_intent"
+  },
+  {
+    "content": "Ada rekomendasi vendor yang bisa bikin aplikasi inventory? Bisnis kami masih menggunakan Excel dan mulai kesulitan tracking stok beberapa gudang.",
+    "expected_is_lead": true,
+    "expected_intent": "requesting_recommendation",
+    "category": "high_intent"
+  },
+  {
+    "content": "Kami sedang mencari vendor untuk membangun sistem ERP yang terintegrasi. Perusahaan distribusi kami punya 5 cabang.",
+    "expected_is_lead": true,
+    "expected_intent": "looking_for_vendor",
+    "category": "high_intent"
+  },
+  {
+    "content": "Butuh developer untuk bikin aplikasi mobile buat sales team kami. Harus bisa tracking order dan input data customer di lapangan.",
+    "expected_is_lead": true,
+    "expected_intent": "looking_for_vendor",
+    "category": "high_intent"
+  },
+  {
+    "content": "Mau tanya, ada yang bisa bikin website company profile plus portal customer? Budget sekitar 50-80 juta.",
+    "expected_is_lead": true,
+    "expected_intent": "looking_for_vendor",
+    "category": "high_intent"
+  },
+  {
+    "content": "Kami perusahaan F&B yang ingin go digital. Butuh sistem POS yang terintegrasi dengan inventory dan accounting. Ada rekomendasi vendor?",
+    "expected_is_lead": true,
+    "expected_intent": "requesting_recommendation",
+    "category": "high_intent"
+  },
+  {
+    "content": "Ada yang bisa buatkan chatbot untuk customer service kami? Volume chat makin tinggi dan tim CS kewalahan.",
+    "expected_is_lead": true,
+    "expected_intent": "looking_for_vendor",
+    "category": "high_intent"
+  },
+  {
+    "content": "Perusahaan kami butuh aplikasi tracking pengiriman real-time. Driver bisa update status, customer bisa cek posisi barang.",
+    "expected_is_lead": true,
+    "expected_intent": "looking_for_vendor",
+    "category": "high_intent"
+  },
+  {
+    "content": "Looking for an IT consultant to help us migrate from on-premise to cloud. We have 3 legacy systems.",
+    "expected_is_lead": true,
+    "expected_intent": "looking_for_vendor",
+    "category": "high_intent"
+  },
+  {
+    "content": "Perusahaan kami ingin mengotomatisasi proses approval dokumen. Saat ini masih manual pakai email dan WhatsApp.",
+    "expected_is_lead": true,
+    "expected_intent": "problem_identification",
+    "category": "high_intent"
+  },
+  {
+    "content": "Ada yang pernah menggunakan ERP untuk perusahaan distribusi?",
+    "expected_is_lead": true,
+    "expected_intent": "evaluating_solution",
+    "category": "medium_intent"
+  },
+  {
+    "content": "Diskusi: menurut kalian, lebih baik pakai SaaS atau custom development untuk sistem warehouse management?",
+    "expected_is_lead": true,
+    "expected_intent": "evaluating_solution",
+    "category": "medium_intent"
+  },
+  {
+    "content": "Ada yang pernah pakai software HRIS untuk perusahaan 200+ karyawan?",
+    "expected_is_lead": true,
+    "expected_intent": "requesting_recommendation",
+    "category": "medium_intent"
+  },
+  {
+    "content": "Saya sedang belajar membuat aplikasi inventory menggunakan Python. Ada tutorial yang bagus?",
+    "expected_is_lead": false,
+    "expected_intent": "learning",
+    "category": "low_intent"
+  },
+  {
+    "content": "Baru belajar React Native, mau coba bikin aplikasi to-do list. Ada tips?",
+    "expected_is_lead": false,
+    "expected_intent": "learning",
+    "category": "low_intent"
+  },
+  {
+    "content": "Apa sih perbedaan antara REST API dan GraphQL? Buat tugas kuliah.",
+    "expected_is_lead": false,
+    "expected_intent": "learning",
+    "category": "low_intent"
+  },
+  {
+    "content": "Jual laptop gaming murah! RTX 4060, RAM 16GB. Harga nego. COD Jakarta.",
+    "expected_is_lead": false,
+    "expected_intent": "irrelevant",
+    "category": "irrelevant"
+  },
+  {
+    "content": "Hari ini cuaca cerah sekali ya. Enak buat jalan-jalan ke mall.",
+    "expected_is_lead": false,
+    "expected_intent": "irrelevant",
+    "category": "irrelevant"
+  },
+  {
+    "content": "Lowongan kerja: Dibutuhkan programmer Python untuk project internal. Pengalaman minimal 2 tahun.",
+    "expected_is_lead": false,
+    "expected_intent": "job_seeking",
+    "category": "irrelevant"
+  },
+  {
+    "content": "Dicari fullstack developer remote. Gaji kompetitif. Apply via LinkedIn.",
+    "expected_is_lead": false,
+    "expected_intent": "job_seeking",
+    "category": "irrelevant"
+  }
+]

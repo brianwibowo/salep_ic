@@ -1,0 +1,9 @@
+openai-agents
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+gspread
+google-auth
+httpx

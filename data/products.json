@@ -1,0 +1,284 @@
+[
+  {
+    "id": "svc-001",
+    "name": "Custom Software Development",
+    "description": "Development of custom business applications tailored to specific organizational needs, including ERP, inventory, HRIS, CRM, accounting, and internal tools.",
+    "keywords": [
+      "custom software", "business application", "internal system", "ERP",
+      "inventory system", "HRIS", "CRM", "accounting software",
+      "aplikasi bisnis", "sistem internal", "software custom", "tailor made",
+      "bespoke software", "sistem informasi", "aplikasi perusahaan",
+      "enterprise software", "bikin aplikasi", "buat aplikasi", "develop aplikasi",
+      "jasa pembuatan aplikasi", "jasa pembuatan software", "vendor software",
+      "software house", "bikin sistem", "buat sistem"
+    ]
+  },
+  {
+    "id": "svc-002",
+    "name": "Web Development",
+    "description": "Corporate and business web application development, including e-commerce, company profiles, SaaS platforms, portals, and dashboards.",
+    "keywords": [
+      "website", "web app", "company website", "e-commerce", "landing page",
+      "SaaS", "web platform", "toko online", "web development", "web developer",
+      "jasa website", "jasa web", "bikin website", "buat website", "web design",
+      "company profile", "portal", "dashboard web", "web portal",
+      "online store", "marketplace", "web based", "webapp",
+      "jasa pembuatan website", "vendor website", "desain website",
+      "full stack", "frontend", "backend", "web system"
+    ]
+  },
+  {
+    "id": "svc-003",
+    "name": "Mobile App Development",
+    "description": "Android and iOS application development for consumer-facing and enterprise mobile solutions, including hybrid and native apps.",
+    "keywords": [
+      "android app", "ios app", "mobile application", "aplikasi mobile",
+      "aplikasi android", "aplikasi ios", "flutter", "react native",
+      "mobile developer", "jasa aplikasi mobile", "bikin aplikasi mobile",
+      "buat aplikasi android", "buat aplikasi ios", "hybrid app",
+      "native app", "mobile first", "app store", "play store",
+      "jasa pembuatan aplikasi mobile", "mobile solution",
+      "aplikasi smartphone", "cross platform", "kotlin", "swift"
+    ]
+  },
+  {
+    "id": "svc-004",
+    "name": "AI & Automation",
+    "description": "AI-powered workflow and business process automation, including chatbots, document processing, intelligent agents, OCR, NLP, and predictive analytics.",
+    "keywords": [
+      "AI", "automation", "AI agent", "chatbot", "machine learning",
+      "otomatisasi", "kecerdasan buatan", "RPA", "robotic process automation",
+      "artificial intelligence", "deep learning", "NLP",
+      "natural language processing", "OCR", "computer vision",
+      "predictive analytics", "AI solution", "intelligent automation",
+      "workflow automation", "business automation", "bot", "auto reply",
+      "jasa AI", "implementasi AI", "solusi AI", "GPT", "LLM",
+      "generative AI", "AI integration"
+    ]
+  },
+  {
+    "id": "svc-005",
+    "name": "Cloud & Infrastructure Services",
+    "description": "Cloud migration, infrastructure setup, IaaS, PaaS, cloud architecture, server management, and hybrid cloud solutions.",
+    "keywords": [
+      "cloud", "cloud migration", "cloud computing", "IaaS",
+      "infrastructure as a service", "PaaS", "platform as a service",
+      "cloud infrastructure", "AWS", "Azure", "Google Cloud", "GCP",
+      "cloud server", "virtual server", "VPS", "dedicated server",
+      "cloud hosting", "server hosting", "cloud setup", "cloud architecture",
+      "hybrid cloud", "multi cloud", "cloud native", "containerization",
+      "kubernetes", "docker", "cloud deployment",
+      "migrasi cloud", "pindah cloud", "setup server", "infrastruktur cloud",
+      "layanan cloud", "jasa cloud"
+    ]
+  },
+  {
+    "id": "svc-006",
+    "name": "Managed IT Services",
+    "description": "End-to-end IT management including server monitoring, maintenance, helpdesk, SLA-based support, and IT operations outsourcing.",
+    "keywords": [
+      "managed service", "managed IT", "IT managed service",
+      "IT outsourcing", "IT support", "IT maintenance",
+      "server monitoring", "infrastructure monitoring", "NOC",
+      "helpdesk", "help desk", "IT helpdesk", "technical support",
+      "SLA", "service level agreement", "24/7 support", "remote support",
+      "jasa managed service", "kelola IT", "maintenance IT",
+      "managed hosting", "managed server", "managed infrastructure",
+      "IT operations", "outsource IT", "vendor IT support"
+    ]
+  },
+  {
+    "id": "svc-007",
+    "name": "Cybersecurity Services",
+    "description": "Security assessment, penetration testing, SOC, security monitoring, compliance, data protection, and incident response.",
+    "keywords": [
+      "cybersecurity", "cyber security", "keamanan siber", "keamanan IT",
+      "penetration testing", "pentest", "vulnerability assessment",
+      "security audit", "security assessment", "SOC",
+      "security operations center", "SIEM", "firewall",
+      "data protection", "data security", "ISO 27001",
+      "incident response", "threat detection", "endpoint security",
+      "network security", "information security", "infosec",
+      "jasa keamanan IT", "security monitoring", "DLP",
+      "ransomware protection", "anti virus enterprise"
+    ]
+  },
+  {
+    "id": "svc-008",
+    "name": "Data Analytics & Business Intelligence",
+    "description": "Data warehouse, BI dashboards, reporting automation, data visualization, ETL, and data-driven decision making solutions.",
+    "keywords": [
+      "data analytics", "business intelligence", "BI", "data warehouse",
+      "data visualization", "dashboard", "reporting", "ETL",
+      "data pipeline", "big data", "data analysis", "analisis data",
+      "Power BI", "Tableau", "Metabase", "Looker", "Google Data Studio",
+      "data driven", "KPI dashboard", "management dashboard",
+      "executive dashboard", "real time reporting", "automated reporting",
+      "jasa analisis data", "olah data", "visualisasi data",
+      "data lake", "data engineering"
+    ]
+  },
+  {
+    "id": "svc-009",
+    "name": "ERP Implementation",
+    "description": "Enterprise Resource Planning implementation, customization, and integration including SAP, Odoo, and custom ERP solutions.",
+    "keywords": [
+      "ERP", "enterprise resource planning", "SAP", "Odoo", "Oracle ERP",
+      "Microsoft Dynamics", "ERP implementation", "ERP integration",
+      "sistem ERP", "software ERP", "aplikasi ERP", "implementasi ERP",
+      "ERP manufacturing", "ERP distribusi", "ERP retail",
+      "supply chain management", "SCM", "procurement system",
+      "purchase order", "sales order", "ERP cloud",
+      "jasa ERP", "vendor ERP", "konsultan ERP", "ERP custom"
+    ]
+  },
+  {
+    "id": "svc-010",
+    "name": "CRM Solutions",
+    "description": "Customer Relationship Management implementation and customization for sales pipeline, customer management, and marketing automation.",
+    "keywords": [
+      "CRM", "customer relationship management", "sales pipeline",
+      "sales management", "customer management", "lead management",
+      "marketing automation", "Salesforce", "HubSpot", "Zoho CRM",
+      "sistem CRM", "aplikasi CRM", "CRM implementation",
+      "customer database", "sales tracking", "sales automation",
+      "contact management", "customer engagement",
+      "jasa CRM", "vendor CRM", "manajemen pelanggan"
+    ]
+  },
+  {
+    "id": "svc-011",
+    "name": "HRIS & HR Technology",
+    "description": "Human Resource Information System including payroll, attendance, leave management, recruitment, and employee self-service portals.",
+    "keywords": [
+      "HRIS", "HR system", "human resource", "payroll", "penggajian",
+      "attendance", "absensi", "leave management", "cuti",
+      "recruitment system", "applicant tracking", "ATS",
+      "employee self service", "ESS", "HR portal",
+      "performance management", "KPI karyawan", "talent management",
+      "onboarding", "offboarding", "HR automation",
+      "sistem HR", "aplikasi HR", "software HR",
+      "jasa HRIS", "vendor HRIS", "manajemen karyawan"
+    ]
+  },
+  {
+    "id": "svc-012",
+    "name": "POS & Retail Solutions",
+    "description": "Point of Sale systems, retail management, inventory integration, multi-branch management, and omnichannel solutions.",
+    "keywords": [
+      "POS", "point of sale", "kasir", "sistem kasir", "mesin kasir",
+      "retail system", "retail management", "multi branch",
+      "multi cabang", "omnichannel", "F&B system", "restaurant system",
+      "sistem restoran", "cafe system", "retail software",
+      "barcode", "inventory retail", "stock opname",
+      "jasa POS", "vendor POS", "aplikasi kasir", "software kasir"
+    ]
+  },
+  {
+    "id": "svc-013",
+    "name": "SaaS Development",
+    "description": "Software as a Service product development, multi-tenant architecture, subscription-based platforms, and white-label solutions.",
+    "keywords": [
+      "SaaS", "software as a service", "SaaS development",
+      "SaaS platform", "multi tenant", "subscription platform",
+      "white label", "SaaS product", "cloud application",
+      "SaaS startup", "build SaaS", "bikin SaaS", "buat SaaS",
+      "SaaS solution", "platform development", "product development",
+      "jasa SaaS", "SaaS custom", "aplikasi cloud"
+    ]
+  },
+  {
+    "id": "svc-014",
+    "name": "IoT Solutions",
+    "description": "Internet of Things solutions including sensor integration, smart monitoring, industrial IoT, fleet management, and connected devices.",
+    "keywords": [
+      "IoT", "internet of things", "sensor", "smart monitoring",
+      "industrial IoT", "IIoT", "fleet management", "GPS tracking",
+      "asset tracking", "smart factory", "smart building",
+      "connected devices", "telemetry", "remote monitoring",
+      "SCADA", "PLC integration", "embedded system",
+      "solusi IoT", "jasa IoT", "monitoring real time"
+    ]
+  },
+  {
+    "id": "svc-015",
+    "name": "DevOps & CI/CD",
+    "description": "DevOps consulting, CI/CD pipeline setup, infrastructure automation, containerization, and site reliability engineering.",
+    "keywords": [
+      "DevOps", "CI/CD", "continuous integration", "continuous deployment",
+      "pipeline", "Jenkins", "GitLab CI", "GitHub Actions",
+      "infrastructure as code", "Terraform", "Ansible",
+      "container", "Kubernetes", "K8s", "Docker",
+      "microservices", "site reliability", "SRE",
+      "jasa DevOps", "DevOps engineer", "deployment automation",
+      "monitoring", "observability", "Grafana", "Prometheus"
+    ]
+  },
+  {
+    "id": "svc-016",
+    "name": "IT Consulting",
+    "description": "IT strategy consulting, digital transformation, technology assessment, IT roadmap planning, and enterprise architecture.",
+    "keywords": [
+      "IT consulting", "IT consultant", "konsultan IT", "IT advisory",
+      "digital transformation", "transformasi digital",
+      "technology assessment", "IT roadmap", "IT strategy",
+      "enterprise architecture", "IT planning", "IT audit",
+      "system integration", "integrasi sistem",
+      "jasa konsultasi IT", "vendor IT", "mitra IT",
+      "technology partner", "IT partner", "solusi IT"
+    ]
+  },
+  {
+    "id": "svc-017",
+    "name": "Network & Infrastructure",
+    "description": "Network design, implementation, cabling, WiFi enterprise, data center setup, and network security appliances.",
+    "keywords": [
+      "network", "jaringan", "networking", "LAN", "WAN", "WiFi",
+      "wireless", "cabling", "fiber optic", "router", "switch",
+      "access point", "network design", "network implementation",
+      "data center", "server room", "rack server",
+      "network security", "VLAN", "VPN", "SD-WAN",
+      "jasa jaringan", "instalasi jaringan", "vendor jaringan",
+      "network infrastructure", "network setup"
+    ]
+  },
+  {
+    "id": "svc-018",
+    "name": "Backup & Disaster Recovery",
+    "description": "Data backup solutions, disaster recovery planning, business continuity, and data replication services.",
+    "keywords": [
+      "backup", "disaster recovery", "DR", "BCP",
+      "business continuity", "data backup", "cloud backup",
+      "backup server", "data recovery", "recovery plan",
+      "failover", "high availability", "HA", "replication",
+      "backup solution", "DRaaS", "RPO", "RTO",
+      "jasa backup", "solusi backup", "backup data"
+    ]
+  },
+  {
+    "id": "svc-019",
+    "name": "Digital Marketing Technology",
+    "description": "Marketing technology solutions including SEO tools, analytics platforms, email automation, CMS, and marketing dashboards.",
+    "keywords": [
+      "martech", "marketing technology", "SEO", "SEM",
+      "digital marketing", "marketing automation", "email marketing",
+      "CMS", "content management", "WordPress", "marketing platform",
+      "analytics platform", "tracking pixel", "conversion tracking",
+      "A/B testing", "marketing dashboard",
+      "jasa digital marketing", "platform marketing"
+    ]
+  },
+  {
+    "id": "svc-020",
+    "name": "Document Management & Workflow",
+    "description": "Document management systems, digital archiving, e-signature, approval workflows, and paperless office solutions.",
+    "keywords": [
+      "document management", "DMS", "digital archive", "arsip digital",
+      "e-signature", "tanda tangan digital", "approval workflow",
+      "paperless", "document workflow", "filing system",
+      "surat menyurat", "disposisi", "e-office", "office automation",
+      "sistem arsip", "manajemen dokumen", "digitalisasi dokumen",
+      "jasa digitalisasi", "scan dokumen"
+    ]
+  }
+]
