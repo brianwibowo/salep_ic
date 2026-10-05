@@ -31,11 +31,23 @@ app.include_router(leads.router)
 
 @app.on_event("startup")
 async def startup():
-    logger.info("SALEP starting — env=%s model=%s", settings.app_env, settings.openai_model)
-    if not settings.openai_api_key:
-        logger.warning("OPENAI_API_KEY not set — agent calls will fail")
+    logger.info(
+        "SALEP starting — env=%s provider=%s model=%s",
+        settings.app_env,
+        settings.active_llm_provider,
+        settings.active_llm_model,
+    )
+    if not settings.active_llm_key:
+        logger.warning(
+            "No LLM API key configured (GEMINI_API_KEY, GROQ_API_KEY, OPENAI_API_KEY) — agent qualification will fail"
+        )
+    else:
+        logger.info("LLM configured successfully with provider '%s'", settings.active_llm_provider)
+
     if not settings.google_sheets_id:
-        logger.warning("GOOGLE_SHEETS_ID not set — sheets storage disabled")
+        logger.warning("GOOGLE_SHEETS_ID not set — sheets storage disabled (dry-run mode)")
+    else:
+        logger.info("Google Sheets configured with ID '%s'", settings.google_sheets_id[:10] + "...")
 
 
 @app.on_event("shutdown")
