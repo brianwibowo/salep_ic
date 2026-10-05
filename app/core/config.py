@@ -27,6 +27,17 @@ class Settings(BaseSettings):
         alias="GOOGLE_SERVICE_ACCOUNT_JSON",
     )
 
+    # Apify Data Ingestion (Threads & LinkedIn)
+    apify_api_token: str = Field(default="", alias="APIFY_API_TOKEN")
+    threads_actor_id: str = Field(
+        default="igview-owner~threads-search-scraper",
+        alias="THREADS_ACTOR_ID",
+    )
+    linkedin_actor_id: str = Field(
+        default="harvestapi~linkedin-post-search",
+        alias="LINKEDIN_ACTOR_ID",
+    )
+
     # App
     app_env: str = Field(default="development", alias="APP_ENV")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")

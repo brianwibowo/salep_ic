@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import datetime
 
@@ -78,6 +79,8 @@ async def run_search(request: SearchRequest) -> SearchResponse:
 
     for i, raw_lead in enumerate(unique_results):
         try:
+            if i > 0:
+                await asyncio.sleep(2)
             logger.info("Analyzing lead %d/%d", i + 1, len(unique_results))
             analysis = await analyze_lead(raw_lead.content)
             lead_record = build_lead_record(raw_lead, analysis)

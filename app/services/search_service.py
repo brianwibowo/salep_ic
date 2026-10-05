@@ -8,6 +8,8 @@ from typing import Any
 from app.agent.schemas import RawLead
 from app.core.logging import logger
 from app.sources.mock_source import MockSourceAdapter
+from app.sources.threads_source import ThreadsSourceAdapter
+from app.sources.linkedin_source import LinkedInSourceAdapter
 
 # Keyword expansion groups for MVP (static synonyms)
 KEYWORD_GROUPS: dict[str, list[str]] = {
@@ -116,6 +118,8 @@ KEYWORD_GROUPS: dict[str, list[str]] = {
 # Source adapter registry
 SOURCE_REGISTRY: dict[str, Any] = {
     "mock": MockSourceAdapter(),
+    "threads": ThreadsSourceAdapter(),
+    "linkedin": LinkedInSourceAdapter(),
 }
 
 

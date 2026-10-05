@@ -99,7 +99,10 @@ class SearchRequest(BaseModel):
     keywords: list[str] = Field(min_length=1)
     start_date: str
     end_date: str
-    sources: list[str] = Field(default_factory=lambda: ["mock"])
+    sources: list[str] = Field(
+        default_factory=lambda: ["threads", "linkedin"],
+        description="Sources to query: 'threads', 'linkedin', or 'mock'",
+    )
     limit: int = Field(default=20, ge=1, le=100)
 
 
