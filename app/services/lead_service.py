@@ -115,7 +115,7 @@ async def run_search(request: SearchRequest) -> SearchResponse:
         total_found=total_found,
         total_analyzed=len(leads),
         qualified=len(qualified_leads_for_sales),
-        leads=leads,
+        leads=qualified_leads_for_sales,
     )
 
 

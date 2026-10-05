@@ -124,12 +124,26 @@ SOURCE_REGISTRY: dict[str, Any] = {
 
 
 def expand_keywords(keywords: list[str]) -> list[str]:
-    """Clean and preserve high-intent buyer keywords without adding noisy single tech terms."""
+    """Clean and optionally expand keywords with synonyms from known domain groups."""
     cleaned: list[str] = []
+    seen: set[str] = set()
+
     for kw in keywords:
         k = kw.strip()
-        if k and k not in cleaned:
+        if not k:
+            continue
+        if k.lower() not in seen:
+            seen.add(k.lower())
             cleaned.append(k)
+
+        k_lower = k.lower()
+        for group_name, synonyms in KEYWORD_GROUPS.items():
+            if group_name in k_lower or any(s.lower() in k_lower for s in synonyms[:4]):
+                for syn in synonyms:
+                    if syn.lower() not in seen:
+                        seen.add(syn.lower())
+                        cleaned.append(syn)
+
     return cleaned
 
 
@@ -203,5 +217,7 @@ async def search_sources(
 
         except Exception as e:
             logger.error("Source '%s' failed: %s", source_name, e)
+            if "Apify" in str(e) and "Kuota" in str(e):
+                raise e
 
     return all_results

@@ -853,12 +853,16 @@
 
         const data = await resp.json();
 
-        stepAi.innerText = "✅ 2. AI Gemini selesai menganalisis " + data.total_analyzed + " lead!";
-        stepSheet.innerText = "✅ 3. Disimpan ke Google Spreadsheet!";
+        stepAi.innerText = `✅ 2. AI Gemini selesai menganalisis ${data.total_analyzed} postingan!`;
+        if (data.qualified > 0) {
+          stepSheet.innerText = `✅ 3. Disimpan ${data.qualified} lead potensial ke Google Spreadsheet!`;
+          showToast(`Ditemukan ${data.total_found} postingan, ${data.qualified} calon klien disimpan ke Google Sheet!`, "🎉");
+        } else {
+          stepSheet.innerText = `🛡️ 3. Tidak ada calon klien (0 lolos seleksi sales, spreadsheet tetap bersih)`;
+          showToast(`Ditemukan ${data.total_found} postingan, namun semuanya spam/irrelevant (dibuang otomatis).`, "ℹ️");
+        }
 
-        showToast(`Ditemukan ${data.total_found} postingan, ${data.qualified} terbukti lead potensial!`, "🎉");
-
-        renderLeadCards(data.leads, resultsContainer);
+        renderLeadCards(data.leads, resultsContainer, data.total_analyzed);
         loadRecentLeads();
       } catch (err) {
         showToast("Error: " + err.message, "❌");
@@ -902,8 +906,12 @@
         const lead = await resp.json();
         progress.style.display = "none";
 
-        showToast(`Sukses menganalisis postingan dari ${lead.author_name || 'pengguna'}! Score: ${lead.lead_score}`, "🎯");
-        renderLeadCards([lead], resultsContainer);
+        if (lead.is_potential_lead && lead.lead_score >= 40) {
+          showToast(`Sukses menganalisis calon klien ${lead.author_name || 'pengguna'}! Score: ${lead.lead_score}`, "🎯");
+        } else {
+          showToast(`Postingan dianalisis tapi tidak relevan (Score: ${lead.lead_score}). Tidak disimpan ke Sheet.`, "ℹ️");
+        }
+        renderLeadCards([lead], resultsContainer, 1);
         loadRecentLeads();
       } catch (err) {
         progress.style.display = "none";
@@ -915,9 +923,18 @@
     }
 
     // Render Lead Cards
-    function renderLeadCards(leads, container) {
+    function renderLeadCards(leads, container, totalAnalyzed = 0) {
       if (!leads || !leads.length) {
-        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem; padding: 16px; text-align: center;">Tidak ada lead yang memenuhi kriteria pencarian. Coba keyword lain!</div>';
+        container.innerHTML = `
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 18px; text-align: center;">
+            <div style="font-size: 1.2rem; margin-bottom: 6px;">🛡️ Filter Sales Aktif</div>
+            <div style="color: #F87171; font-weight: 600; font-size: 0.95rem; margin-bottom: 4px;">Tidak ada postingan yang lolos seleksi calon klien.</div>
+            <div style="color: var(--text-muted); font-size: 0.825rem; line-height: 1.5;">
+              ${totalAnalyzed ? totalAnalyzed + ' postingan dievaluasi AI Gemini, namun ' : ''}semuanya berstatus <em>irrelevant / spam promosi</em>.<br>
+              Postingan spam otomatis <strong>dibuang</strong> dan <strong>tidak dimasukkan ke Google Sheets</strong> agar database sales Anda tetap bersih dan berbobot.
+            </div>
+          </div>
+        `;
         return;
       }
 

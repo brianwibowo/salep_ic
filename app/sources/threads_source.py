@@ -42,19 +42,21 @@ class ThreadsSourceAdapter:
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             for kw in target_keywords:
+                # Do NOT pass after/before to this actor as date filtering breaks recent Threads queries
                 payload: dict[str, Any] = {
                     "searchQuery": kw,
                     "sort": "recent",
                     "maxPosts": max_posts,
                 }
-                if start_date:
-                    payload["after"] = start_date
-                if end_date:
-                    payload["before"] = end_date
 
                 try:
                     logger.info("Querying Threads via Apify for keyword: '%s'...", kw)
                     resp = await client.post(api_url, json=payload)
+                    if resp.status_code == 403 or "Monthly usage hard limit exceeded" in resp.text:
+                        raise RuntimeError(
+                            "Kuota gratis Apify ($5.00) telah habis (Monthly usage hard limit exceeded). "
+                            "Silakan perbarui APIFY_API_TOKEN di file .env dengan token akun Apify baru."
+                        )
                     if resp.status_code not in (200, 201):
                         logger.error(
                             "Threads Apify error (%d): %s",
@@ -86,6 +88,12 @@ class ThreadsSourceAdapter:
         # Post text
         caption = item.get("captionText") or item.get("caption") or item.get("text_content") or ""
         if not caption:
+            return None
+
+        # Filter out drop-jualan / affiliate spam that does not even mention web/software
+        caption_lower = caption.lower()
+        relevant_terms = {"web", "website", "landing", "aplikasi", "software", "sistem", "programmer", "developer", "koding", "coding"}
+        if not any(term in caption_lower for term in relevant_terms):
             return None
 
         # URL

@@ -47,6 +47,11 @@ class LinkedInSourceAdapter:
                 try:
                     logger.info("Querying LinkedIn via Apify for keyword: '%s'...", kw)
                     resp = await client.post(api_url, json=payload)
+                    if resp.status_code == 403 or "Monthly usage hard limit exceeded" in resp.text:
+                        raise RuntimeError(
+                            "Kuota gratis Apify ($5.00) telah habis (Monthly usage hard limit exceeded). "
+                            "Silakan perbarui APIFY_API_TOKEN di file .env dengan token akun Apify baru."
+                        )
                     if resp.status_code not in (200, 201):
                         logger.error(
                             "LinkedIn Apify error (%d): %s",
