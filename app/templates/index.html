@@ -613,13 +613,14 @@
 
           <div class="form-group">
             <label class="form-label" for="input-keywords">Kata Kunci Pencarian (Pisahkan dengan koma):</label>
-            <input type="text" id="input-keywords" class="form-input" value="buatkan website, butuh website, jasa website, rekomendasi software house">
+            <input type="text" id="input-keywords" class="form-input" value="buatkan website, butuh website, jasa website, bikin web">
             <div class="chips-group">
               <span class="chip" onclick="addKeyword('buatkan website')">+ buatkan website</span>
               <span class="chip" onclick="addKeyword('butuh website')">+ butuh website</span>
-              <span class="chip" onclick="addKeyword('jasa landing page')">+ jasa landing page</span>
-              <span class="chip" onclick="addKeyword('rekomendasi vendor IT')">+ vendor IT</span>
-              <span class="chip" onclick="addKeyword('cari programmer')">+ cari programmer</span>
+              <span class="chip" onclick="addKeyword('bikin web')">+ bikin web</span>
+              <span class="chip" onclick="addKeyword('jasa website')">+ jasa website</span>
+              <span class="chip" onclick="addKeyword('rekomendasi vendor web')">+ vendor web</span>
+              <span class="chip" onclick="addKeyword('jasa landing page')">+ landing page</span>
             </div>
           </div>
 
@@ -975,10 +976,14 @@
         }
 
         container.innerHTML = leads.map(l => {
-          let score = parseInt(l.lead_score) || 0;
+          let score = parseInt(l['Skor Minat'] || l.lead_score) || 0;
           let badgeColor = score >= 70 ? "#10B981" : (score >= 40 ? "#3B82F6" : "#6B7280");
-          let author = l.author_name || "User";
-          let source = (l.source || "").toLowerCase();
+          let author = l['Nama Prospek'] || l.author_name || "User";
+          let source = (l['Platform'] || l.source || "").toLowerCase();
+          let content = l['Isi Kebutuhan'] || l.content || "-";
+          let url = l['Link Postingan'] || l.source_url || "#";
+          let detail = l['Detail Kebutuhan'] || l.needs || "";
+          let service = l['Layanan Ditawarkan'] || l.recommended_services || "";
 
           return `
             <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
@@ -988,15 +993,15 @@
                   ${author}
                 </div>
                 <div style="font-size: 0.8rem; font-weight: 700; color: ${badgeColor};">
-                  ${score}/100
+                  Skor: ${score}/100
                 </div>
               </div>
               <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                ${l.content || "-"}
+                ${content}
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                <span style="font-size: 0.75rem; color: #9CA3AF;">${l.intent || ""}</span>
-                <a href="${l.source_url}" target="_blank" rel="noopener noreferrer" style="color: #60A5FA; font-size: 0.75rem; text-decoration: none;">Link Post ↗</a>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 0.75rem;">
+                <span style="color: #34D399; font-weight: 600;">🎯 ${service || detail || 'Web Development'}</span>
+                <a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #60A5FA; text-decoration: none; font-weight: 600;">Link Post ↗</a>
               </div>
             </div>
           `;

@@ -90,20 +90,30 @@ async def run_search(request: SearchRequest) -> SearchResponse:
             errors += 1
             logger.error("Failed to analyze lead %d: %s", i + 1, e)
 
-    # Step 5: Save all analyzed leads to Google Sheets (strictly real sources, exclude mock)
-    qualified = [l for l in leads if l.is_potential_lead]
-    real_leads_to_save = [l for l in leads if l.source != "mock"]
-    saved = await sheets_service.append_leads(real_leads_to_save)
+    # Step 5: Save ONLY genuine, qualified leads to Google Sheets for Sales
+    # Exclude: job seekers, students, training ads, random tech rants, and irrelevant chit-chat
+    qualified_leads_for_sales = [
+        l for l in leads
+        if l.source != "mock"
+        and l.is_potential_lead is True
+        and l.lead_score >= 50
+        and l.intent in {
+            IntentType.LOOKING_FOR_VENDOR,
+            IntentType.REQUESTING_RECOMMENDATION,
+            IntentType.EVALUATING_SOLUTION,
+        }
+    ]
+    saved = await sheets_service.append_leads(qualified_leads_for_sales)
     logger.info(
-        "Search %s complete — analyzed=%d qualified=%d saved=%d errors=%d",
-        query_id, len(leads), len(qualified), saved, errors,
+        "Search %s complete — analyzed=%d qualified=%d saved_for_sales=%d errors=%d",
+        query_id, len(leads), len(qualified_leads_for_sales), saved, errors,
     )
 
     return SearchResponse(
         query_id=query_id,
         total_found=total_found,
         total_analyzed=len(leads),
-        qualified=len(qualified),
+        qualified=len(qualified_leads_for_sales),
         leads=leads,
     )
 
@@ -165,7 +175,7 @@ async def analyze_and_save_url(url: str, save_to_sheet: bool = True) -> LeadReco
     analysis = await analyze_lead(raw_lead.content)
     lead_record = build_lead_record(raw_lead, analysis)
 
-    if save_to_sheet:
+    if save_to_sheet and lead_record.is_potential_lead and lead_record.lead_score >= 40:
         await sheets_service.append_lead(lead_record)
 
     return lead_record

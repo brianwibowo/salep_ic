@@ -124,29 +124,13 @@ SOURCE_REGISTRY: dict[str, Any] = {
 
 
 def expand_keywords(keywords: list[str]) -> list[str]:
-    """Expand input keywords with related/synonym terms.
-
-    Given ["butuh aplikasi inventory"], this might expand to include
-    "stock management", "warehouse management", etc.
-
-    Returns:
-        Expanded list of unique keywords (original + related).
-    """
-    expanded = set()
+    """Clean and preserve high-intent buyer keywords without adding noisy single tech terms."""
+    cleaned: list[str] = []
     for kw in keywords:
-        expanded.add(kw)
-        kw_lower = kw.lower()
-        for group_key, synonyms in KEYWORD_GROUPS.items():
-            if group_key in kw_lower or any(s.lower() in kw_lower for s in synonyms):
-                expanded.update(synonyms)
-
-    result = list(expanded)
-    if len(result) > len(keywords):
-        logger.info(
-            "Expanded %d keywords to %d (added %d synonyms)",
-            len(keywords), len(result), len(result) - len(keywords),
-        )
-    return result
+        k = kw.strip()
+        if k and k not in cleaned:
+            cleaned.append(k)
+    return cleaned
 
 
 def _dedup_key(lead: RawLead) -> str:

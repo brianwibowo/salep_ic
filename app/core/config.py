@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     auto_search_enabled: bool = Field(default=True, alias="AUTO_SEARCH_ENABLED")
     auto_search_interval_minutes: int = Field(default=15, alias="AUTO_SEARCH_INTERVAL_MINUTES")
     auto_search_keywords: str = Field(
-        default="buatkan website,bikin website,butuh website,jasa website,rekomendasi software house,butuh vendor IT,cari programmer,jasa landing page",
+        default="buatkan website,bikin website,butuh website,jasa website,bikin web,rekomendasi vendor web,jasa landing page,butuh software house",
         alias="AUTO_SEARCH_KEYWORDS",
     )
     auto_search_sources: str = Field(default="threads,linkedin", alias="AUTO_SEARCH_SOURCES")

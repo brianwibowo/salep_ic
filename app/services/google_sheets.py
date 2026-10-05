@@ -10,53 +10,41 @@ from app.core.config import settings
 from app.core.logging import logger
 
 SHEET_HEADERS = [
-    "lead_id",
-    "source",
-    "source_url",
-    "author_name",
-    "author_profile_url",
-    "published_at",
-    "matched_keyword",
-    "content",
-    "is_potential_lead",
-    "intent",
-    "industry",
-    "needs",
-    "pain_points",
-    "recommended_services",
-    "lead_score",
-    "confidence",
-    "evidence",
-    "analyzed_at",
-    "status",
+    "Tanggal",
+    "Platform",
+    "Nama Prospek",
+    "Link Postingan",
+    "Isi Kebutuhan",
+    "Detail Kebutuhan",
+    "Layanan Ditawarkan",
+    "Skor Minat",
+    "Status Sales",
 ]
 
 
 def _lead_to_row(lead: LeadRecord) -> list[str]:
-    """Convert a LeadRecord to a flat row for Google Sheets."""
-    services_summary = ", ".join(
-        f"{s.product_name} ({s.match_score}%)" for s in lead.recommended_services
-    )
+    """Convert a LeadRecord to a clean, sales-focused flat row for Google Sheets."""
+    pub_date = ""
+    if lead.published_at:
+        pub_date = lead.published_at.strftime("%Y-%m-%d")
+    elif lead.analyzed_at:
+        pub_date = lead.analyzed_at.strftime("%Y-%m-%d")
+
+    platform = lead.source.capitalize()
+    author = lead.author_name or "Prospek"
+    needs_summary = ", ".join(lead.needs) if lead.needs else "Pembuatan Website"
+    services_summary = ", ".join(s.product_name for s in lead.recommended_services) or "Web Development"
+
     return [
-        lead.lead_id,
-        lead.source,
+        pub_date,
+        platform,
+        author,
         lead.source_url,
-        lead.author_name or "",
-        lead.author_profile_url or "",
-        lead.published_at.isoformat() if lead.published_at else "",
-        lead.matched_keyword,
         lead.content[:500],
-        str(lead.is_potential_lead),
-        lead.intent.value,
-        lead.industry or "",
-        ", ".join(lead.needs),
-        ", ".join(lead.pain_points),
+        needs_summary,
         services_summary,
         str(lead.lead_score),
-        f"{lead.confidence:.2f}",
-        " | ".join(lead.evidence),
-        lead.analyzed_at.isoformat(),
-        lead.status.value,
+        "Belum Dihubungi",
     ]
 
 
@@ -163,14 +151,14 @@ class GoogleSheetsService:
             return False
 
         try:
-            source_url_col = SHEET_HEADERS.index("source_url") + 1
+            source_url_col = SHEET_HEADERS.index("Link Postingan") + 1
             all_urls = sheet.col_values(source_url_col)
             return source_url in all_urls
         except Exception as e:
             logger.error("Failed to check existing lead: %s", e)
             return False
 
-    async def get_recent_leads(self, limit: int = 30) -> list[dict[str, Any]]:
+    async def get_recent_leads(self, limit: int = 30) -> list[dict[str, any]]:
         """Fetch the most recent leads from the Google Sheet in reverse chronological order."""
         sheet = self._get_sheet()
         if sheet is None:
