@@ -50,13 +50,35 @@ class Settings(BaseSettings):
 
     # App
     app_env: str = Field(default="development", alias="APP_ENV")
+    app_domain: str = Field(default="salep1.duckdns.org", alias="APP_DOMAIN")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @property
     def is_production(self) -> bool:
-        return self.app_env == "production"
+        return self.app_env.lower() == "production"
+
+    @property
+    def app_base_url(self) -> str:
+        """Production public URL or localhost in development."""
+        if self.is_production:
+            return f"https://{self.app_domain}"
+        return "http://localhost:8000"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """CORS allowed origins for production domain and local dev."""
+        origins = [
+            f"https://{self.app_domain}",
+            f"http://{self.app_domain}",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "http://localhost:3000",
+        ]
+        if not self.is_production:
+            origins.append("*")
+        return list(dict.fromkeys(origins))
 
     @property
     def active_llm_provider(self) -> str:

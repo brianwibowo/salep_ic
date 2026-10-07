@@ -2,7 +2,7 @@
 # SALEP Lead Generation Runner Script
 # Can be run manually or triggered via cron
 
-API_URL="${SALEP_API_URL:-http://localhost:8000}"
+API_URL="${SALEP_API_URL:-https://salep1.duckdns.org}"
 
 # Auto-compute dates (compatible with both GNU date and macOS BSD date)
 YESTERDAY=$(date -d "yesterday" '+%Y-%m-%d' 2>/dev/null || date -v-1d '+%Y-%m-%d' 2>/dev/null || date '+%Y-%m-%d')

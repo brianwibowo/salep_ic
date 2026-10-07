@@ -19,7 +19,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,8 +35,10 @@ app.include_router(scheduler.router)
 @app.on_event("startup")
 async def startup():
     logger.info(
-        "SALEP starting — env=%s provider=%s model=%s",
+        "SALEP starting — env=%s domain=%s url=%s provider=%s model=%s",
         settings.app_env,
+        settings.app_domain,
+        settings.app_base_url,
         settings.active_llm_provider,
         settings.active_llm_model,
     )
