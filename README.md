@@ -119,3 +119,19 @@ salep/
 ├── docker-compose.yml
 └── requirements.txt
 ```
+
+## Workspace & discovery
+
+- Login demo memilih Marketing atau Sales. Cookie HttpOnly menyimpan token sesi opaque; role diverifikasi server, bukan parameter `role` atau localStorage. Sesi berlaku 24 jam. Logout wajib sebelum berganti role. Ini belum autentikasi akun/password untuk produksi.
+- Marketing mengatur discovery dan validasi. Sales hanya membaca lead `valid` dan memperbarui tindak lanjutnya. Prospek baru menunggu review marketing; lead lama mempertahankan statusnya.
+- Dashboard memakai pagination database (10/25/50 baris), pencarian, filter status, dan detail skor.
+- Default discovery: Threads, setiap 30 menit, dua keyword bergiliran. Keyword mencakup software, hosting/VPS, cloud, managed service, jaringan, keamanan, backup, ERP, CRM, dan otomasi. Pengaturan UI tersimpan di `data/discovery.json` dan mengungguli environment untuk keyword/sumber/batas hasil.
+- Jalankan **satu worker** untuk scheduler internal. Siklus pertama berjalan setelah interval awal. Tombol “Jalankan sekali” tidak menunggu jadwal. Mulai/berhenti berlaku selama proses server hidup; `AUTO_SEARCH_ENABLED` menentukan startup berikutnya.
+- Pencarian manual memakai 1–10 keyword eksplisit, tanpa ekspansi sinonim otomatis yang menambah pemakaian Apify. Actor Threads tetap sama. Filter tanggal dilakukan pada hasil bertanggal; posting tanpa tanggal tetap disertakan. Batas hasil tidak sama dengan jumlah posting yang ditagihkan actor.
+- Alternatif cron eksternal: set `AUTO_SEARCH_ENABLED=false` untuk menghindari dua scheduler, lalu gunakan `*/30 * * * * cd /path/to/salep && SALEP_API_URL=http://127.0.0.1:8000 bash scripts/run_search.sh`. Script memakai pool konfigurasi yang sama dan sesi marketing sementara. API lain juga memerlukan login `/api/v1/auth/login` dan cookie responsnya.
+
+Tes lokal tanpa panggilan provider:
+
+```bash
+pytest tests/test_api_endpoints.py tests/test_discovery.py tests/test_scoring.py tests/test_deduplication.py tests/test_leads_rbac.py -q
+```

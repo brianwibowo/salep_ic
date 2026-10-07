@@ -217,7 +217,6 @@ async def search_sources(
 
         except Exception as e:
             logger.error("Source '%s' failed: %s", source_name, e)
-            if "Apify" in str(e) and "Kuota" in str(e):
-                raise e
+            raise
 
     return all_results

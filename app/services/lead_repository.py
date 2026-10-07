@@ -283,26 +283,18 @@ class LeadRepository:
         try:
             # Check existing status if already in DB
             cur = conn.cursor()
-            cur.execute("SELECT marketing_status, sales_status FROM leads WHERE lead_id = ? OR source_url = ?", (lead.lead_id, lead.source_url))
+            cur.execute("SELECT lead_id, marketing_status, sales_status FROM leads WHERE lead_id = ? OR (source_url != '' AND source_url = ?)", (lead.lead_id, lead.source_url))
             existing = cur.fetchone()
 
             marketing_status = lead.marketing_status
             sales_status = lead.sales_status
 
             if existing:
+                lead.lead_id = existing["lead_id"]
                 marketing_status = existing["marketing_status"]
                 sales_status = existing["sales_status"]
             elif default_status:
                 marketing_status = default_status
-            else:
-                # Default heuristics based on qualification
-                if lead.is_potential_lead and lead.lead_score >= 60:
-                    marketing_status = "valid"
-                elif lead.lead_score >= 40:
-                    marketing_status = "pending"
-                else:
-                    marketing_status = "invalid"
-
             breakdown_dict = None
             if lead.score_breakdown:
                 breakdown_dict = lead.score_breakdown.model_dump()
@@ -362,8 +354,12 @@ class LeadRepository:
         status: str = "all",
         search: str = "",
         limit: int = 50,
+        offset: int = 0,
+        sales_status: str = "all",
     ) -> list[dict[str, Any]]:
         """Retrieve leads matching role permissions and optional query filters."""
+        if role not in {"marketing", "sales"}:
+            raise ValueError("Unknown role")
         conn = self._get_connection()
         try:
             cur = conn.cursor()
@@ -377,6 +373,10 @@ class LeadRepository:
                 if status and status.lower() != "all":
                     conditions.append("marketing_status = ?")
                     params.append(status.lower())
+
+            if sales_status != "all":
+                conditions.append("sales_status = ?")
+                params.append(sales_status)
 
             if search:
                 kw = f"%{search.strip()}%"
@@ -392,10 +392,10 @@ class LeadRepository:
             query = f"""
                 SELECT * FROM leads
                 {where_clause}
-                ORDER BY analyzed_at DESC, lead_score DESC
-                LIMIT ?
+                ORDER BY analyzed_at DESC, lead_score DESC, lead_id
+                LIMIT ? OFFSET ?
             """
-            params.append(limit)
+            params.extend([limit, offset])
 
             cur.execute(query, params)
             rows = cur.fetchall()
@@ -444,14 +444,16 @@ class LeadRepository:
         try:
             now_str = datetime.now(timezone.utc).isoformat()
             with conn:
-                conn.execute(
+                result = conn.execute(
                     """
                     UPDATE leads
                     SET sales_status = ?, updated_at = ?
-                    WHERE lead_id = ?
+                    WHERE lead_id = ? AND marketing_status = 'valid'
                     """,
                     (new_status.strip(), now_str, lead_id),
                 )
+            if result.rowcount == 0:
+                return None
             return self.get_lead(lead_id)
         finally:
             conn.close()

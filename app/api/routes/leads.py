@@ -1,7 +1,7 @@
 """Leads endpoint — single lead analysis, direct URL inspection, feed, and RBAC status management."""
 
 from typing import Any
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from app.agent.schemas import (
     AnalyzeRequest,
@@ -21,7 +21,9 @@ router = APIRouter(prefix="/api/v1", tags=["leads"])
 
 @router.get("/leads")
 async def get_leads_endpoint(
-    role: str = Query(default="marketing", description="Role requesting data: 'marketing' or 'sales'"),
+    request: Request,
+    offset: int = Query(default=0, ge=0),
+    sales_status: str = Query(default="all"),
     status: str = Query(default="all", description="Marketing status: 'all', 'valid', 'invalid', 'pending'"),
     search: str = Query(default="", description="Search query filter"),
     limit: int = Query(default=50, ge=1, le=100),
@@ -33,7 +35,9 @@ async def get_leads_endpoint(
     """
     try:
         leads = lead_repository.get_leads(
-            role=role,
+            role=request.state.role,
+            offset=offset,
+            sales_status=sales_status,
             status=status,
             search=search,
             limit=limit,
@@ -45,20 +49,34 @@ async def get_leads_endpoint(
 
 
 @router.get("/leads/stats")
-async def get_leads_stats():
+async def get_leads_stats(request: Request):
     """Retrieve aggregated lead counts for Marketing and Sales KPI counters."""
     try:
-        return lead_repository.get_stats()
+        stats = lead_repository.get_stats()
+        if request.state.role == "sales":
+            return {k: v for k, v in stats.items() if k.startswith("sales_") or k == "valid"}
+        return stats
     except Exception as e:
         logger.error("Failed to fetch lead stats: %s", e)
         raise HTTPException(status_code=500, detail="Failed to fetch stats")
 
 
+@router.get("/leads/recent")
+async def get_recent_leads(limit: int = Query(default=20, ge=1, le=50)) -> list[dict[str, Any]]:
+    """Fetch the latest leads directly from the Google Sheet."""
+    try:
+        leads = await sheets_service.get_recent_leads(limit=limit)
+        return leads
+    except Exception as e:
+        logger.error("Failed to fetch recent leads: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve leads: {str(e)}")
+
+
 @router.get("/leads/{lead_id}")
-async def get_lead_detail(lead_id: str) -> dict[str, Any]:
+async def get_lead_detail(lead_id: str, request: Request) -> dict[str, Any]:
     """Retrieve full details of a specific lead including transparent score breakdown."""
     lead = lead_repository.get_lead(lead_id)
-    if not lead:
+    if not lead or (request.state.role == "sales" and lead["marketing_status"] != "valid"):
         raise HTTPException(status_code=404, detail="Lead not found")
     return lead
 
@@ -120,11 +138,16 @@ async def update_lead_status(lead_id: str, payload: UpdateStatusRequest) -> dict
 @router.patch("/leads/{lead_id}/sales-status")
 async def update_sales_status(lead_id: str, payload: UpdateSalesStatusRequest) -> dict[str, Any]:
     """Update sales outreach follow-up status (e.g. Belum Dihubungi, Sedang Dihubungi, Closing, Batal)."""
+    lead = lead_repository.get_lead(lead_id)
+    if not lead or lead["marketing_status"] != "valid":
+        raise HTTPException(status_code=404, detail="Lead not found")
     try:
         updated = lead_repository.update_sales_status(lead_id, payload.sales_status)
         if not updated:
             raise HTTPException(status_code=404, detail="Lead not found")
         return updated
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Failed to update sales status: %s", e)
         raise HTTPException(status_code=500, detail=f"Update failed: {str(e)}")
@@ -150,14 +173,3 @@ async def analyze_url_endpoint(request: AnalyzeUrlRequest):
     except Exception as e:
         logger.error("URL analysis failed for '%s': %s", request.url, e)
         raise HTTPException(status_code=500, detail=f"Failed to analyze URL: {str(e)}")
-
-
-@router.get("/leads/recent")
-async def get_recent_leads(limit: int = Query(default=20, ge=1, le=50)) -> list[dict[str, Any]]:
-    """Fetch the latest leads directly from the Google Sheet."""
-    try:
-        leads = await sheets_service.get_recent_leads(limit=limit)
-        return leads
-    except Exception as e:
-        logger.error("Failed to fetch recent leads: %s", e)
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve leads: {str(e)}")

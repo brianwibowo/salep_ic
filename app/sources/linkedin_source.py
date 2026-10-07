@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any
 import httpx
 
@@ -28,13 +28,13 @@ class LinkedInSourceAdapter:
         """Search LinkedIn posts matching keywords via Apify."""
         if not settings.apify_api_token:
             logger.warning("LinkedInSource: APIFY_API_TOKEN is not set, skipping LinkedIn search.")
-            return []
+            raise RuntimeError("APIFY_API_TOKEN belum dikonfigurasi")
 
         leads: list[RawLead] = []
         actor_id = settings.linkedin_actor_id or "harvestapi~linkedin-post-search"
         api_url = f"https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items?token={settings.apify_api_token}"
 
-        target_keywords = keywords[:2] if len(keywords) > 2 else keywords
+        target_keywords = list(dict.fromkeys(keywords))
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             for kw in target_keywords:
@@ -49,32 +49,28 @@ class LinkedInSourceAdapter:
                     resp = await client.post(api_url, json=payload)
                     if resp.status_code == 403 or "Monthly usage hard limit exceeded" in resp.text:
                         raise RuntimeError(
-                            "Kuota gratis Apify ($5.00) telah habis (Monthly usage hard limit exceeded). "
-                            "Silakan perbarui APIFY_API_TOKEN di file .env dengan token akun Apify baru."
+                            "Apify menolak akses atau batas pemakaian tercapai. Periksa token dan kuota akun Apify."
                         )
                     if resp.status_code not in (200, 201):
-                        logger.error(
-                            "LinkedIn Apify error (%d): %s",
-                            resp.status_code,
-                            resp.text[:200],
-                        )
-                        continue
+                        raise RuntimeError(f"Apify mengembalikan HTTP {resp.status_code}")
 
                     items = resp.json()
                     if not isinstance(items, list):
                         logger.warning("LinkedIn Apify unexpected format: %s", type(items))
-                        continue
+                        raise RuntimeError("Format respons Apify tidak sesuai")
 
                     logger.info("LinkedIn returned %d raw items for '%s'", len(items), kw)
                     for item in items:
                         lead = self._parse_item(item, matched_kw=kw)
                         if lead and lead.content.strip():
+                            if lead.published_at and not (date.fromisoformat(start_date) <= lead.published_at.date() <= date.fromisoformat(end_date)):
+                                continue
                             leads.append(lead)
 
                 except httpx.TimeoutException:
-                    logger.warning("LinkedIn search timed out for keyword: '%s'", kw)
-                except Exception as e:
-                    logger.error("LinkedIn search failed for '%s': %s", kw, e)
+                    raise RuntimeError("Apify timeout. Periksa run di Apify sebelum mencoba lagi.") from None
+                except httpx.HTTPError:
+                    raise RuntimeError("Koneksi ke Apify gagal") from None
 
         return leads[:limit]
 

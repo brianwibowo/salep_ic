@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from typing import Literal
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # --- Intent Taxonomy ---
@@ -126,20 +127,37 @@ class UpdateStatusRequest(BaseModel):
 
 
 class UpdateSalesStatusRequest(BaseModel):
-    sales_status: str = Field(description="Status follow up sales")
+    sales_status: Literal["Belum Dihubungi", "Sedang Dihubungi", "Closing", "Batal"]
 
 
 # --- API Request / Response ---
 
 class SearchRequest(BaseModel):
-    keywords: list[str] = Field(min_length=1)
+    keywords: list[str] = Field(min_length=1, max_length=10)
     start_date: str
     end_date: str
-    sources: list[str] = Field(
+    sources: list[Literal["threads", "linkedin", "mock"]] = Field(
+        min_length=1,
         default_factory=lambda: ["threads", "linkedin"],
         description="Sources to query: 'threads', 'linkedin', or 'mock'",
     )
     limit: int = Field(default=20, ge=1, le=100)
+
+
+    @field_validator('keywords')
+    @classmethod
+    def clean_keywords(cls, values):
+        cleaned = list(dict.fromkeys(v.strip() for v in values if v.strip()))
+        if not cleaned or any(len(v) > 150 for v in cleaned):
+            raise ValueError('Masukkan keyword yang valid')
+        return cleaned
+
+    @model_validator(mode='after')
+    def check_dates(self):
+        from datetime import date
+        if date.fromisoformat(self.start_date) > date.fromisoformat(self.end_date):
+            raise ValueError('Tanggal akhir harus setelah tanggal awal')
+        return self
 
 
 class AnalyzeRequest(BaseModel):

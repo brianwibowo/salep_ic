@@ -1,9 +1,14 @@
 """Tests for LeadRepository, ScoreBreakdown transparency, and RBAC endpoints."""
 
 import pytest
-from app.services.lead_repository import lead_repository
+from app.services.lead_repository import LeadRepository
 from app.services.scoring_service import calculate_score_breakdown
 from app.agent.schemas import LeadAnalysis, IntentType, ProductMatch
+
+
+@pytest.fixture
+def lead_repository(tmp_path):
+    return LeadRepository(tmp_path / "leads.db")
 
 
 def test_score_breakdown_transparency():
@@ -38,7 +43,7 @@ def test_score_breakdown_transparency():
     assert "Gemini" in breakdown.ai_confidence_explanation
 
 
-def test_lead_repository_rbac_isolation():
+def test_lead_repository_rbac_isolation(lead_repository):
     """Ensure Sales role only receives 'valid' leads, while Marketing can view all."""
     # Ensure seeded data is present
     stats = lead_repository.get_stats()
@@ -57,7 +62,7 @@ def test_lead_repository_rbac_isolation():
         assert lead["marketing_status"] == "valid"
 
 
-def test_lead_repository_status_toggle():
+def test_lead_repository_status_toggle(lead_repository):
     """Marketing toggling status from pending to valid immediately makes it visible to Sales."""
     import uuid
     from datetime import datetime, timezone

@@ -62,3 +62,7 @@ async def startup():
 async def shutdown():
     lead_scheduler.stop()
     logger.info("SALEP shutting down")
+
+from app.core.auth import router as auth_router, enforce_access
+app.include_router(auth_router)
+app.middleware('http')(enforce_access)

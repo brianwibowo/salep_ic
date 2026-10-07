@@ -40,12 +40,12 @@ class Settings(BaseSettings):
 
     # Automated Background Scheduler
     auto_search_enabled: bool = Field(default=True, alias="AUTO_SEARCH_ENABLED")
-    auto_search_interval_minutes: int = Field(default=15, alias="AUTO_SEARCH_INTERVAL_MINUTES")
+    auto_search_interval_minutes: int = Field(default=30, ge=1, alias="AUTO_SEARCH_INTERVAL_MINUTES")
     auto_search_keywords: str = Field(
-        default="buatkan website,bikin website,butuh website,jasa website,bikin web,rekomendasi vendor web,jasa landing page,butuh software house",
+        default="butuh website,rekomendasi hosting,butuh server VPS,cari managed service,butuh software house,migrasi cloud,vendor jaringan kantor,jasa pentest,solusi backup data,implementasi ERP,rekomendasi CRM,butuh aplikasi mobile,otomatisasi bisnis,konsultan IT,monitoring server,integrasi API",
         alias="AUTO_SEARCH_KEYWORDS",
     )
-    auto_search_sources: str = Field(default="threads,linkedin", alias="AUTO_SEARCH_SOURCES")
+    auto_search_sources: str = Field(default="threads", alias="AUTO_SEARCH_SOURCES")
     auto_search_limit_per_run: int = Field(default=5, alias="AUTO_SEARCH_LIMIT_PER_RUN")
 
     # App

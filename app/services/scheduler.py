@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.agent.schemas import SearchRequest
@@ -16,6 +16,7 @@ class LeadScheduler:
     """Manages periodic autonomous searches across social sources."""
 
     def __init__(self) -> None:
+        self._cycle_lock = asyncio.Lock()
         self.is_running: bool = False
         self._task: asyncio.Task | None = None
         self.last_run_at: datetime | None = None
@@ -47,17 +48,20 @@ class LeadScheduler:
     def stop(self) -> None:
         """Stop the background scheduler task."""
         self.is_running = False
+        self.next_run_at = None
         if self._task and not self._task.done():
             self._task.cancel()
             logger.info("AutoScheduler stopped")
 
     async def _scheduler_loop(self) -> None:
         """Internal infinite loop with interval sleep."""
-        # Initial boot delay (30 seconds) to allow server to be fully ready
-        logger.info("AutoScheduler waiting 30 seconds before initial cycle...")
-        await asyncio.sleep(30)
+        # Wait one interval before the first scheduled run.
+        logger.info("AutoScheduler waiting configured interval before initial cycle...")
+        self.next_run_at = datetime.now(timezone.utc) + timedelta(minutes=settings.auto_search_interval_minutes)
+        await asyncio.sleep(settings.auto_search_interval_minutes * 60)
 
         while self.is_running:
+            cycle_started = datetime.now(timezone.utc)
             try:
                 await self.run_cycle(trigger_type="scheduled")
             except asyncio.CancelledError:
@@ -67,32 +71,42 @@ class LeadScheduler:
                 logger.error("AutoScheduler cycle failed: %s", e)
 
             interval_seconds = max(300, settings.auto_search_interval_minutes * 60)
-            self.next_run_at = datetime.utcnow() + timedelta(seconds=interval_seconds)
+            self.next_run_at = cycle_started + timedelta(seconds=interval_seconds)
             logger.info("AutoScheduler next run scheduled at: %s UTC", self.next_run_at.isoformat())
 
             try:
-                await asyncio.sleep(interval_seconds)
+                await asyncio.sleep(max(0, (self.next_run_at - datetime.now(timezone.utc)).total_seconds()))
             except asyncio.CancelledError:
                 break
 
     async def run_cycle(self, trigger_type: str = "manual") -> dict[str, Any]:
+        if self._cycle_lock.locked():
+            return {"status": "busy"}
+        async with self._cycle_lock:
+            try:
+                return await self._run_cycle(trigger_type)
+            except Exception as exc:
+                self.last_error = str(exc)
+                raise
+
+    async def _run_cycle(self, trigger_type: str = "manual") -> dict[str, Any]:
         """Execute a single autonomous discovery cycle with rotated keywords."""
         logger.info("[AutoScheduler] Starting discovery cycle (trigger=%s)...", trigger_type)
-        self.last_run_at = datetime.utcnow()
+        self.last_run_at = datetime.now(timezone.utc)
         self.total_runs += 1
 
         all_keywords = [k.strip() for k in settings.auto_search_keywords.split(",") if k.strip()]
         sources = [s.strip() for s in settings.auto_search_sources.split(",") if s.strip()]
 
         if not all_keywords:
-            all_keywords = ["buatkan website", "butuh website", "jasa website", "rekomendasi vendor IT"]
+            all_keywords = ["rekomendasi hosting", "cari managed service", "butuh software", "rekomendasi vendor IT"]
         if not sources:
             sources = ["threads", "linkedin"]
 
         # Rotate keywords so different prospect intents are covered each cycle
         num_kw = len(all_keywords)
         idx = self._keyword_cursor % num_kw
-        cycle_keywords = [all_keywords[idx], all_keywords[(idx + 1) % num_kw]]
+        cycle_keywords = list(dict.fromkeys([all_keywords[idx], all_keywords[(idx + 1) % num_kw]]))
         self._keyword_cursor = (idx + 2) % num_kw
 
         logger.info(
@@ -101,8 +115,8 @@ class LeadScheduler:
             num_kw,
         )
 
-        today = datetime.utcnow().strftime("%Y-%m-%d")
-        three_days_ago = (datetime.utcnow() - timedelta(days=3)).strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        three_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
 
         request = SearchRequest(
             keywords=cycle_keywords,
@@ -137,6 +151,7 @@ class LeadScheduler:
     def get_status(self) -> dict[str, Any]:
         """Return current status of the autonomous background scheduler."""
         return {
+            "cycle_running": self._cycle_lock.locked(),
             "enabled": settings.auto_search_enabled,
             "is_running": self.is_running,
             "interval_minutes": settings.auto_search_interval_minutes,

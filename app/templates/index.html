@@ -1,1907 +1,999 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SALEP — AI Sales Intelligence & Lead Qualification</title>
-  <meta name="description" content="Dashboard intelijen penjualan SALEP berbasis AI dengan kontrol akses tim Marketing dan Sales">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #F8FAFC;
-      --card-bg: #FFFFFF;
-      --card-hover: #F1F5F9;
-      --border: #E2E8F0;
-      --border-focus: #2563EB;
-      --text: #0F172A;
-      --text-muted: #64748B;
-      --primary: #2563EB;
-      --primary-hover: #1D4ED8;
-      --primary-glow: rgba(37, 99, 235, 0.15);
-      --accent: #059669;
-      --accent-hover: #047857;
-      --accent-glow: rgba(5, 150, 105, 0.15);
-      --warning: #D97706;
-      --danger: #DC2626;
-      --purple: #7C3AED;
-      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: var(--font-main);
-      line-height: 1.5;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .ambient-glow {
-      position: fixed;
-      top: -200px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 900px;
-      height: 450px;
-      background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, rgba(5, 150, 105, 0.03) 50%, transparent 80%);
-      filter: blur(120px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 24px 20px 60px;
-      position: relative;
-      z-index: 1;
-      width: 100%;
-    }
-
-    /* Header & Navigation */
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .logo-badge {
-      background: linear-gradient(135deg, #2563EB 0%, #059669 100%);
-      color: #fff;
-      font-weight: 800;
-      font-size: 1.25rem;
-      padding: 6px 14px;
-      border-radius: 10px;
-      box-shadow: 0 4px 14px var(--primary-glow);
-      letter-spacing: 0.5px;
-    }
-
-    .brand-text h1 {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.3px;
-    }
-
-    .brand-text p {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .role-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 0.825rem;
-      font-weight: 700;
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-    }
-
-    .role-indicator.role-marketing {
-      background: #EFF6FF;
-      border-color: #BFDBFE;
-      color: #1D4ED8;
-    }
-
-    .role-indicator.role-sales {
-      background: #ECFDF5;
-      border-color: #A7F3D0;
-      color: #065F46;
-    }
-
-    .realtime-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 0.775rem;
-      font-weight: 600;
-      background: #ECFDF5;
-      border: 1px solid #A7F3D0;
-      color: #065F46;
-    }
-
-    .realtime-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px rgba(5, 150, 105, 0.4);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
-
-    /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.15s ease-in-out;
-      border: 1px solid transparent;
-      text-decoration: none;
-      font-family: inherit;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, #1D4ED8 100%);
-      color: white;
-      box-shadow: 0 3px 10px var(--primary-glow);
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
-      transform: translateY(-1px);
-    }
-
-    .btn-accent {
-      background: linear-gradient(135deg, var(--accent) 0%, #047857 100%);
-      color: white;
-      box-shadow: 0 3px 10px var(--accent-glow);
-    }
-
-    .btn-accent:hover {
-      background: linear-gradient(135deg, #047857 0%, #065F46 100%);
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: #FFFFFF;
-      color: #1E293B;
-      border: 1px solid #CBD5E1;
-    }
-
-    .btn-secondary:hover {
-      background: #F8FAFC;
-      border-color: #94A3B8;
-    }
-
-    .btn-sm {
-      padding: 5px 10px;
-      font-size: 0.775rem;
-      border-radius: 6px;
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    /* Cards */
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 22px;
-      position: relative;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .card-subtitle {
-      font-size: 0.825rem;
-      color: var(--text-muted);
-      margin-top: 3px;
-    }
-
-    /* Banner */
-    .workspace-banner {
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 20px;
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 14px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-    }
-
-    .workspace-banner.marketing-mode {
-      border-left: 4px solid var(--primary);
-      background: linear-gradient(90deg, #EFF6FF 0%, #FFFFFF 100%);
-    }
-
-    .workspace-banner.sales-mode {
-      border-left: 4px solid var(--accent);
-      background: linear-gradient(90deg, #ECFDF5 0%, #FFFFFF 100%);
-    }
-
-    /* Form Controls */
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 0.825rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-
-    .form-input, .form-select {
-      width: 100%;
-      background: #FFFFFF;
-      border: 1px solid #CBD5E1;
-      border-radius: 8px;
-      padding: 10px 12px;
-      color: #0F172A;
-      font-size: 0.875rem;
-      font-family: inherit;
-      transition: all 0.15s ease;
-    }
-
-    .form-input::placeholder {
-      color: #94A3B8;
-    }
-
-    .form-input:focus, .form-select:focus {
-      outline: none;
-      border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-    }
-
-    .chips-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .chip {
-      background: #F1F5F9;
-      border: 1px solid #E2E8F0;
-      color: #475569;
-      font-size: 0.75rem;
-      padding: 4px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: all 0.12s ease;
-      user-select: none;
-      font-weight: 500;
-    }
-
-    .chip:hover {
-      background: #EFF6FF;
-      border-color: #93C5FD;
-      color: #1D4ED8;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .checkbox-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.825rem;
-      cursor: pointer;
-      user-select: none;
-      color: var(--text);
-      font-weight: 500;
-    }
-
-    .checkbox-label input {
-      accent-color: var(--primary);
-      width: 16px;
-      height: 16px;
-    }
-
-    /* Stats Grid */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-
-    .stat-box {
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 16px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .stat-value {
-      font-size: 1.45rem;
-      font-weight: 800;
-      color: var(--text);
-      margin-top: 4px;
-      font-family: var(--font-mono);
-    }
-
-    /* Table Styling */
-    .table-container {
-      overflow-x: auto;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #FFFFFF;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-      text-align: left;
-    }
-
-    th {
-      padding: 12px 14px;
-      color: #475569;
-      font-weight: 600;
-      border-bottom: 1px solid var(--border);
-      background: #F8FAFC;
-      white-space: nowrap;
-    }
-
-    td {
-      padding: 14px 14px;
-      border-bottom: 1px solid var(--border);
-      color: #1E293B;
-      vertical-align: middle;
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    tr:hover td {
-      background: #F8FAFC;
-    }
-
-    /* Badges & Tags */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 8px;
-      border-radius: 5px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .badge-threads {
-      background: #F1F5F9;
-      color: #0F172A;
-      border: 1px solid #CBD5E1;
-    }
-
-    .badge-linkedin {
-      background: #EFF6FF;
-      color: #1D4ED8;
-      border: 1px solid #BFDBFE;
-    }
-
-    .badge-valid {
-      background: #ECFDF5;
-      color: #065F46;
-      border: 1px solid #A7F3D0;
-    }
-
-    .badge-pending {
-      background: #FFFBEB;
-      color: #92400E;
-      border: 1px solid #FDE68A;
-    }
-
-    .badge-invalid {
-      background: #FEF2F2;
-      color: #991B1B;
-      border: 1px solid #FECACA;
-    }
-
-    .score-badge {
-      font-family: var(--font-mono);
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.8rem;
-    }
-
-    .score-high {
-      background: #ECFDF5;
-      color: #047857;
-      border: 1px solid #A7F3D0;
-    }
-
-    .score-med {
-      background: #EFF6FF;
-      color: #1D4ED8;
-      border: 1px solid #BFDBFE;
-    }
-
-    .score-low {
-      background: #FFFBEB;
-      color: #B45309;
-      border: 1px solid #FDE68A;
-    }
-
-    .confidence-tag {
-      font-family: var(--font-mono);
-      font-size: 0.725rem;
-      color: #475569;
-      background: #F1F5F9;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid #E2E8F0;
-      font-weight: 600;
-    }
-
-    /* Status Dropdown inside Table */
-    .status-select {
-      background: #FFFFFF;
-      border: 1px solid #CBD5E1;
-      border-radius: 6px;
-      padding: 5px 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      font-family: inherit;
-      color: #0F172A;
-      cursor: pointer;
-      transition: all 0.12s ease;
-    }
-
-    .status-select:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .status-select.val-valid {
-      border-color: #34D399;
-      color: #065F46;
-      background: #ECFDF5;
-    }
-
-    .status-select.val-pending {
-      border-color: #FBBF24;
-      color: #92400E;
-      background: #FFFBEB;
-    }
-
-    .status-select.val-invalid {
-      border-color: #F87171;
-      color: #991B1B;
-      background: #FEF2F2;
-    }
-
-    /* Filter Tabs */
-    .filter-tabs {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .tab-btn {
-      background: #FFFFFF;
-      border: 1px solid #CBD5E1;
-      color: #475569;
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.12s ease;
-    }
-
-    .tab-btn:hover {
-      background: #F8FAFC;
-      color: #0F172A;
-    }
-
-    .tab-btn.active {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: white;
-    }
-
-    /* Modal Overlay & Card */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(4px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .modal-card {
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      width: 100%;
-      max-width: 680px;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 24px;
-      position: relative;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-      animation: modalFadeIn 0.2s ease;
-      color: #0F172A;
-    }
-
-    @keyframes modalFadeIn {
-      from { opacity: 0; transform: scale(0.96); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 18px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 14px;
-    }
-
-    .modal-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .modal-close {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1.4rem;
-      cursor: pointer;
-      line-height: 1;
-      padding: 4px;
-    }
-
-    .modal-close:hover {
-      color: var(--text);
-    }
-
-    /* Score Transparency Bars */
-    .score-breakdown-box {
-      background: #F8FAFC;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      margin: 16px 0;
-    }
-
-    .breakdown-row {
-      margin-bottom: 14px;
-    }
-
-    .breakdown-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.825rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-      color: var(--text);
-    }
-
-    .progress-bar-bg {
-      height: 7px;
-      background: #E2E8F0;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 4px;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.3s ease;
-    }
-
-    .breakdown-desc {
-      font-size: 0.775rem;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    /* Login Portal Screen */
-    .login-container {
-      max-width: 840px;
-      margin: 40px auto;
-      text-align: center;
-    }
-
-    .role-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-      margin-top: 32px;
-      text-align: left;
-    }
-
-    @media (min-width: 680px) {
-      .role-grid {
-        grid-template-columns: 1fr 1fr;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SALEP · Sales intelligence</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: #202922;
+        background: #f6f7f5;
+        font-size: 14px;
+        --line: #dfe4df;
+        --muted: #657168;
+        --green: #246044;
       }
-    }
-
-    .role-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 28px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.2s ease;
-      cursor: pointer;
-      position: relative;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-    }
-
-    .role-card:hover {
-      border-color: #94A3B8;
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    }
-
-    .role-card.marketing:hover {
-      border-color: #3B82F6;
-    }
-
-    .role-card.sales:hover {
-      border-color: #10B981;
-    }
-
-    /* Toast */
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #0F172A;
-      border: 1px solid #334155;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 10px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-      display: none;
-      align-items: center;
-      gap: 10px;
-      z-index: 2000;
-      animation: slideUp 0.25s ease;
-      font-size: 0.875rem;
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(37, 99, 235, 0.3);
-      border-top-color: #2563EB;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
-</head>
-<body>
-  <div class="ambient-glow"></div>
-
-  <!-- LOGIN PORTAL SCREEN -->
-  <div id="login-screen" class="container login-container">
-    <div style="display: inline-block; margin-bottom: 12px;">
-      <div class="logo-badge" style="font-size: 1.6rem; padding: 8px 22px;">SALEP</div>
-    </div>
-    <h1 style="font-size: 1.85rem; font-weight: 800; color: #0F172A; margin-bottom: 8px;">
-      Portal Akses Tim SALEP
-    </h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 540px; margin: 0 auto;">
-      Sistem Intelijen Penjualan B2B — Pilih peran Anda untuk masuk langsung secara real-time.
-    </p>
-
-    <div class="role-grid">
-      <!-- Role Card: Tim Marketing -->
-      <div class="role-card marketing" onclick="loginAs('marketing')">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <span class="badge" style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;">
-              Peran: Marketing
-            </span>
-            <span style="font-size: 1.6rem;">🎯</span>
-          </div>
-          <h2 style="font-size: 1.25rem; font-weight: 700; color: #0F172A; margin-bottom: 8px;">
-            Tim Marketing
-          </h2>
-          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
-            Lakukan pencarian prospek media sosial (Threads & LinkedIn), analisis AI Gemini, kualifikasi skor, dan beri status <strong>Valid</strong> atau <strong>Invalid</strong> pada tabel untuk diteruskan ke Tim Sales.
-          </p>
-        </div>
-        <button class="btn btn-primary" style="width: 100%;">
-          Masuk sebagai Tim Marketing ➔
-        </button>
-      </div>
-
-      <!-- Role Card: Tim Sales -->
-      <div class="role-card sales" onclick="loginAs('sales')">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <span class="badge" style="background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0;">
-              Peran: Sales
-            </span>
-            <span style="font-size: 1.6rem;">💼</span>
-          </div>
-          <h2 style="font-size: 1.25rem; font-weight: 700; color: #0F172A; margin-bottom: 8px;">
-            Tim Sales
-          </h2>
-          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
-            Tampilan khusus meja Sales: <strong>hanya tabel prospek berstatus Valid</strong>. Tanpa form kata kunci atau scraper, fokus pada rincian kebutuhan klien, transparansi skor, dan follow-up closing.
-          </p>
-        </div>
-        <button class="btn btn-accent" style="width: 100%;">
-          Masuk sebagai Tim Sales ➔
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MAIN APPLICATION SCREEN -->
-  <div id="app-screen" class="container" style="display: none;">
-    <!-- Top Navigation Header -->
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      button,
+      .button {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 9px 13px;
+        background: white;
+        color: inherit;
+        font-weight: 550;
+      }
+      button:hover:not(:disabled) {
+        background: #eff3ee;
+      }
+      button.primary {
+        background: var(--green);
+        color: white;
+        border-color: var(--green);
+      }
+      input,
+      select,
+      textarea {
+        border: 1px solid #cbd3cc;
+        border-radius: 5px;
+        padding: 9px 10px;
+        background: white;
+        color: inherit;
+      }
+      input:focus,
+      select:focus,
+      textarea:focus,
+      button:focus-visible {
+        outline: 2px solid #508c68;
+        outline-offset: 2px;
+      }
+      textarea {
+        resize: vertical;
+        width: 100%;
+        min-height: 90px;
+      }
+      label {
+        display: grid;
+        gap: 7px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      h1 {
+        font-size: 26px;
+        letter-spacing: -0.8px;
+        margin: 0 0 8px;
+      }
+      h2 {
+        font-size: 17px;
+        margin: 0 0 6px;
+      }
+      h3 {
+        font-size: 14px;
+        margin: 18px 0 8px;
+      }
+      p {
+        line-height: 1.6;
+        margin: 6px 0;
+        color: var(--muted);
+      }
+      header {
+        height: 68px;
+        border-bottom: 1px solid var(--line);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+      }
+      .brand {
+        font-weight: 800;
+        letter-spacing: 2px;
+        font-size: 19px;
+      }
+      .brand span {
+        font-size: 12px;
+        letter-spacing: 0;
+        font-weight: 400;
+        color: var(--muted);
+        margin-left: 18px;
+      }
+      main {
+        max-width: 1400px;
+        margin: auto;
+        padding: 32px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .between {
+        justify-content: space-between;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .tag {
+        display: inline-block;
+        background: #edf2ed;
+        border: 1px solid var(--line);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin: 24px 0;
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 17px 20px;
+      }
+      .stat strong {
+        display: block;
+        font-size: 27px;
+        margin-top: 8px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .panel {
+        border: 1px solid var(--line);
+        background: white;
+        border-radius: 8px;
+        margin: 20px 0;
+        overflow: hidden;
+      }
+      .panel-head,
+      .toolbar,
+      .pager {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--line);
+      }
+      .panel-head,
+      .pager {
+        justify-content: space-between;
+      }
+      .pager {
+        border-bottom: 0;
+        border-top: 1px solid var(--line);
+      }
+      .toolbar input {
+        flex: 1;
+        min-width: 180px;
+      }
+      .table-scroll {
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        min-width: 740px;
+        border-collapse: collapse;
+        text-align: left;
+      }
+      th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        background: #fafbf9;
+        padding: 12px 16px;
+      }
+      td {
+        padding: 15px 16px;
+        border-top: 1px solid #edf0ec;
+        font-size: 13px;
+        vertical-align: top;
+      }
+      td p {
+        font-size: 12px;
+        max-width: 430px;
+        margin-top: 5px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      td select {
+        max-width: 180px;
+        font-size: 12px;
+        padding: 7px;
+      }
+      a {
+        color: var(--green);
+      }
+      .score {
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        padding: 20px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .login {
+        max-width: 740px;
+        margin: 10vh auto;
+        padding: 30px;
+      }
+      .roles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 30px;
+      }
+      .role {
+        text-align: left;
+        padding: 24px;
+        min-height: 170px;
+      }
+      .role strong {
+        font-size: 18px;
+        display: block;
+        margin-bottom: 12px;
+      }
+      .role span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.7;
+        font-weight: 400;
+      }
+      .role b {
+        display: block;
+        margin-top: 20px;
+        color: var(--green);
+        font-size: 12px;
+      }
+      .notice {
+        font-size: 12px;
+        padding: 12px 16px;
+        background: #f0f4ee;
+        border-radius: 5px;
+        line-height: 1.6;
+      }
+      .error {
+        color: #a53628;
+      }
+      dialog {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        max-width: 720px;
+        width: calc(100% - 32px);
+        max-height: 85vh;
+        padding: 25px;
+      }
+      dialog::backdrop {
+        background: #14251c66;
+      }
+      dialog p {
+        white-space: pre-wrap;
+      }
+      #toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #202f25;
+        color: white;
+        max-width: 440px;
+        padding: 14px 20px;
+        border-radius: 7px;
+        z-index: 10;
+      }
+      details summary {
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      details {
+        margin: 16px 0;
+      }
+      ul {
+        padding-left: 20px;
+        line-height: 1.8;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 760px) {
+        header {
+          padding: 0 16px;
+        }
+        .brand span {
+          display: none;
+        }
+        main {
+          padding: 20px 12px;
+        }
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+        .form-grid,
+        .roles {
+          grid-template-columns: 1fr;
+        }
+        .login {
+          margin: 35px auto;
+          padding: 20px;
+        }
+        .fields {
+          grid-template-columns: 1fr;
+        }
+        th,
+        td {
+          padding: 12px;
+        }
+        h1 {
+          font-size: 23px;
+        }
+        .toolbar {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
     <header>
-      <div class="brand">
-        <div class="logo-badge">SALEP</div>
-        <div class="brand-text">
-          <h1>SALEP Intelligence</h1>
-          <p id="app-subtitle">B2B Lead Qualification Platform</p>
-        </div>
-      </div>
-
-      <div class="header-actions">
-        <!-- Active Role Indicator -->
-        <div id="role-badge" class="role-indicator role-marketing">
-          <span id="role-icon">🎯</span>
-          <span id="role-name">Tim Marketing</span>
-        </div>
-
-        <!-- Quick Role Switcher Button -->
-        <button id="btn-switch-role" class="btn btn-secondary btn-sm" onclick="toggleActiveRole()" title="Beralih peran tanpa logout">
-          ⇄ Ganti ke Sales
-        </button>
-
-        <!-- Real-Time Sync Indicator -->
-        <div class="realtime-pill">
-          <span class="realtime-dot"></span>
-          <span>Real-Time Sync</span>
-        </div>
-
-        <a id="btn-open-sheet" href="https://docs.google.com/spreadsheets/d/15O65gK2bTEoj2vRUgpBZNUQYU6dgzYAzU6zRPppiDPw/edit" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
-          📊 Spreadsheet
-        </a>
-
-        <!-- Logout Button -->
-        <button class="btn btn-secondary btn-sm" onclick="logout()" title="Kembali ke halaman login">
-          Keluar
-        </button>
+      <div class="brand">SALEP <span>Sales intelligence</span></div>
+      <div class="row" id="account" hidden>
+        <span class="tag" id="role-name"></span
+        ><button onclick="logout()">Keluar</button>
       </div>
     </header>
-
-    <!-- ========================================== -->
-    <!-- MARKETING WORKSPACE VIEW                    -->
-    <!-- ========================================== -->
-    <div id="workspace-marketing">
-      <!-- Marketing Banner -->
-      <div class="workspace-banner marketing-mode">
+    <section id="login-screen" class="login">
+      <span class="tag">WORKSPACE</span>
+      <h1 style="margin-top: 20px">
+        Prospek yang tepat.<br />Tindak lanjut yang terarah.
+      </h1>
+      <p>
+        Temukan kebutuhan IT, validasi peluang, dan kelola tindak lanjut dalam
+        satu tempat.
+      </p>
+      <div class="roles">
+        <button class="role" onclick="loginAs('marketing')">
+          <strong>Marketing</strong
+          ><span
+            >Cari kebutuhan IT dan tinjau hasil analisis sebelum menyerahkannya
+            ke sales.</span
+          ><b>Masuk sebagai Marketing →</b></button
+        ><button class="role" onclick="loginAs('sales')">
+          <strong>Sales</strong
+          ><span
+            >Kerjakan prospek yang sudah divalidasi dan perbarui progres tindak
+            lanjut.</span
+          ><b>Masuk sebagai Sales →</b>
+        </button>
+      </div>
+      <p class="muted" style="margin-top: 20px">
+        Login demo tanpa password. Role terkunci selama sesi; keluar untuk
+        berganti akun.
+      </p>
+    </section>
+    <main id="app-screen" hidden>
+      <div class="row between">
         <div>
-          <div style="font-size: 0.775rem; font-weight: 700; color: #1D4ED8; text-transform: uppercase;">RUANG KERJA MARKETING</div>
-          <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-top: 2px;">
-            Pencarian & Kualifikasi Prospek
-          </div>
-          <p style="font-size: 0.825rem; color: var(--text-muted); margin-top: 2px;">
-            Scrape dan evaluasi postingan. Pilih status <strong>Valid</strong> pada tabel di bawah agar prospek otomatis masuk ke meja Tim Sales secara real-time.
-          </p>
+          <h1 id="page-title"></h1>
+          <p id="page-description"></p>
         </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary btn-sm" onclick="toggleMarketingTools()">
-            ⚙️ Pengaturan Scraper & Scheduler ▾
-          </button>
-        </div>
+        <button onclick="loadLeads()">Muat ulang</button>
       </div>
-
-      <!-- Collapsible Search & Inspector Card -->
-      <div id="marketing-tools-panel" class="card" style="margin-bottom: 24px;">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">🚀 Cari Lead Sekarang (Manual Scrape)</h2>
-            <p class="card-subtitle">Scrape postingan Threads & LinkedIn terbaru, lalu kualifikasi otomatis dengan Gemini AI</p>
+      <section class="stats" id="stats"></section>
+      <section id="workspace-marketing" hidden>
+        <details class="panel">
+          <summary class="panel-head">
+            Discovery · Pencarian & jadwal
+            <span class="muted">Threads / Apify</span>
+          </summary>
+          <div class="form-grid">
+            <form id="search-form">
+              <h2>Pencarian manual</h2>
+              <p class="muted">
+                Jalankan keyword sesuai kebutuhan. Setiap keyword memanggil
+                actor Apify.
+              </p>
+              <label style="margin-top: 16px"
+                >Keyword (pisahkan dengan koma)<textarea id="keywords" required>
+butuh website, rekomendasi hosting</textarea>
+              </label>
+              <div class="row" style="margin-top: 8px">
+                <select id="preset" aria-label="Preset layanan">
+                  <option value="">Tambahkan kategori…</option>
+                  <option
+                    value="butuh website,butuh aplikasi mobile,integrasi API"
+                  >
+                    Software & aplikasi
+                  </option>
+                  <option
+                    value="rekomendasi hosting,butuh server VPS,migrasi cloud"
+                  >
+                    Hosting & cloud
+                  </option>
+                  <option
+                    value="cari managed service,monitoring server,vendor IT support"
+                  >
+                    Managed service
+                  </option>
+                  <option
+                    value="jasa pentest,solusi backup data,vendor jaringan kantor"
+                  >
+                    Keamanan & infrastruktur
+                  </option>
+                  <option
+                    value="implementasi ERP,rekomendasi CRM,otomatisasi bisnis"
+                  >
+                    Sistem bisnis & otomasi
+                  </option>
+                </select>
+              </div>
+              <div class="fields">
+                <label
+                  >Sumber<select id="source">
+                    <option value="threads">Threads</option>
+                    <option value="linkedin">LinkedIn</option>
+                  </select></label
+                ><label
+                  >Batas hasil<input
+                    id="limit"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value="10"
+                    required /></label
+                ><label
+                  >Dari tanggal<input id="start" type="date" required /></label
+                ><label
+                  >Sampai tanggal<input id="end" type="date" required
+                /></label>
+              </div>
+              <button class="primary" id="search-button">Cari prospek</button>
+              <p id="search-result" class="muted" role="status"></p>
+            </form>
+            <section>
+              <h2>Pencarian otomatis</h2>
+              <p class="muted">
+                Setiap 30 menit · 2 keyword bergiliran per siklus.
+              </p>
+              <p class="notice" id="scheduler-state">Memuat jadwal…</p>
+              <form id="config-form">
+                <label style="margin-top: 16px"
+                  >Pool keyword otomatis<textarea
+                    id="auto-keywords"
+                    required
+                  ></textarea>
+                </label>
+                <div class="fields">
+                  <label
+                    >Sumber<select id="auto-source">
+                      <option value="threads">Threads</option>
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="threads,linkedin">
+                        Threads + LinkedIn
+                      </option>
+                    </select></label
+                  ><label
+                    >Batas hasil per siklus<input
+                      id="auto-limit"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value="5"
+                      required
+                  /></label>
+                </div>
+                <button>Simpan pengaturan</button>
+              </form>
+              <div class="row" style="margin-top: 16px">
+                <button id="scheduler-toggle" onclick="toggleScheduler()">
+                  Mulai jadwal</button
+                ><button id="trigger" onclick="triggerCycle()">
+                  Jalankan sekali
+                </button>
+              </div>
+              <p class="muted">
+                Apify mengenakan pemakaian per actor. Jadwal berjalan selama
+                server aktif; pencarian manual tetap tersedia.
+              </p>
+            </section>
           </div>
+        </details>
+      </section>
+      <section id="workspace-sales" hidden>
+        <p class="notice">
+          Hanya prospek yang dinyatakan valid oleh marketing yang tampil di
+          pipeline ini.
+        </p>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2 id="list-title">Daftar prospek</h2>
+          <span class="muted" id="load-state" role="status"></span>
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="input-keywords">Kata Kunci Pencarian (Pisahkan dengan koma):</label>
-          <input type="text" id="input-keywords" class="form-input" value="buatkan website, butuh website, jasa website, bikin web">
-          <div class="chips-group">
-            <span class="chip" onclick="addKeyword('buatkan website')">+ buatkan website</span>
-            <span class="chip" onclick="addKeyword('butuh website')">+ butuh website</span>
-            <span class="chip" onclick="addKeyword('bikin web')">+ bikin web</span>
-            <span class="chip" onclick="addKeyword('jasa website')">+ jasa website</span>
-            <span class="chip" onclick="addKeyword('vendor software ERP')">+ vendor ERP</span>
-            <span class="chip" onclick="addKeyword('jasa landing page')">+ landing page</span>
-          </div>
+        <div class="toolbar">
+          <input
+            id="filter"
+            placeholder="Cari nama, kebutuhan, atau keyword…"
+            aria-label="Cari prospek"
+          /><select id="status-filter" aria-label="Filter status"></select
+          ><select id="page-size" aria-label="Baris per halaman">
+            <option value="10">10 / halaman</option>
+            <option value="25">25 / halaman</option>
+            <option value="50">50 / halaman</option>
+          </select>
         </div>
-
-        <div class="form-row" style="margin-bottom: 18px;">
-          <label class="checkbox-label">
-            <input type="checkbox" id="check-threads" checked> Threads
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" id="check-linkedin" checked> LinkedIn
-          </label>
-          <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-            <label for="select-limit" style="font-size: 0.825rem; color: var(--text-muted);">Limit per sumber:</label>
-            <select id="select-limit" class="form-select" style="width: auto; padding: 5px 10px;">
-              <option value="5" selected>5</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button id="btn-trigger-search" class="btn btn-primary" style="flex: 1;" onclick="triggerManualSearch()">
-            ⚡ Hit & Temukan Lead Sekarang
-          </button>
-        </div>
-
-        <!-- Progress Box -->
-        <div id="search-progress" style="display: none; margin-top: 18px; padding: 14px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px; color: #1D4ED8; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
-            <div class="spinner"></div>
-            <span id="progress-status-text">Sedang memproses pencarian & analisis AI...</span>
-          </div>
-          <div id="step-detail" style="font-size: 0.8rem; color: #475569; font-family: var(--font-mono);">
-            Menghubungi scraper & AI model...
-          </div>
-        </div>
-      </div>
-
-      <!-- Stats Summary Row for Marketing -->
-      <div class="stats-row">
-        <div class="stat-box">
-          <div class="stat-label">Total Lead Dievaluasi</div>
-          <div id="stat-total" class="stat-value">-</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label" style="color: #059669;">Valid (Diteruskan ke Sales)</div>
-          <div id="stat-valid" class="stat-value" style="color: #059669;">-</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label" style="color: #D97706;">Pending Review</div>
-          <div id="stat-pending" class="stat-value" style="color: #D97706;">-</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label" style="color: #DC2626;">Invalid (Ditolak)</div>
-          <div id="stat-invalid" class="stat-value" style="color: #DC2626;">-</div>
-        </div>
-      </div>
-
-      <!-- Marketing Qualification Table Card -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">📋 Tabel Kualifikasi & Status Prospek</h2>
-            <p class="card-subtitle">Pilih dropdown Valid atau Invalid untuk menentukan apakah lead diteruskan ke meja Tim Sales</p>
-          </div>
-
-          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <!-- Filter Tabs -->
-            <div class="filter-tabs">
-              <button class="tab-btn active" onclick="setMarketingTab('all', this)">Semua</button>
-              <button class="tab-btn" onclick="setMarketingTab('valid', this)">🟢 Valid</button>
-              <button class="tab-btn" onclick="setMarketingTab('pending', this)">🟡 Pending</button>
-              <button class="tab-btn" onclick="setMarketingTab('invalid', this)">🔴 Invalid</button>
-            </div>
-            <button class="btn btn-secondary btn-sm" onclick="loadLeadsData()">
-              🔄 Segarkan
-            </button>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 14px;">
-          <input type="text" id="mkt-search-input" class="form-input" placeholder="Cari nama author, kata kunci, atau cuplikan kebutuhan..." oninput="handleFilterSearch(this.value)">
-        </div>
-
-        <!-- The Table -->
-        <div class="table-container">
+        <div class="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>Waktu & Platform</th>
-                <th>Akun Prospek</th>
-                <th>Isi Postingan & Kebutuhan</th>
-                <th>Skor & Keyakinan</th>
-                <th>Status Kualifikasi</th>
-                <th style="text-align: right;">Aksi</th>
+                <th>Prospek / sumber</th>
+                <th>Kebutuhan</th>
+                <th>Skor</th>
+                <th>Status</th>
+                <th>Detail</th>
               </tr>
             </thead>
-            <tbody id="mkt-table-body">
-              <tr>
-                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                  Memuat data prospek...
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="lead-body"></tbody>
           </table>
         </div>
-      </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- SALES WORKSPACE VIEW                        -->
-    <!-- ========================================== -->
-    <div id="workspace-sales" style="display: none;">
-      <!-- Sales Banner -->
-      <div class="workspace-banner sales-mode">
-        <div>
-          <div style="font-size: 0.775rem; font-weight: 700; color: #047857; text-transform: uppercase;">RUANG KERJA SALES</div>
-          <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-top: 2px;">
-            Pipeline Prospek Terverifikasi (Status Valid)
-          </div>
-          <p style="font-size: 0.825rem; color: var(--text-muted); margin-top: 2px;">
-            Menampilkan prospek yang telah diverifikasi <strong>VALID</strong> oleh Tim Marketing. Fokus follow-up, komunikasi kebutuhan klien, dan closing deal.
-          </p>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-secondary btn-sm" onclick="loadLeadsData()">
-            🔄 Segarkan Data
-          </button>
-        </div>
-      </div>
-
-      <!-- Sales Pipeline Stats -->
-      <div class="stats-row">
-        <div class="stat-box">
-          <div class="stat-label" style="color: #059669;">Total Prospek Valid</div>
-          <div id="sales-stat-total" class="stat-value" style="color: #059669;">-</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Belum Dihubungi</div>
-          <div id="sales-stat-new" class="stat-value">-</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label" style="color: #2563EB;">Sedang Dihubungi</div>
-          <div id="sales-stat-progress" class="stat-value" style="color: #2563EB;">-</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label" style="color: #059669;">Berhasil Closing</div>
-          <div id="sales-stat-closed" class="stat-value" style="color: #059669;">-</div>
-        </div>
-      </div>
-
-      <!-- Sales Table Card -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">💼 Daftar Prospek Siap Follow-up</h2>
-            <p class="card-subtitle">Data tersinkronisasi otomatis saat Tim Marketing menetapkan status Valid</p>
-          </div>
-
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="text" id="sales-search-input" class="form-input" style="width: 240px; padding: 6px 12px; font-size: 0.8rem;" placeholder="Cari nama calon klien / solusi..." oninput="handleSalesFilterSearch(this.value)">
+        <div class="pager">
+          <span class="muted" id="page-info"></span>
+          <div class="row">
+            <button id="prev" onclick="changePage(-1)">← Sebelumnya</button
+            ><button id="next" onclick="changePage(1)">Berikutnya →</button>
           </div>
         </div>
-
-        <!-- The Sales Table -->
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Tanggal & Platform</th>
-                <th>Calon Klien</th>
-                <th>Detail Kebutuhan & Kendala</th>
-                <th>Layanan Ditawarkan</th>
-                <th>Skor Kualifikasi</th>
-                <th>Status Follow-up</th>
-                <th style="text-align: right;">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="sales-table-body">
-              <tr>
-                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                  Memuat data calon klien...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      </section>
+    </main>
+    <dialog id="detail">
+      <div class="row between">
+        <h2>Detail prospek</h2>
+        <button
+          onclick="document.getElementById('detail').close()"
+          aria-label="Tutup detail"
+        >
+          Tutup ×
+        </button>
       </div>
-    </div>
-  </div>
-
-  <!-- ========================================== -->
-  <!-- MODAL: TRANSPARANSI PERHITUNGAN SKOR        -->
-  <!-- ========================================== -->
-  <div id="score-modal" class="modal-overlay" onclick="closeScoreModal(event)">
-    <div class="modal-card" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div>
-          <div class="modal-title">🔍 Transparansi Kalkulasi Skor Prospek</div>
-          <div id="score-modal-subtitle" style="font-size: 0.825rem; color: var(--text-muted); margin-top: 2px;">
-            Rincian matematis formula penilaian AI hingga menghasilkan skor akhir
-          </div>
-        </div>
-        <button class="modal-close" onclick="closeScoreModal()">&times;</button>
-      </div>
-
-      <!-- Big Score Banner -->
-      <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <div style="font-size: 0.775rem; font-weight: 700; color: #1D4ED8; text-transform: uppercase;">SKOR TOTAL KUALIFIKASI</div>
-          <div id="modal-total-score" style="font-size: 2.2rem; font-weight: 800; color: #1E3A8A; font-family: var(--font-mono); line-height: 1.1; margin-top: 4px;">
-            -
-          </div>
-          <div id="modal-formula-summary" style="font-size: 0.8rem; color: #2563EB; font-family: var(--font-mono); margin-top: 4px; font-weight: 600;">
-            -
-          </div>
-        </div>
-        <div style="text-align: right;">
-          <div style="font-size: 0.775rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">KEYAKINAN EKSTRAKSI AI</div>
-          <div id="modal-ai-confidence" style="font-size: 1.6rem; font-weight: 800; color: #059669; font-family: var(--font-mono); margin-top: 4px;">
-            -
-          </div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">Model Gemini Flash</div>
-        </div>
-      </div>
-
-      <!-- 4 Dimensions Breakdown -->
-      <div style="font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 12px;">
-        📊 Rincian 4 Dimensi Penilaian:
-      </div>
-
-      <div class="score-breakdown-box">
-        <!-- Dimension 1: Intent -->
-        <div class="breakdown-row">
-          <div class="breakdown-header">
-            <span>1. Kekuatan Intent (<span id="score-intent-name">Intent</span>)</span>
-            <span id="score-intent-val" style="font-family: var(--font-mono); color: #1D4ED8; font-weight: 700;">0 / 40 Poin</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div id="bar-intent" class="progress-bar-fill" style="width: 0%; background: #2563EB;"></div>
-          </div>
-          <div id="desc-intent" class="breakdown-desc">Memuat penjelasan intent...</div>
-        </div>
-
-        <!-- Dimension 2: Clarity -->
-        <div class="breakdown-row">
-          <div class="breakdown-header">
-            <span>2. Kejelasan Kebutuhan & Masalah</span>
-            <span id="score-clarity-val" style="font-family: var(--font-mono); color: #047857; font-weight: 700;">0 / 20 Poin</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div id="bar-clarity" class="progress-bar-fill" style="width: 0%; background: #059669;"></div>
-          </div>
-          <div id="desc-clarity" class="breakdown-desc">Memuat penjelasan kejelasan...</div>
-        </div>
-
-        <!-- Dimension 3: Relevance -->
-        <div class="breakdown-row">
-          <div class="breakdown-header">
-            <span>3. Relevansi Domain Layanan IT</span>
-            <span id="score-relevance-val" style="font-family: var(--font-mono); color: #7C3AED; font-weight: 700;">0 / 20 Poin</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div id="bar-relevance" class="progress-bar-fill" style="width: 0%; background: #7C3AED;"></div>
-          </div>
-          <div id="desc-relevance" class="breakdown-desc">Memuat penjelasan relevansi...</div>
-        </div>
-
-        <!-- Dimension 4: Product Fit -->
-        <div class="breakdown-row" style="margin-bottom: 0;">
-          <div class="breakdown-header">
-            <span>4. Kesesuaian Solusi / Katalog Layanan</span>
-            <span id="score-fit-val" style="font-family: var(--font-mono); color: #D97706; font-weight: 700;">0 / 20 Poin</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div id="bar-fit" class="progress-bar-fill" style="width: 0%; background: #D97706;"></div>
-          </div>
-          <div id="desc-fit" class="breakdown-desc">Memuat penjelasan kecocokan...</div>
-        </div>
-      </div>
-
-      <!-- AI Confidence Explanation Box -->
-      <div style="background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 10px; padding: 14px; margin-top: 14px;">
-        <div style="font-size: 0.825rem; font-weight: 700; color: #065F46; margin-bottom: 4px;">
-          🤖 Transparansi Keyakinan AI (AI Confidence)
-        </div>
-        <div id="modal-confidence-desc" style="font-size: 0.8rem; color: #1E293B; line-height: 1.45;">
-          -
-        </div>
-      </div>
-
-      <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-        <button class="btn btn-secondary" onclick="closeScoreModal()">Tutup</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================== -->
-  <!-- MODAL: DETAIL PROSPEK LENGKAP               -->
-  <!-- ========================================== -->
-  <div id="detail-modal" class="modal-overlay" onclick="closeDetailModal(event)">
-    <div class="modal-card" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <div>
-          <div class="modal-title" id="det-author-name">Detail Calon Klien</div>
-          <div id="det-platform-meta" style="font-size: 0.825rem; color: var(--text-muted); margin-top: 2px;">
-            Platform & Waktu Temuan
-          </div>
-        </div>
-        <button class="modal-close" onclick="closeDetailModal()">&times;</button>
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-        <span id="det-mkt-badge" class="badge">Status Marketing</span>
-        <span id="det-sales-badge" class="badge">Status Sales</span>
-        <span id="det-intent-badge" class="badge" style="background: #F3E8FF; color: #7C3AED; border: 1px solid #DDD6FE;">Intent</span>
-      </div>
-
-      <div style="margin-bottom: 16px;">
-        <div style="font-size: 0.775rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
-          ISI POSTINGAN ASLI:
-        </div>
-        <div id="det-content" style="background: #F8FAFC; border-left: 3px solid var(--primary); padding: 12px 14px; border-radius: 8px; font-size: 0.875rem; color: #1E293B; line-height: 1.55; border: 1px solid #E2E8F0; border-left-width: 3px;">
-          -
-        </div>
-      </div>
-
-      <div style="margin-bottom: 16px;">
-        <div style="font-size: 0.775rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
-          KEBUTUHAN TERIDENTIFIKASI:
-        </div>
-        <div id="det-needs-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
-          -
-        </div>
-      </div>
-
-      <div style="margin-bottom: 16px;">
-        <div style="font-size: 0.775rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
-          KENDALA / PAIN POINTS:
-        </div>
-        <div id="det-pain-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
-          -
-        </div>
-      </div>
-
-      <div style="margin-bottom: 20px;">
-        <div style="font-size: 0.775rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
-          REKOMENDASI LAYANAN / PRODUK:
-        </div>
-        <div id="det-services-container" style="display: flex; flex-direction: column; gap: 8px;">
-          -
-        </div>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 16px; flex-wrap: wrap; gap: 10px;">
-        <a id="det-link-out" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
-          Buka Postingan Asli ↗
-        </a>
-        <div style="display: flex; gap: 8px;">
-          <button id="det-btn-see-score" class="btn btn-primary btn-sm" onclick="openScoreBreakdownFromDetail()">
-            🔍 Lihat Rincian Skor
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="closeDetailModal()">
-            Tutup
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Notification -->
-  <div id="toast" class="toast">
-    <span id="toast-icon">ℹ️</span>
-    <span id="toast-message">Pesan notifikasi</span>
-  </div>
-
-  <script>
-    // State
-    let currentRole = localStorage.getItem("salep_current_role") || "";
-    let cachedLeads = [];
-    let currentMarketingTab = "all";
-    let activeFilterText = "";
-    let activeSalesFilterText = "";
-    let currentDetailLead = null;
-    let pollInterval = null;
-
-    // Toast Utility
-    function showToast(message, icon = "✅") {
-      const toast = document.getElementById("toast");
-      document.getElementById("toast-message").innerText = message;
-      document.getElementById("toast-icon").innerText = icon;
-      toast.style.display = "flex";
-      setTimeout(() => {
-        toast.style.display = "none";
-      }, 4000);
-    }
-
-    // Auth & Role Access
-    function loginAs(role) {
-      currentRole = role;
-      localStorage.setItem("salep_current_role", role);
-      applyRoleView();
-      showToast(`Berhasil masuk sebagai ${role === 'marketing' ? 'Tim Marketing' : 'Tim Sales'}`, "👋");
-    }
-
-    function logout() {
-      currentRole = "";
-      localStorage.removeItem("salep_current_role");
-      clearInterval(pollInterval);
-      document.getElementById("login-screen").style.display = "block";
-      document.getElementById("app-screen").style.display = "none";
-    }
-
-    function toggleActiveRole() {
-      const newRole = currentRole === "marketing" ? "sales" : "marketing";
-      loginAs(newRole);
-    }
-
-    function applyRoleView() {
-      const loginScreen = document.getElementById("login-screen");
-      const appScreen = document.getElementById("app-screen");
-      const roleBadge = document.getElementById("role-badge");
-      const roleIcon = document.getElementById("role-icon");
-      const roleName = document.getElementById("role-name");
-      const switchBtn = document.getElementById("btn-switch-role");
-      const appSubtitle = document.getElementById("app-subtitle");
-
-      const mktWorkspace = document.getElementById("workspace-marketing");
-      const salesWorkspace = document.getElementById("workspace-sales");
-
-      if (!currentRole) {
-        loginScreen.style.display = "block";
-        appScreen.style.display = "none";
-        return;
+      <div id="detail-content"></div>
+    </dialog>
+    <div id="toast" hidden role="status"></div>
+    <script>
+      let role = "",
+        page = 0,
+        rows = [],
+        hasNext = false,
+        scheduler = {},
+        requestId = 0,
+        timer,
+        debounce;
+      const $ = (id) => document.getElementById(id),
+        esc = (v) =>
+          String(v ?? "").replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+              })[c],
+          );
+      const mktStatuses = ["pending", "valid", "invalid"],
+        salesStatuses = [
+          "Belum Dihubungi",
+          "Sedang Dihubungi",
+          "Closing",
+          "Batal",
+        ],
+        labels = {
+          pending: "Perlu review",
+          valid: "Valid",
+          invalid: "Tidak valid",
+        };
+      function toast(message) {
+        $("toast").textContent = message;
+        $("toast").hidden = false;
+        clearTimeout(timer);
+        timer = setTimeout(() => ($("toast").hidden = true), 5000);
       }
-
-      loginScreen.style.display = "none";
-      appScreen.style.display = "block";
-
-      if (currentRole === "marketing") {
-        roleBadge.className = "role-indicator role-marketing";
-        roleIcon.innerText = "🎯";
-        roleName.innerText = "Tim Marketing";
-        switchBtn.innerText = "⇄ Ganti ke Sales";
-        appSubtitle.innerText = "Lead Discovery & Qualification Engine";
-
-        mktWorkspace.style.display = "block";
-        salesWorkspace.style.display = "none";
-      } else {
-        roleBadge.className = "role-indicator role-sales";
-        roleIcon.innerText = "💼";
-        roleName.innerText = "Tim Sales";
-        switchBtn.innerText = "⇄ Beralih ke Marketing";
-        appSubtitle.innerText = "Verified Prospect Pipeline";
-
-        mktWorkspace.style.display = "none";
-        salesWorkspace.style.display = "block";
-      }
-
-      loadLeadsData();
-      startPolling();
-    }
-
-    function toggleMarketingTools() {
-      const panel = document.getElementById("marketing-tools-panel");
-      panel.style.display = panel.style.display === "none" ? "block" : "none";
-    }
-
-    function addKeyword(kw) {
-      const input = document.getElementById("input-keywords");
-      const current = input.value.split(",").map(k => k.trim()).filter(Boolean);
-      if (!current.includes(kw)) {
-        current.push(kw);
-        input.value = current.join(", ");
-      }
-    }
-
-    // Fetch Leads from Backend with RBAC
-    async function loadLeadsData() {
-      try {
-        const resp = await fetch(`/api/v1/leads?role=${currentRole}&limit=50`);
-        if (!resp.ok) throw new Error("Gagal mengambil data lead");
-        const leads = await resp.json();
-        cachedLeads = leads;
-
-        loadStats();
-
-        if (currentRole === "marketing") {
-          renderMarketingTable();
-        } else {
-          renderSalesTable();
-        }
-      } catch (err) {
-        console.error("Error loading leads:", err);
-      }
-    }
-
-    async function loadStats() {
-      try {
-        const resp = await fetch("/api/v1/leads/stats");
-        if (!resp.ok) return;
-        const stats = await resp.json();
-
-        // Marketing Stats
-        document.getElementById("stat-total").innerText = stats.total || 0;
-        document.getElementById("stat-valid").innerText = stats.valid || 0;
-        document.getElementById("stat-pending").innerText = stats.pending || 0;
-        document.getElementById("stat-invalid").innerText = stats.invalid || 0;
-
-        // Sales Stats
-        document.getElementById("sales-stat-total").innerText = stats.valid || 0;
-        document.getElementById("sales-stat-new").innerText = stats.sales_new || 0;
-        document.getElementById("sales-stat-progress").innerText = stats.sales_in_progress || 0;
-        document.getElementById("sales-stat-closed").innerText = stats.sales_closed || 0;
-      } catch (err) {
-        console.error("Failed to load stats:", err);
-      }
-    }
-
-    // Real-Time Polling (every 6 seconds)
-    function startPolling() {
-      clearInterval(pollInterval);
-      pollInterval = setInterval(() => {
-        loadLeadsData();
-      }, 6000);
-    }
-
-    // Render Marketing Table
-    function renderMarketingTable() {
-      const tbody = document.getElementById("mkt-table-body");
-      let list = [...cachedLeads];
-
-      // Tab filter
-      if (currentMarketingTab !== "all") {
-        list = list.filter(l => l.marketing_status === currentMarketingTab);
-      }
-
-      // Text search
-      if (activeFilterText.trim()) {
-        const q = activeFilterText.toLowerCase();
-        list = list.filter(l =>
-          (l.author_name && l.author_name.toLowerCase().includes(q)) ||
-          (l.content && l.content.toLowerCase().includes(q)) ||
-          (l.matched_keyword && l.matched_keyword.toLowerCase().includes(q))
-        );
-      }
-
-      if (!list.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 36px;">
-              Tidak ada lead dengan kriteria filter saat ini.
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = list.map((lead, idx) => {
-        const platformClass = lead.source === 'threads' ? 'badge-threads' : 'badge-linkedin';
-        const dateStr = lead.published_at ? new Date(lead.published_at).toLocaleDateString("id-ID") : "-";
-        const score = lead.lead_score || 0;
-        const scoreClass = score >= 75 ? 'score-high' : (score >= 45 ? 'score-med' : 'score-low');
-        const confPct = lead.score_breakdown ? lead.score_breakdown.ai_confidence_pct : Math.round((lead.confidence || 0) * 100);
-
-        const statusClass = `val-${lead.marketing_status}`;
-
-        return `
-          <tr>
-            <td>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span class="badge ${platformClass}">${(lead.source || 'web').toUpperCase()}</span>
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${dateStr}</span>
-              </div>
-            </td>
-            <td>
-              <div style="font-weight: 700; color: #0F172A; font-size: 0.9rem;">${lead.author_name || 'Pengguna'}</div>
-              <a href="${lead.author_profile_url || lead.source_url}" target="_blank" rel="noopener noreferrer" style="font-size: 0.75rem; color: #2563EB; text-decoration: none; font-weight: 600;">
-                Lihat Profil ↗
-              </a>
-            </td>
-            <td style="max-width: 320px;">
-              <div style="font-size: 0.825rem; color: #334155; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 6px;">
-                "${lead.content}"
-              </div>
-              <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                <span class="badge" style="background: #F3E8FF; color: #7C3AED; font-size: 0.7rem;">${lead.intent || 'Diskusi'}</span>
-                ${(lead.needs || []).slice(0, 1).map(n => `<span class="badge" style="background: #F1F5F9; color: #475569; font-size: 0.7rem;">${n}</span>`).join('')}
-              </div>
-            </td>
-            <td>
-              <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span class="score-badge ${scoreClass}">${score}/100</span>
-                  <span class="confidence-tag">${confPct}% AI</span>
-                </div>
-                <button class="btn btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.7rem;" onclick="openScoreModal('${lead.lead_id}')">
-                  🔍 Rincian Skor
-                </button>
-              </div>
-            </td>
-            <td>
-              <!-- DROPDOWN STATUS MARKETING (VALID / INVALID / PENDING) -->
-              <select class="status-select ${statusClass}" onchange="changeLeadStatus('${lead.lead_id}', this.value)">
-                <option value="pending" ${lead.marketing_status === 'pending' ? 'selected' : ''}>🟡 Pending Review</option>
-                <option value="valid" ${lead.marketing_status === 'valid' ? 'selected' : ''}>🟢 Valid (Kirim ke Sales)</option>
-                <option value="invalid" ${lead.marketing_status === 'invalid' ? 'selected' : ''}>🔴 Invalid (Abaikan)</option>
-              </select>
-            </td>
-            <td style="text-align: right;">
-              <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${lead.lead_id}')">
-                  Detail
-                </button>
-                <a href="${lead.source_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="padding: 5px 8px;" title="Buka Postingan Asli">
-                  ↗
-                </a>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    // Render Sales Table (Only Valid Leads)
-    function renderSalesTable() {
-      const tbody = document.getElementById("sales-table-body");
-      let list = [...cachedLeads];
-
-      if (activeSalesFilterText.trim()) {
-        const q = activeSalesFilterText.toLowerCase();
-        list = list.filter(l =>
-          (l.author_name && l.author_name.toLowerCase().includes(q)) ||
-          (l.content && l.content.toLowerCase().includes(q)) ||
-          ((l.needs || []).join(' ').toLowerCase().includes(q))
-        );
-      }
-
-      if (!list.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">
-              <div style="font-size: 1.1rem; color: #0F172A; margin-bottom: 6px; font-weight: 700;">Belum ada prospek valid saat ini.</div>
-              <div style="font-size: 0.825rem; color: var(--text-muted);">
-                Saat Tim Marketing menetapkan status <strong>Valid</strong> pada hasil temuan, prospek akan otomatis muncul di tabel ini secara real-time.
-              </div>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = list.map(lead => {
-        const platformClass = lead.source === 'threads' ? 'badge-threads' : 'badge-linkedin';
-        const dateStr = lead.published_at ? new Date(lead.published_at).toLocaleDateString("id-ID") : "-";
-        const score = lead.lead_score || 0;
-        const scoreClass = score >= 75 ? 'score-high' : (score >= 45 ? 'score-med' : 'score-low');
-        const confPct = lead.score_breakdown ? lead.score_breakdown.ai_confidence_pct : Math.round((lead.confidence || 0) * 100);
-
-        const needsText = (lead.needs || []).join(', ') || 'Kebutuhan Software / IT';
-        const serviceText = (lead.recommended_services || []).map(s => s.product_name).join(', ') || 'Custom Web Development';
-
-        return `
-          <tr>
-            <td>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span class="badge ${platformClass}">${(lead.source || 'web').toUpperCase()}</span>
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${dateStr}</span>
-              </div>
-            </td>
-            <td>
-              <div style="font-weight: 700; color: #0F172A; font-size: 0.9rem;">${lead.author_name || 'Calon Klien'}</div>
-              <a href="${lead.author_profile_url || lead.source_url}" target="_blank" rel="noopener noreferrer" style="font-size: 0.75rem; color: #2563EB; text-decoration: none; font-weight: 600;">
-                Profil Akun ↗
-              </a>
-            </td>
-            <td style="max-width: 280px;">
-              <div style="font-weight: 600; font-size: 0.825rem; color: #0F172A; margin-bottom: 4px;">
-                🎯 ${needsText}
-              </div>
-              <div style="font-size: 0.775rem; color: #475569; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                "${lead.content}"
-              </div>
-            </td>
-            <td style="max-width: 200px;">
-              <span class="badge" style="background: #ECFDF5; color: #065F46; font-size: 0.75rem; border: 1px solid #A7F3D0;">
-                ${serviceText}
-              </span>
-            </td>
-            <td>
-              <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span class="score-badge ${scoreClass}">${score}/100</span>
-                  <span class="confidence-tag">${confPct}% AI</span>
-                </div>
-                <button class="btn btn-secondary btn-sm" style="padding: 2px 6px; font-size: 0.7rem;" onclick="openScoreModal('${lead.lead_id}')">
-                  🔍 Rincian Skor
-                </button>
-              </div>
-            </td>
-            <td>
-              <!-- SALES FOLLOW-UP STATUS DROPDOWN -->
-              <select class="status-select" onchange="changeSalesFollowupStatus('${lead.lead_id}', this.value)">
-                <option value="Belum Dihubungi" ${lead.sales_status === 'Belum Dihubungi' ? 'selected' : ''}>Belum Dihubungi</option>
-                <option value="Sedang Dihubungi" ${lead.sales_status === 'Sedang Dihubungi' ? 'selected' : ''}>Sedang Dihubungi</option>
-                <option value="Closing" ${lead.sales_status === 'Closing' ? 'selected' : ''}>🎉 Closing (Deal)</option>
-                <option value="Batal" ${lead.sales_status === 'Batal' ? 'selected' : ''}>Batal / Loss</option>
-              </select>
-            </td>
-            <td style="text-align: right;">
-              <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${lead.lead_id}')">
-                  Detail
-                </button>
-                <a href="${lead.source_url}" target="_blank" rel="noopener noreferrer" class="btn btn-accent btn-sm" style="padding: 5px 10px;">
-                  Hubungi ↗
-                </a>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    // Action: Change Status from Marketing Dropdown
-    async function changeLeadStatus(leadId, newStatus) {
-      try {
-        const resp = await fetch(`/api/v1/leads/${leadId}/status`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ marketing_status: newStatus })
+      async function api(path, options = {}) {
+        const r = await fetch("/api/v1" + path, {
+          ...options,
+          headers: { "Content-Type": "application/json", ...options.headers },
         });
-        if (!resp.ok) throw new Error("Gagal memperbarui status");
-
-        const updated = await resp.json();
-        // Update local cache
-        const target = cachedLeads.find(l => l.lead_id === leadId);
-        if (target) target.marketing_status = newStatus;
-
-        if (newStatus === "valid") {
-          showToast(`Status diset Valid! Prospek ${updated.author_name || ''} otomatis diteruskan ke meja Sales.`, "🚀");
-        } else if (newStatus === "invalid") {
-          showToast(`Status diset Invalid. Prospek tidak akan tampil di Sales.`, "ℹ️");
-        } else {
-          showToast(`Status diset Pending Review.`, "🟡");
+        const data = await r.json();
+        if (!r.ok) {
+          if (r.status === 401) {
+            role = "";
+            showView();
+          }
+          throw Error(
+            typeof data.detail === "string"
+              ? data.detail
+              : "Periksa kembali input Anda",
+          );
         }
-
-        loadStats();
-        renderMarketingTable();
-      } catch (err) {
-        showToast("Error: " + err.message, "❌");
+        return data;
       }
-    }
-
-    // Action: Change Sales Follow-up Status
-    async function changeSalesFollowupStatus(leadId, newStatus) {
-      try {
-        const resp = await fetch(`/api/v1/leads/${leadId}/sales-status`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sales_status: newStatus })
+      async function loginAs(value) {
+        try {
+          const data = await api("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ role: value }),
+          });
+          role = data.role;
+          page = 0;
+          showView();
+          await loadLeads();
+          if (role === "marketing") await loadScheduler();
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      async function logout() {
+        try {
+          await api("/auth/logout", { method: "POST" });
+          role = "";
+          rows = [];
+          requestId++;
+          $("detail").close();
+          $("detail-content").textContent = "";
+          $("lead-body").textContent = "";
+          showView();
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      function showView() {
+        const logged = !!role;
+        $("login-screen").hidden = logged;
+        $("app-screen").hidden = !logged;
+        $("account").hidden = !logged;
+        if (!logged) return;
+        const marketing = role === "marketing";
+        $("workspace-marketing").hidden = !marketing;
+        $("workspace-sales").hidden = marketing;
+        $("role-name").textContent = marketing ? "Marketing" : "Sales";
+        $("page-title").textContent = marketing
+          ? "Temukan peluang IT"
+          : "Pipeline penjualan";
+        $("page-description").textContent = marketing
+          ? "Tinjau kebutuhan, validasi prospek, lalu teruskan ke sales."
+          : "Prioritaskan prospek dan catat progres setiap pendekatan.";
+        $("status-filter").innerHTML =
+          '<option value="all">Semua status</option>' +
+          (marketing ? mktStatuses : salesStatuses)
+            .map(
+              (s) =>
+                `<option value="${esc(s)}">${esc(labels[s] || s)}</option>`,
+            )
+            .join("");
+        $("filter").value = "";
+      }
+      async function loadLeads() {
+        if (!role) return;
+        const id = ++requestId,
+          activeRole = role,
+          size = +$("page-size").value;
+        const q = new URLSearchParams({
+          limit: size,
+          offset: page * size,
+          search: $("filter").value,
+          [role === "marketing" ? "status" : "sales_status"]:
+            $("status-filter").value,
         });
-        if (!resp.ok) throw new Error("Gagal memperbarui status follow-up");
-
-        showToast(`Status follow-up diperbarui: ${newStatus}`, "✅");
-        loadStats();
-      } catch (err) {
-        showToast("Error: " + err.message, "❌");
+        $("load-state").textContent = "Memuat…";
+        try {
+          const data = await api("/leads?" + q);
+          if (id !== requestId || role !== activeRole) return;
+          rows = data;
+          const nextQuery = new URLSearchParams(q);
+          nextQuery.set("offset", (page + 1) * size);
+          nextQuery.set("limit", 1);
+          const next = await api("/leads?" + nextQuery);
+          if (id !== requestId) return;
+          hasNext = next.length > 0;
+          render();
+          $("load-state").textContent =
+            "Diperbarui " +
+            new Date().toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+          await loadStats();
+        } catch (e) {
+          if (id === requestId) {
+            $("load-state").textContent = e.message;
+            $("lead-body").innerHTML =
+              '<tr><td colspan="5">Data gagal dimuat. Coba muat ulang.</td></tr>';
+            toast(e.message);
+          }
+        }
       }
-    }
-
-    // Filter Helpers
-    function setMarketingTab(tab, btn) {
-      currentMarketingTab = tab;
-      document.querySelectorAll(".filter-tabs .tab-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderMarketingTable();
-    }
-
-    function handleFilterSearch(val) {
-      activeFilterText = val;
-      renderMarketingTable();
-    }
-
-    function handleSalesFilterSearch(val) {
-      activeSalesFilterText = val;
-      renderSalesTable();
-    }
-
-    // Open Score Transparency Modal
-    function openScoreModal(leadId) {
-      const lead = cachedLeads.find(l => l.lead_id === leadId) || currentDetailLead;
-      if (!lead) return;
-
-      const bk = lead.score_breakdown || {
-        intent_score: 35, intent_max: 40, intent_name: lead.intent || "Intent", intent_explanation: "Intent terdeteksi dari pola teks.",
-        problem_clarity_score: 15, problem_clarity_max: 20, problem_clarity_explanation: "Kebutuhan dan kendala terdeteksi.",
-        it_relevance_score: 15, it_relevance_max: 20, it_relevance_explanation: "Relevan dengan software agency.",
-        product_fit_score: 15, product_fit_max: 20, product_fit_explanation: "Cocok dengan katalog layanan.",
-        total_score: lead.lead_score || 0,
-        ai_confidence: lead.confidence || 0.85,
-        ai_confidence_pct: Math.round((lead.confidence || 0.85) * 100),
-        ai_confidence_explanation: `AI Gemini menganalisis ${lead.author_name || 'pengguna'} dengan tingkat keyakinan ekstraksi tinggi.`,
-        formula_summary: `${lead.lead_score}/100 Poin Akumulasi`
+      async function loadStats() {
+        const activeRole = role;
+        try {
+          const s = await api("/leads/stats");
+          if (role !== activeRole) return;
+          const items =
+            role === "marketing"
+              ? [
+                  ["Semua prospek", s.total],
+                  ["Perlu review", s.pending],
+                  ["Valid untuk sales", s.valid],
+                  ["Tidak valid", s.invalid],
+                ]
+              : [
+                  ["Prospek valid", s.valid],
+                  ["Belum dihubungi", s.sales_new],
+                  ["Sedang dihubungi", s.sales_in_progress],
+                  ["Closing", s.sales_closed],
+                ];
+          $("stats").innerHTML = items
+            .map(
+              ([label, value]) =>
+                `<div class="stat"><span class="muted">${label}</span><strong>${value ?? 0}</strong></div>`,
+            )
+            .join("");
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      function render() {
+        const statuses = role === "marketing" ? mktStatuses : salesStatuses;
+        $("lead-body").innerHTML = rows.length
+          ? rows
+              .map(
+                (l, i) =>
+                  `<tr><td><strong>${esc(l.author_name || "Pengguna")}</strong><p>${esc(l.source)} · ${esc(l.published_at ? new Date(l.published_at).toLocaleDateString("id-ID") : "Tanggal tidak tersedia")}</p></td><td><strong>${esc((l.needs || []).slice(0, 2).join(" · ") || "Belum teridentifikasi")}</strong><p>${esc(l.content)}</p><span class="muted">${esc(l.matched_keyword)}</span></td><td><span class="score">${l.lead_score}/100</span><p>Keyakinan ${Math.round(l.confidence * 100)}%</p></td><td><select aria-label="Status ${esc(l.author_name)}" onchange="updateStatus(${i},this)">${statuses.map((s) => `<option ${s === (role === "marketing" ? l.marketing_status : l.sales_status) ? "selected" : ""} value="${esc(s)}">${esc(labels[s] || s)}</option>`).join("")}</select></td><td><button onclick="openDetail(${i})">Lihat →</button></td></tr>`,
+              )
+              .join("")
+          : '<tr><td colspan="5" style="padding:40px;text-align:center">Tidak ada prospek yang cocok. Ubah filter atau jalankan pencarian.</td></tr>';
+        $("page-info").textContent =
+          `Halaman ${page + 1} · ${rows.length} prospek${rows.length ? " · Baris " + (page * +$("page-size").value + 1) + "–" + (page * +$("page-size").value + rows.length) : ""}`;
+        $("prev").disabled = page === 0;
+        $("next").disabled = !hasNext;
+      }
+      function changePage(delta) {
+        page += delta;
+        loadLeads();
+      }
+      async function updateStatus(i, select) {
+        select.disabled = true;
+        const l = rows[i],
+          marketing = role === "marketing";
+        try {
+          await api(
+            `/leads/${encodeURIComponent(l.lead_id)}/${marketing ? "status" : "sales-status"}`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({
+                [marketing ? "marketing_status" : "sales_status"]: select.value,
+              }),
+            },
+          );
+          toast("Status diperbarui");
+          await loadLeads();
+        } catch (e) {
+          toast(e.message);
+          render();
+        }
+      }
+      function safeLink(url) {
+        try {
+          const u = new URL(url);
+          return ["https:", "http:"].includes(u.protocol) ? esc(u.href) : "#";
+        } catch {
+          return "#";
+        }
+      }
+      async function openDetail(i) {
+        try {
+          const l = await api("/leads/" + encodeURIComponent(rows[i].lead_id));
+          const b = l.score_breakdown;
+          $("detail-content").innerHTML =
+            `<h3>${esc(l.author_name || "Pengguna")}</h3><p>${esc(l.content)}</p><p><a href="${safeLink(l.source_url)}" target="_blank" rel="noopener noreferrer">Buka posting asli ↗</a></p><h3>Kebutuhan & kendala</h3><ul>${[...(l.needs || []), ...(l.pain_points || [])].map((x) => `<li>${esc(x)}</li>`).join("") || "<li>Belum teridentifikasi</li>"}</ul><h3>Layanan yang sesuai</h3>${(l.recommended_services || []).map((x) => `<p><strong>${esc(x.product_name)}</strong> · ${x.match_score}%<br>${esc(x.reason)}</p>`).join("") || "<p>Belum ada rekomendasi.</p>"}<h3>Dasar penilaian · ${l.lead_score}/100</h3>${b ? ["intent", "problem_clarity", "it_relevance", "product_fit"].map((k) => `<p>${esc(b[k + "_explanation"] || "")} <strong>${b[k + "_score"]}/${b[k + "_max"]}</strong></p>`).join("") : "<p>Rincian skor belum tersedia.</p>"}<h3>Bukti dari posting</h3><ul>${(l.evidence || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+          $("detail").showModal();
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      async function loadScheduler() {
+        scheduler = await api("/scheduler/status");
+        $("auto-keywords").value = scheduler.keywords.join(", ");
+        $("auto-source").value = scheduler.sources.join(",");
+        $("auto-limit").value = scheduler.limit_per_run;
+        showScheduler();
+      }
+      function showScheduler() {
+        $("scheduler-state").textContent =
+          `${scheduler.is_running ? "Jadwal aktif" : "Jadwal berhenti"} · Interval ${scheduler.interval_minutes} menit · ${scheduler.total_cycles_executed} siklus${scheduler.cycle_running ? " · Pencarian berlangsung" : ""}${scheduler.last_error ? " · Gagal: " + scheduler.last_error : ""}`;
+        $("scheduler-toggle").textContent = scheduler.is_running
+          ? "Hentikan jadwal"
+          : "Mulai jadwal";
+        $("trigger").disabled = scheduler.cycle_running;
+      }
+      async function toggleScheduler() {
+        try {
+          const r = await api(
+            "/scheduler/" + (scheduler.is_running ? "stop" : "start"),
+            { method: "POST" },
+          );
+          scheduler = r.scheduler;
+          showScheduler();
+          if (!scheduler.is_running && !scheduler.enabled)
+            toast(
+              "Aktifkan AUTO_SEARCH_ENABLED di konfigurasi server terlebih dahulu",
+            );
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      async function triggerCycle() {
+        try {
+          $("trigger").disabled = true;
+          await api("/scheduler/trigger", { method: "POST" });
+          toast("Siklus pencarian dikirim");
+          await loadScheduler();
+        } catch (e) {
+          toast(e.message);
+        } finally {
+          $("trigger").disabled = false;
+        }
+      }
+      $("config-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const button = e.submitter;
+        button.disabled = true;
+        try {
+          scheduler = await api("/scheduler/config", {
+            method: "PUT",
+            body: JSON.stringify({
+              keywords: $("auto-keywords").value.split(","),
+              sources: $("auto-source").value.split(","),
+              limit_per_run: +$("auto-limit").value,
+            }),
+          });
+          showScheduler();
+          toast("Pengaturan otomatis disimpan");
+        } catch (e) {
+          toast(e.message);
+        } finally {
+          button.disabled = false;
+        }
       };
-
-      document.getElementById("score-modal-subtitle").innerText = `Kalkulasi skor untuk prospek ${lead.author_name || 'Pengguna'} (${lead.source.toUpperCase()})`;
-      document.getElementById("modal-total-score").innerText = `${bk.total_score} / 100`;
-      document.getElementById("modal-formula-summary").innerText = bk.formula_summary || "-";
-      document.getElementById("modal-ai-confidence").innerText = `${bk.ai_confidence_pct}%`;
-      document.getElementById("modal-confidence-desc").innerText = bk.ai_confidence_explanation || "-";
-
-      // 1. Intent
-      document.getElementById("score-intent-name").innerText = bk.intent_name || "Intent";
-      document.getElementById("score-intent-val").innerText = `${bk.intent_score} / ${bk.intent_max} Poin`;
-      document.getElementById("bar-intent").style.width = `${(bk.intent_score / bk.intent_max) * 100}%`;
-      document.getElementById("desc-intent").innerText = bk.intent_explanation;
-
-      // 2. Clarity
-      document.getElementById("score-clarity-val").innerText = `${bk.problem_clarity_score} / ${bk.problem_clarity_max} Poin`;
-      document.getElementById("bar-clarity").style.width = `${(bk.problem_clarity_score / bk.problem_clarity_max) * 100}%`;
-      document.getElementById("desc-clarity").innerText = bk.problem_clarity_explanation;
-
-      // 3. Relevance
-      document.getElementById("score-relevance-val").innerText = `${bk.it_relevance_score} / ${bk.it_relevance_max} Poin`;
-      document.getElementById("bar-relevance").style.width = `${(bk.it_relevance_score / bk.it_relevance_max) * 100}%`;
-      document.getElementById("desc-relevance").innerText = bk.it_relevance_explanation;
-
-      // 4. Product Fit
-      document.getElementById("score-fit-val").innerText = `${bk.product_fit_score} / ${bk.product_fit_max} Poin`;
-      document.getElementById("bar-fit").style.width = `${(bk.product_fit_score / bk.product_fit_max) * 100}%`;
-      document.getElementById("desc-fit").innerText = bk.product_fit_explanation;
-
-      document.getElementById("score-modal").style.display = "flex";
-    }
-
-    function closeScoreModal(event) {
-      if (event && event.target !== document.getElementById("score-modal")) return;
-      document.getElementById("score-modal").style.display = "none";
-    }
-
-    // Open Lead Detail Modal
-    function openDetailModal(leadId) {
-      const lead = cachedLeads.find(l => l.lead_id === leadId);
-      if (!lead) return;
-      currentDetailLead = lead;
-
-      document.getElementById("det-author-name").innerText = lead.author_name || "Calon Klien";
-      const dateStr = lead.published_at ? new Date(lead.published_at).toLocaleString("id-ID") : "-";
-      document.getElementById("det-platform-meta").innerText = `${(lead.source || 'web').toUpperCase()} • Ditemukan pada ${dateStr}`;
-
-      const mktBadge = document.getElementById("det-mkt-badge");
-      mktBadge.className = `badge badge-${lead.marketing_status}`;
-      mktBadge.innerText = `Marketing: ${lead.marketing_status.toUpperCase()}`;
-
-      const salesBadge = document.getElementById("det-sales-badge");
-      salesBadge.className = "badge";
-      salesBadge.style.background = "#F1F5F9";
-      salesBadge.style.color = "#0F172A";
-      salesBadge.style.border = "1px solid #CBD5E1";
-      salesBadge.innerText = `Sales: ${lead.sales_status || 'Belum Dihubungi'}`;
-
-      document.getElementById("det-intent-badge").innerText = `Intent: ${lead.intent || '-'}`;
-      document.getElementById("det-content").innerText = `"${lead.content}"`;
-
-      // Needs
-      const needsBox = document.getElementById("det-needs-container");
-      needsBox.innerHTML = (lead.needs || []).length
-        ? (lead.needs || []).map(n => `<span class="badge" style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-size: 0.8rem;">✓ ${n}</span>`).join('')
-        : '<span style="font-size: 0.8rem; color: var(--text-muted);">-</span>';
-
-      // Pain points
-      const painBox = document.getElementById("det-pain-container");
-      painBox.innerHTML = (lead.pain_points || []).length
-        ? (lead.pain_points || []).map(p => `<span class="badge" style="background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; font-size: 0.8rem;">⚠️ ${p}</span>`).join('')
-        : '<span style="font-size: 0.8rem; color: var(--text-muted);">-</span>';
-
-      // Recommended Services
-      const servBox = document.getElementById("det-services-container");
-      servBox.innerHTML = (lead.recommended_services || []).length
-        ? (lead.recommended_services || []).map(s => `
-            <div style="background: #F8FAFC; border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 700; color: #0F172A; font-size: 0.85rem;">📦 ${s.product_name}</span>
-                <span style="font-family: var(--font-mono); font-size: 0.8rem; color: #059669; font-weight: 700;">Match: ${s.match_score}%</span>
-              </div>
-              <div style="font-size: 0.775rem; color: #475569; margin-top: 2px;">${s.reason}</div>
-            </div>
-          `).join('')
-        : '<div style="font-size: 0.8rem; color: var(--text-muted);">-</div>';
-
-      document.getElementById("det-link-out").href = lead.source_url || "#";
-      document.getElementById("detail-modal").style.display = "flex";
-    }
-
-    function closeDetailModal(event) {
-      if (event && event.target !== document.getElementById("detail-modal")) return;
-      document.getElementById("detail-modal").style.display = "none";
-    }
-
-    function openScoreBreakdownFromDetail() {
-      if (currentDetailLead) {
-        openScoreModal(currentDetailLead.lead_id);
-      }
-    }
-
-    // Trigger Scraper Search (Marketing)
-    async function triggerManualSearch() {
-      const btn = document.getElementById("btn-trigger-search");
-      const progress = document.getElementById("search-progress");
-      const stepDetail = document.getElementById("step-detail");
-
-      const keywords = document.getElementById("input-keywords").value.split(",").map(k => k.trim()).filter(Boolean);
-      if (!keywords.length) {
-        showToast("Masukkan minimal 1 kata kunci pencarian!", "⚠️");
-        return;
-      }
-
-      const sources = [];
-      if (document.getElementById("check-threads").checked) sources.push("threads");
-      if (document.getElementById("check-linkedin").checked) sources.push("linkedin");
-      if (!sources.length) {
-        showToast("Pilih minimal satu platform!", "⚠️");
-        return;
-      }
-
-      const limit = parseInt(document.getElementById("select-limit").value) || 5;
-
-      btn.disabled = true;
-      btn.innerText = "⏳ Sedang Menemukan Prospek...";
-      progress.style.display = "block";
-      stepDetail.innerText = `Menghubungi scraper ${sources.join(' & ')}...`;
-
-      const today = new Date().toISOString().split("T")[0];
-      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
-      try {
-        const resp = await fetch("/api/v1/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            keywords: keywords,
-            start_date: threeDaysAgo,
-            end_date: today,
-            sources: sources,
-            limit: limit
-          })
-        });
-
-        if (!resp.ok) {
-          const err = await resp.json();
-          throw new Error(err.detail || "Gagal melakukan pencarian");
+      $("search-form").onsubmit = async (e) => {
+        e.preventDefault();
+        if ($("start").value > $("end").value) {
+          toast("Tanggal akhir harus setelah tanggal awal");
+          return;
         }
-
-        const data = await resp.json();
-        progress.style.display = "none";
-
-        showToast(`Ditemukan & dianalisis ${data.total_analyzed} postingan! Data tampil di tabel di bawah.`, "🎉");
-        await loadLeadsData();
-      } catch (err) {
-        progress.style.display = "none";
-        showToast("Error: " + err.message, "❌");
-      } finally {
-        btn.disabled = false;
-        btn.innerText = "⚡ Hit & Temukan Lead Sekarang";
-      }
-    }
-
-    // Initialize on page load
-    document.addEventListener("DOMContentLoaded", () => {
-      applyRoleView();
-    });
-  </script>
-</body>
+        const keywords = [
+          ...new Set(
+            $("keywords")
+              .value.split(",")
+              .map((k) => k.trim())
+              .filter(Boolean),
+          ),
+        ];
+        if (!keywords.length || keywords.length > 10) {
+          toast("Masukkan 1–10 keyword per pencarian manual");
+          return;
+        }
+        $("search-button").disabled = true;
+        $("search-result").textContent =
+          "Pencarian dan analisis berjalan. Proses dapat memerlukan beberapa menit.";
+        try {
+          const r = await api("/search", {
+            method: "POST",
+            body: JSON.stringify({
+              keywords,
+              start_date: $("start").value,
+              end_date: $("end").value,
+              sources: [$("source").value],
+              limit: +$("limit").value,
+            }),
+          });
+          $("search-result").textContent =
+            `${r.total_found} ditemukan · ${r.total_analyzed} dianalisis · ${r.qualified} berpotensi. Tinjau status sebelum diteruskan ke sales.`;
+          page = 0;
+          await loadLeads();
+        } catch (e) {
+          $("search-result").textContent = e.message;
+          toast(e.message);
+        } finally {
+          $("search-button").disabled = false;
+        }
+      };
+      $("preset").onchange = (e) => {
+        if (e.target.value) {
+          $("keywords").value = [
+            ...new Set([
+              ...$("keywords")
+                .value.split(",")
+                .map((v) => v.trim())
+                .filter(Boolean),
+              ...e.target.value.split(","),
+            ]),
+          ].join(", ");
+          e.target.value = "";
+        }
+      };
+      $("filter").oninput = () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          page = 0;
+          loadLeads();
+        }, 300);
+      };
+      for (const id of ["status-filter", "page-size"])
+        $(id).onchange = () => {
+          page = 0;
+          loadLeads();
+        };
+      $("end").value = new Date().toISOString().slice(0, 10);
+      $("start").value = new Date(Date.now() - 3 * 86400000)
+        .toISOString()
+        .slice(0, 10);
+      (async () => {
+        try {
+          role = (await api("/auth/me")).role;
+          showView();
+          await loadLeads();
+          if (role === "marketing") await loadScheduler();
+        } catch {
+          showView();
+        }
+      })();
+      setInterval(async () => {
+        if (role === "marketing") {
+          try {
+            scheduler = await api("/scheduler/status");
+            showScheduler();
+          } catch {}
+        }
+      }, 30000);
+    </script>
+  </body>
 </html>

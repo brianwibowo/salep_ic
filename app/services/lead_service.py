@@ -28,21 +28,8 @@ def build_lead_record(raw: RawLead, analysis: LeadAnalysis) -> LeadRecord:
     score_breakdown = calculate_score_breakdown(analysis)
     app_score = score_breakdown.total_score
 
-    # Determine initial marketing qualification status
-    if (
-        analysis.is_potential_lead
-        and app_score >= 60
-        and analysis.intent in {
-            IntentType.LOOKING_FOR_VENDOR,
-            IntentType.REQUESTING_RECOMMENDATION,
-            IntentType.EVALUATING_SOLUTION,
-        }
-    ):
-        initial_status = "valid"
-    elif analysis.is_potential_lead and app_score >= 40:
-        initial_status = "pending"
-    else:
-        initial_status = "invalid"
+    # Human marketing review is required before exposing any lead to sales.
+    initial_status = "pending" if analysis.is_potential_lead else "invalid"
 
     return LeadRecord(
         lead_id=f"lead_{uuid.uuid4().hex[:12]}",
@@ -72,13 +59,13 @@ def build_lead_record(raw: RawLead, analysis: LeadAnalysis) -> LeadRecord:
 
 async def run_search(request: SearchRequest) -> SearchResponse:
     """Execute the full SALEP pipeline:
-    Keywords → Expand → Search Sources → Deduplicate → AI Analysis → Score → Save → Response.
+    Keywords → Search Sources → Deduplicate → AI Analysis → Score → Save → Response.
     """
     query_id = f"qry_{uuid.uuid4().hex[:8]}"
     logger.info("Starting search %s — keywords=%s sources=%s", query_id, request.keywords, request.sources)
 
-    # Step 1: Expand keywords
-    expanded = expand_keywords(request.keywords)
+    # Step 1: Use only explicitly selected keywords to keep Apify usage predictable
+    expanded = list(dict.fromkeys(k.strip() for k in request.keywords if k.strip()))
 
     # Step 2: Search sources
     raw_results = await search_sources(
@@ -112,6 +99,9 @@ async def run_search(request: SearchRequest) -> SearchResponse:
             errors += 1
             logger.error("Failed to analyze lead %d: %s", i + 1, e)
 
+    if errors and not leads:
+        raise RuntimeError("Analisis AI gagal. Periksa konfigurasi provider dan coba lagi.")
+
     # Step 5: Save all leads to local SQLite repository and sync valid leads to Google Sheets
     for l in leads:
         try:
@@ -133,7 +123,7 @@ async def run_search(request: SearchRequest) -> SearchResponse:
         query_id=query_id,
         total_found=total_found,
         total_analyzed=len(leads),
-        qualified=len(qualified_leads_for_sales),
+        qualified=sum(l.is_potential_lead for l in leads),
         leads=leads,
     )
 

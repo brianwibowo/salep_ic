@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any
 import httpx
 
@@ -28,7 +28,7 @@ class ThreadsSourceAdapter:
         """Search Threads posts matching keywords via Apify."""
         if not settings.apify_api_token:
             logger.warning("ThreadsSource: APIFY_API_TOKEN is not set, skipping Threads search.")
-            return []
+            raise RuntimeError("APIFY_API_TOKEN belum dikonfigurasi")
 
         leads: list[RawLead] = []
         actor_id = settings.threads_actor_id or "igview-owner~threads-search-scraper"
@@ -37,8 +37,8 @@ class ThreadsSourceAdapter:
         # Apify actor minimum maxPosts is 20
         max_posts = max(20, min(limit, 50))
 
-        # Query top 2 keywords to avoid burning too many Apify compute units
-        target_keywords = keywords[:2] if len(keywords) > 2 else keywords
+        # The caller provides explicit bounded queries; do not discard selected keywords.
+        target_keywords = list(dict.fromkeys(keywords))
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             for kw in target_keywords:
@@ -54,32 +54,28 @@ class ThreadsSourceAdapter:
                     resp = await client.post(api_url, json=payload)
                     if resp.status_code == 403 or "Monthly usage hard limit exceeded" in resp.text:
                         raise RuntimeError(
-                            "Kuota gratis Apify ($5.00) telah habis (Monthly usage hard limit exceeded). "
-                            "Silakan perbarui APIFY_API_TOKEN di file .env dengan token akun Apify baru."
+                            "Apify menolak akses atau batas pemakaian tercapai. Periksa token dan kuota akun Apify."
                         )
                     if resp.status_code not in (200, 201):
-                        logger.error(
-                            "Threads Apify error (%d): %s",
-                            resp.status_code,
-                            resp.text[:200],
-                        )
-                        continue
+                        raise RuntimeError(f"Apify mengembalikan HTTP {resp.status_code}")
 
                     items = resp.json()
                     if not isinstance(items, list):
                         logger.warning("Threads Apify unexpected format: %s", type(items))
-                        continue
+                        raise RuntimeError("Format respons Apify tidak sesuai")
 
                     logger.info("Threads returned %d raw items for '%s'", len(items), kw)
                     for item in items:
                         lead = self._parse_item(item, matched_kw=kw)
                         if lead and lead.content.strip():
+                            if lead.published_at and not (date.fromisoformat(start_date) <= lead.published_at.date() <= date.fromisoformat(end_date)):
+                                continue
                             leads.append(lead)
 
                 except httpx.TimeoutException:
-                    logger.warning("Threads search timed out for keyword: '%s'", kw)
-                except Exception as e:
-                    logger.error("Threads search failed for '%s': %s", kw, e)
+                    raise RuntimeError("Apify timeout. Periksa run di Apify sebelum mencoba lagi.") from None
+                except httpx.HTTPError:
+                    raise RuntimeError("Koneksi ke Apify gagal") from None
 
         return leads[:limit]
 
@@ -90,11 +86,7 @@ class ThreadsSourceAdapter:
         if not caption:
             return None
 
-        # Filter out drop-jualan / affiliate spam that does not even mention web/software
-        caption_lower = caption.lower()
-        relevant_terms = {"web", "website", "landing", "aplikasi", "software", "sistem", "programmer", "developer", "koding", "coding"}
-        if not any(term in caption_lower for term in relevant_terms):
-            return None
+        # Qualification belongs to the IT-wide agent, not a web-only lexical filter.
 
         # URL
         post_url = item.get("postUrl") or item.get("thread_url") or ""

@@ -34,3 +34,46 @@ async def stop_scheduler():
     """Stop the periodic autonomous scheduler."""
     lead_scheduler.stop()
     return {"status": "stopped", "scheduler": lead_scheduler.get_status()}
+
+
+from typing import Literal
+from pydantic import BaseModel, Field, field_validator
+from app.core.config import settings
+from pathlib import Path
+import json
+
+CONFIG_PATH = Path(__file__).resolve().parents[3] / 'data' / 'discovery.json'
+
+
+class DiscoveryConfig(BaseModel):
+    keywords: list[str] = Field(min_length=1, max_length=40)
+    sources: list[Literal['threads', 'linkedin']] = Field(min_length=1)
+    limit_per_run: int = Field(ge=1, le=50)
+
+    @field_validator('keywords')
+    @classmethod
+    def clean_keywords(cls, values):
+        values = list(dict.fromkeys(v.strip() for v in values if v.strip()))
+        if not values or any(len(v) > 150 for v in values):
+            raise ValueError('Isi keyword yang valid (maksimal 150 karakter)')
+        return values
+
+
+def apply_config(config):
+    settings.auto_search_keywords = ','.join(config.keywords)
+    settings.auto_search_sources = ','.join(config.sources)
+    settings.auto_search_limit_per_run = config.limit_per_run
+    settings.auto_search_interval_minutes = 30
+
+
+if CONFIG_PATH.exists():
+    apply_config(DiscoveryConfig(**json.loads(CONFIG_PATH.read_text())))
+
+
+@router.put('/config')
+async def save_config(config: DiscoveryConfig):
+    temp = CONFIG_PATH.with_suffix('.tmp')
+    temp.write_text(config.model_dump_json(indent=2))
+    temp.replace(CONFIG_PATH)
+    apply_config(config)
+    return lead_scheduler.get_status()
