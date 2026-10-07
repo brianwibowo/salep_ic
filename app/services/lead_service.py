@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.agent.salep_agent import analyze_lead
 from app.agent.schemas import (
@@ -17,14 +17,32 @@ from app.agent.schemas import (
     IntentType,
 )
 from app.core.logging import logger
-from app.services.scoring_service import calculate_lead_score
+from app.services.scoring_service import calculate_lead_score, calculate_score_breakdown
 from app.services.search_service import expand_keywords, search_sources, deduplicate
 from app.services.google_sheets import sheets_service
+from app.services.lead_repository import lead_repository
 
 
 def build_lead_record(raw: RawLead, analysis: LeadAnalysis) -> LeadRecord:
-    """Combine raw lead data with AI analysis into a full LeadRecord."""
-    app_score = calculate_lead_score(analysis)
+    """Combine raw lead data with AI analysis into a full LeadRecord with score breakdown."""
+    score_breakdown = calculate_score_breakdown(analysis)
+    app_score = score_breakdown.total_score
+
+    # Determine initial marketing qualification status
+    if (
+        analysis.is_potential_lead
+        and app_score >= 60
+        and analysis.intent in {
+            IntentType.LOOKING_FOR_VENDOR,
+            IntentType.REQUESTING_RECOMMENDATION,
+            IntentType.EVALUATING_SOLUTION,
+        }
+    ):
+        initial_status = "valid"
+    elif analysis.is_potential_lead and app_score >= 40:
+        initial_status = "pending"
+    else:
+        initial_status = "invalid"
 
     return LeadRecord(
         lead_id=f"lead_{uuid.uuid4().hex[:12]}",
@@ -44,8 +62,11 @@ def build_lead_record(raw: RawLead, analysis: LeadAnalysis) -> LeadRecord:
         lead_score=app_score,
         confidence=analysis.confidence,
         evidence=analysis.evidence,
-        analyzed_at=datetime.utcnow(),
+        analyzed_at=datetime.now(timezone.utc),
         status=LeadStatus.NEW,
+        marketing_status=initial_status,
+        sales_status="Belum Dihubungi",
+        score_breakdown=score_breakdown,
     )
 
 
@@ -91,18 +112,16 @@ async def run_search(request: SearchRequest) -> SearchResponse:
             errors += 1
             logger.error("Failed to analyze lead %d: %s", i + 1, e)
 
-    # Step 5: Save ONLY genuine, qualified leads to Google Sheets for Sales
-    # Exclude: job seekers, students, training ads, random tech rants, and irrelevant chit-chat
+    # Step 5: Save all leads to local SQLite repository and sync valid leads to Google Sheets
+    for l in leads:
+        try:
+            lead_repository.save_lead(l)
+        except Exception as e:
+            logger.error("Failed to save lead %s to repository: %s", l.lead_id, e)
+
     qualified_leads_for_sales = [
         l for l in leads
-        if l.source != "mock"
-        and l.is_potential_lead is True
-        and l.lead_score >= 50
-        and l.intent in {
-            IntentType.LOOKING_FOR_VENDOR,
-            IntentType.REQUESTING_RECOMMENDATION,
-            IntentType.EVALUATING_SOLUTION,
-        }
+        if l.marketing_status == "valid"
     ]
     saved = await sheets_service.append_leads(qualified_leads_for_sales)
     logger.info(
@@ -115,7 +134,7 @@ async def run_search(request: SearchRequest) -> SearchResponse:
         total_found=total_found,
         total_analyzed=len(leads),
         qualified=len(qualified_leads_for_sales),
-        leads=qualified_leads_for_sales,
+        leads=leads,
     )
 
 
@@ -176,7 +195,12 @@ async def analyze_and_save_url(url: str, save_to_sheet: bool = True) -> LeadReco
     analysis = await analyze_lead(raw_lead.content)
     lead_record = build_lead_record(raw_lead, analysis)
 
-    if save_to_sheet and lead_record.is_potential_lead and lead_record.lead_score >= 40:
+    try:
+        lead_repository.save_lead(lead_record)
+    except Exception as e:
+        logger.error("Failed to save lead from URL to repository: %s", e)
+
+    if save_to_sheet and lead_record.marketing_status == "valid":
         await sheets_service.append_lead(lead_record)
 
     return lead_record

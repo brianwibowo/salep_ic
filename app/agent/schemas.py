@@ -38,6 +38,31 @@ class ProductMatch(BaseModel):
     reason: str
 
 
+class ScoreBreakdown(BaseModel):
+    intent_score: int = Field(ge=0, le=40, description="Poin kekuatan intent (0-40)")
+    intent_max: int = 40
+    intent_name: str
+    intent_explanation: str
+
+    problem_clarity_score: int = Field(ge=0, le=20, description="Poin kejelasan masalah & kebutuhan (0-20)")
+    problem_clarity_max: int = 20
+    problem_clarity_explanation: str
+
+    it_relevance_score: int = Field(ge=0, le=20, description="Poin relevansi kebutuhan IT (0-20)")
+    it_relevance_max: int = 20
+    it_relevance_explanation: str
+
+    product_fit_score: int = Field(ge=0, le=20, description="Poin kesesuaian produk/layanan (0-20)")
+    product_fit_max: int = 20
+    product_fit_explanation: str
+
+    total_score: int = Field(ge=0, le=100)
+    ai_confidence: float = Field(ge=0.0, le=1.0)
+    ai_confidence_pct: int
+    ai_confidence_explanation: str
+    formula_summary: str
+
+
 class LeadAnalysis(BaseModel):
     is_potential_lead: bool
     intent: IntentType
@@ -91,6 +116,17 @@ class LeadRecord(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     analyzed_at: datetime = Field(default_factory=datetime.utcnow)
     status: LeadStatus = LeadStatus.NEW
+    marketing_status: str = Field(default="pending", description="Status kualifikasi marketing: 'pending', 'valid', 'invalid'")
+    sales_status: str = Field(default="Belum Dihubungi", description="Status follow-up sales: 'Belum Dihubungi', 'Sedang Dihubungi', 'Closing', 'Batal'")
+    score_breakdown: ScoreBreakdown | None = None
+
+
+class UpdateStatusRequest(BaseModel):
+    marketing_status: str = Field(description="Status kualifikasi marketing: 'valid', 'invalid', 'pending'")
+
+
+class UpdateSalesStatusRequest(BaseModel):
+    sales_status: str = Field(description="Status follow up sales")
 
 
 # --- API Request / Response ---
