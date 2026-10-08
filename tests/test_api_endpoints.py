@@ -55,6 +55,28 @@ def test_role_spoof_and_detail(clients):
 def test_write_permissions(clients):
     marketing, sales, _ = clients
     assert sales.patch('/api/v1/leads/lead_demo_003/status', json={'marketing_status':'valid'}).status_code == 403
+
+
+def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monkeypatch):
+    marketing = clients[0]
+    monkeypatch.setattr(auth.settings, 'app_env', 'production')
+    monkeypatch.setattr(auth.settings, 'app_domain', 'salep1.duckdns.org')
+
+    allowed = marketing.post(
+        '/api/v1/spse/search',
+        json={'keywords': ['software'], 'limit': 1},
+        headers={'Origin': 'https://salep1.duckdns.org'},
+    )
+    # The route may fail to fetch live SPSE in a test environment, but must pass
+    # the origin check (502 is an upstream fetch failure; 403 is a bad origin).
+    assert allowed.status_code != 403
+
+    denied = marketing.post(
+        '/api/v1/spse/search',
+        json={'keywords': ['software'], 'limit': 1},
+        headers={'Origin': 'https://attacker.example'},
+    )
+    assert denied.status_code == 403
     for path in ['/search','/leads/analyze','/leads/analyze-url','/scheduler/start','/scheduler/trigger']:
         assert sales.post('/api/v1'+path,json={}).status_code == 403
     assert sales.put('/api/v1/scheduler/config',json={}).status_code == 403

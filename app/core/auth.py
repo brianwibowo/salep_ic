@@ -43,7 +43,11 @@ async def enforce_access(request, call_next):
         request.state.role = role
         if request.method not in {'GET', 'HEAD', 'OPTIONS'}:
             origin = request.headers.get('origin')
-            if origin and origin != str(request.base_url).rstrip('/'):
+            # Behind a TLS-terminating reverse proxy, request.base_url may contain
+            # the proxy's internal scheme/host rather than the browser's public URL.
+            # Compare against configured public origins instead of that value.
+            allowed_origins = {item.rstrip('/') for item in settings.cors_origins if item != '*'}
+            if origin and origin.rstrip('/') not in allowed_origins:
                 return JSONResponse({'detail': 'Origin tidak diizinkan'}, status_code=403)
         if role == 'sales':
             allowed = (request.method == 'GET' and (path == '/api/v1/leads' or path == '/api/v1/leads/stats' or (path.startswith('/api/v1/leads/') and path.rsplit('/', 1)[-1] not in {'recent'}))) or (request.method == 'PATCH' and path.endswith('/sales-status'))
