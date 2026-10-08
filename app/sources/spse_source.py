@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from html.parser import HTMLParser
+import re
 from urllib.parse import urljoin
+from datetime import date
 
 import httpx
 
@@ -11,6 +13,8 @@ from app.agent.schemas import RawLead
 
 
 SPSE_NATIONAL_URL = "https://spse.inaproc.id/nasional"
+SPSE_SEARCH_URL = "https://spse.inaproc.id/nasional/lelang"
+SPSE_DATATABLE_URL = "https://spse.inaproc.id/nasional/dt/lelang"
 
 
 class _TenderParser(HTMLParser):
@@ -60,7 +64,7 @@ class _TenderParser(HTMLParser):
 
 
 class SPSESourceAdapter:
-    """Fetch public tenders visible on the SPSE Nasional homepage."""
+    """Fetch public tenders from the paginated SPSE Nasional search listing."""
 
     @property
     def source_name(self) -> str:
@@ -73,39 +77,51 @@ class SPSESourceAdapter:
         end_date: str = "",
         limit: int = 50,
     ) -> list[RawLead]:
-        del start_date, end_date  # The homepage does not expose a reliable publish date.
+        del start_date, end_date  # SPSE does not expose a reliable publication date here.
         async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-            response = await client.get(
-                SPSE_NATIONAL_URL,
-                headers={"User-Agent": "SALEP public procurement discovery/1.0"},
-            )
-            response.raise_for_status()
-
-        parser = _TenderParser()
-        parser.feed(response.text)
+            headers = {"User-Agent": "SALEP public procurement discovery/1.0"}
+            page = await client.get(SPSE_SEARCH_URL, headers=headers)
+            page.raise_for_status()
+            token_match = re.search(r"authenticityToken\s*[:=]\s*'([^']+)'", page.text)
+            if not token_match:
+                raise RuntimeError("Token pencarian publik SPSE tidak ditemukan")
+            token = token_match.group(1)
         terms = [term.casefold() for term in keywords if term.strip()]
         results: list[RawLead] = []
         seen: set[str] = set()
-        for row in parser.rows:
-            title = row["title"].strip()
-            details = row["cells"]
-            haystack = f"{title} {details}".casefold()
-            matched = next((term for term in terms if term in haystack), None)
-            if not matched or row["url"] in seen:
-                continue
-            seen.add(row["url"])
-            results.append(
-                RawLead(
-                    source="spse",
-                    source_url=row["url"],
-                    author_name="SPSE Nasional",
-                    content=f"Nama paket: {title}\nInformasi paket: {details}",
-                    matched_keyword=matched,
+        start = 0
+        page_size = 100
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+            while len(results) < limit:
+                response = await client.post(
+                    f"{SPSE_DATATABLE_URL}?tahun={date.today().year}",
+                    data={"draw": "1", "start": str(start), "length": str(page_size), "authenticityToken": token},
+                    headers={**headers, "X-Requested-With": "XMLHttpRequest", "Referer": SPSE_SEARCH_URL},
                 )
-            )
-            if len(results) >= limit:
-                break
+                response.raise_for_status()
+                payload = response.json()
+                rows = payload.get("data", [])
+                if not rows:
+                    break
+                for item in rows:
+                    if len(item) < 9:
+                        continue
+                    package_id, title = str(item[0]), re.sub(r"<[^>]*>", " ", str(item[1]))
+                    title = " ".join(title.split())
+                    details = " | ".join(" ".join(str(value or "").split()) for value in item[2:9])
+                    url = urljoin(SPSE_SEARCH_URL, f"{package_id}/pengumumanlelang")
+                    haystack = f"{title} {details}".casefold()
+                    matched = next((term for term in terms if term in haystack), None)
+                    if not matched or url in seen:
+                        continue
+                    seen.add(url)
+                    results.append(RawLead(source="spse", source_url=url, author_name="SPSE Nasional", content=f"Nama paket: {title}\nInformasi paket: {details}", matched_keyword=matched))
+                    if len(results) >= limit:
+                        break
+                start += len(rows)
+                if len(rows) < page_size:
+                    break
         return results
 
     async def health_check(self) -> dict[str, str]:
-        return {"status": "ok", "source": SPSE_NATIONAL_URL}
+        return {"status": "ok", "source": SPSE_SEARCH_URL}

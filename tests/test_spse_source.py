@@ -14,16 +14,20 @@ from app.services.lead_repository import LeadRepository
 
 @pytest.mark.asyncio
 async def test_spse_adapter_extracts_only_keyword_matching_tender(monkeypatch):
-    html = """<table><tr><th>Nama Paket</th></tr>
-    <tr><td>1</td><td><a href="/nasional/lelang/123/pengumumanlelang">Pengadaan Software ERP</a></td>
-    <td>Rp. 100.000.000,00</td><td>20 Oktober 2026</td></tr>
-    <tr><td>2</td><td><a href="/nasional/lelang/456/pengumumanlelang">Pengadaan meja kantor</a></td>
-    <td>Rp. 10.000.000,00</td><td>21 Oktober 2026</td></tr></table>"""
+    html = "<script>var config = {authenticityToken: 'public-token'};</script>"
+    page_data = {"draw": "1", "recordsTotal": 2, "recordsFiltered": 2, "data": [
+        ["123", "Pengadaan Software ERP", "Badan X", "Berlangsung", "Rp. 100.000.000,00", "Tender", "Barang", "Harga Terendah", "TA 2026"],
+        ["456", "Pengadaan meja kantor", "Badan Y", "Berlangsung", "Rp. 10.000.000,00", "Tender", "Barang", "Harga Terendah", "TA 2026"],
+    ]}
     original = httpx.AsyncClient
+    def handler(request):
+        if request.method == "GET":
+            return httpx.Response(200, text=html)
+        return httpx.Response(200, json=page_data)
     monkeypatch.setattr(
         spse_source.httpx,
         "AsyncClient",
-        lambda **kwargs: original(transport=httpx.MockTransport(lambda request: httpx.Response(200, text=html))),
+        lambda **kwargs: original(transport=httpx.MockTransport(handler)),
     )
 
     results = await SPSESourceAdapter().search(["software", "ERP"], limit=10)
@@ -33,6 +37,30 @@ async def test_spse_adapter_extracts_only_keyword_matching_tender(monkeypatch):
     assert results[0].source_url.endswith("/123/pengumumanlelang")
     assert results[0].matched_keyword == "software"
     assert "Rp. 100.000.000,00" in results[0].content
+
+
+@pytest.mark.asyncio
+async def test_spse_adapter_paginates_until_match_limit(monkeypatch):
+    html = "authenticityToken = 'token'"
+    requests = []
+    def handler(request):
+        if request.method == "GET":
+            return httpx.Response(200, text=html)
+        requests.append(request)
+        start = int(request.url.params.get("start", "0"))
+        if start == 0:
+            rows = [[str(i), f"Paket umum {i}", "", "", "", "", "", "", ""] for i in range(100)]
+        else:
+            rows = [["101", "Pengadaan Software", "Instansi", "Berlangsung", "", "", "", "", "TA"]]
+        return httpx.Response(200, json={"data": rows})
+    original = httpx.AsyncClient
+    monkeypatch.setattr(spse_source.httpx, "AsyncClient", lambda **kwargs: original(transport=httpx.MockTransport(handler)))
+
+    results = await SPSESourceAdapter().search(["software"], limit=1)
+
+    assert len(results) == 1
+    assert results[0].source_url.endswith("/101/pengumumanlelang")
+    assert len(requests) == 2
 
 
 @pytest.mark.asyncio
