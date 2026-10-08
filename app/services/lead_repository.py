@@ -82,7 +82,7 @@ class LeadRepository:
 
     def _seed_sample_leads(self, conn: sqlite3.Connection) -> None:
         """Seed realistic sample leads for immediate RBAC demonstration."""
-        sample_records = [
+        sample_records: list[dict[str, Any]] = [
             {
                 "lead_id": "lead_demo_001",
                 "source": "threads",
@@ -208,12 +208,17 @@ class LeadRepository:
         now_str = datetime.now(timezone.utc).isoformat()
         for rec in sample_records:
             # Build score breakdown
-            score = rec["lead_score"]
-            intent_val = rec["intent"]
+            score: int = int(rec.get("lead_score", 0))
+            intent_val: str = str(rec.get("intent") or "")
+            needs: list[str] = list(rec.get("needs") or [])
+            pain_points: list[str] = list(rec.get("pain_points") or [])
+            confidence: float = float(rec.get("confidence", 0.0))
+
             intent_score = 40 if intent_val == "looking_for_vendor" else (35 if intent_val == "requesting_recommendation" else (30 if intent_val == "evaluating_solution" else (20 if intent_val == "problem_identification" else 0)))
-            clarity_score = min(20, len(rec["needs"]) * 5 + len(rec["pain_points"]) * 5)
+            clarity_score = min(20, len(needs) * 5 + len(pain_points) * 5)
             rel_score = 20 if intent_score >= 30 else (10 if intent_score > 0 else 0)
             fit_score = max(0, score - (intent_score + clarity_score + rel_score))
+            ai_conf_pct = round(confidence * 100)
 
             breakdown = {
                 "intent_score": intent_score,
@@ -222,7 +227,7 @@ class LeadRepository:
                 "intent_explanation": f"Intent klasifikasi '{intent_val}' menghasilkan bobot {intent_score}/40 poin.",
                 "problem_clarity_score": clarity_score,
                 "problem_clarity_max": 20,
-                "problem_clarity_explanation": f"Terdeteksi {len(rec['needs'])} kebutuhan dan {len(rec['pain_points'])} kendala operasional ({clarity_score}/20 poin).",
+                "problem_clarity_explanation": f"Terdeteksi {len(needs)} kebutuhan dan {len(pain_points)} kendala operasional ({clarity_score}/20 poin).",
                 "it_relevance_score": rel_score,
                 "it_relevance_max": 20,
                 "it_relevance_explanation": f"Domain kebutuhan selaras dengan jasa software IT ({rel_score}/20 poin).",
@@ -230,9 +235,9 @@ class LeadRepository:
                 "product_fit_max": 20,
                 "product_fit_explanation": f"Kesesuaian dengan katalog layanan SALEP ({fit_score}/20 poin).",
                 "total_score": score,
-                "ai_confidence": rec["confidence"],
-                "ai_confidence_pct": int(round(rec["confidence"] * 100)),
-                "ai_confidence_explanation": f"Tingkat kepastian ekstraksi AI sebesar {int(round(rec['confidence'] * 100))}% dari postingan.",
+                "ai_confidence": confidence,
+                "ai_confidence_pct": ai_conf_pct,
+                "ai_confidence_explanation": f"Tingkat kepastian ekstraksi AI sebesar {ai_conf_pct}% dari postingan.",
                 "formula_summary": f"{intent_score} (Intent) + {clarity_score} (Kejelasan) + {rel_score} (Relevansi IT) + {fit_score} (Fit) = {score}/100"
             }
 
@@ -356,6 +361,7 @@ class LeadRepository:
         limit: int = 50,
         offset: int = 0,
         sales_status: str = "all",
+        source: str = "all",
     ) -> list[dict[str, Any]]:
         """Retrieve leads matching role permissions and optional query filters."""
         if role not in {"marketing", "sales"}:
@@ -377,6 +383,10 @@ class LeadRepository:
             if sales_status != "all":
                 conditions.append("sales_status = ?")
                 params.append(sales_status)
+
+            if source != "all":
+                conditions.append("source = ?")
+                params.append(source)
 
             if search:
                 kw = f"%{search.strip()}%"

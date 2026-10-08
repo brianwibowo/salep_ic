@@ -133,10 +133,20 @@
         min-height: calc(100vh - 68px);
         margin: auto;
       }
+      .app-layout.sidebar-collapsed { grid-template-columns: 72px minmax(0, 1fr); }
       .sidebar {
         padding: 28px 16px;
         border-right: 1px solid var(--line);
         background: #fff;
+      }
+      .sidebar-toggle {
+        width: 40px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        margin: 0 0 20px 4px;
+        padding: 0;
+        font-size: 18px;
       }
       .sidebar-label {
         padding: 0 12px;
@@ -163,6 +173,23 @@
         border-color: #dce8de;
       }
       .side-link span { font-size: 18px; }
+      .side-icon {
+        width: 22px;
+        flex: 0 0 22px;
+        display: inline-grid;
+        place-items: center;
+        font-size: 18px;
+        line-height: 1;
+      }
+      .app-layout.sidebar-collapsed .sidebar { padding: 20px 10px; }
+      .app-layout.sidebar-collapsed .sidebar-label,
+      .app-layout.sidebar-collapsed .side-link-text { display: none; }
+      .app-layout.sidebar-collapsed .sidebar-toggle { margin-left: 5px; }
+      .app-layout.sidebar-collapsed .side-link {
+        justify-content: center;
+        padding: 12px 8px;
+      }
+      .side-link[title] { position: relative; }
       .side-link small {
         display: block;
         margin-top: 3px;
@@ -395,16 +422,21 @@
         main {
           padding: 20px 12px;
         }
-        .app-layout { grid-template-columns: 1fr; }
+        .app-layout,
+        .app-layout.sidebar-collapsed { grid-template-columns: 1fr; }
         .sidebar {
-          display: flex;
+          display: grid;
+          grid-template-columns: auto 1fr 1fr;
           gap: 8px;
           padding: 10px 12px;
           border-right: 0;
           border-bottom: 1px solid var(--line);
         }
+        .sidebar-toggle { margin: 0; }
         .sidebar-label { display: none; }
         .side-link { flex: 1; justify-content: center; margin: 0; }
+        .app-layout.sidebar-collapsed .sidebar { padding: 10px 12px; }
+        .app-layout.sidebar-collapsed .sidebar-toggle { margin: 0; }
         .app-content { padding: 20px 12px; }
         .stats {
           grid-template-columns: repeat(2, 1fr);
@@ -473,12 +505,13 @@
     </section>
     <div id="app-screen" class="app-layout" hidden>
       <aside class="sidebar" aria-label="Navigasi modul">
+        <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Ciutkan sidebar" aria-expanded="true" title="Ciutkan sidebar"><span aria-hidden="true">«</span></button>
         <div class="sidebar-label">Workspace</div>
-        <button class="side-link active" id="nav-sosmed" onclick="setModule('sosmed')" aria-current="page">
-          <span aria-hidden="true">◎</span><div>Sosmed<small>Lead dari media sosial</small></div>
+        <button class="side-link active" id="nav-sosmed" onclick="setModule('sosmed')" aria-current="page" title="Sosmed — Lead dari media sosial">
+          <span class="side-icon" aria-hidden="true">◉</span><div class="side-link-text">Sosmed<small>Lead dari media sosial</small></div>
         </button>
-        <button class="side-link" id="nav-spse" onclick="setModule('spse')">
-          <span aria-hidden="true">▤</span><div>SPSE<small>Pengadaan pemerintah</small></div>
+        <button class="side-link" id="nav-spse" onclick="setModule('spse')" title="SPSE — Pengadaan pemerintah">
+          <span class="side-icon" aria-hidden="true">▤</span><div class="side-link-text">SPSE<small>Pengadaan pemerintah</small></div>
         </button>
       </aside>
       <main class="app-content">
@@ -666,9 +699,22 @@ butuh website, rekomendasi hosting</textarea>
         </div>
         <section class="panel module-placeholder">
           <span class="tag">Modul SPSE</span>
-          <h2>Scraping SPSE belum diaktifkan</h2>
-          <p>Area ini disiapkan untuk pencarian paket pengadaan, penyaringan peluang, dan pemantauan hasil dari SPSE.</p>
-          <p class="notice">Saat ini belum ada konektor/API scraping SPSE pada aplikasi. Data tidak akan ditampilkan sampai integrasi sumber dan alur pengambilan datanya diimplementasikan.</p>
+          <h2>Temukan paket pengadaan terkait IT</h2>
+          <p>Ambil daftar publik yang ditampilkan di beranda SPSE Nasional dan cocokkan dengan keyword. Hasil masuk sebagai data mentah berstatus perlu review.</p>
+          <form id="spse-form" style="max-width:760px;margin-top:20px">
+            <label>Keyword IT (pisahkan dengan koma)<textarea id="spse-keywords" required></textarea></label>
+            <div class="row" style="margin-top:12px">
+              <label>Batas hasil<input id="spse-limit" type="number" min="1" max="100" value="30"></label>
+              <button class="primary" id="spse-search-button" style="align-self:end">Ambil paket SPSE</button>
+            </div>
+            <p id="spse-result" class="muted" role="status"></p>
+          </form>
+          <p class="notice">Sumber: <a href="https://spse.inaproc.id/nasional" target="_blank" rel="noopener">SPSE Nasional</a>. Pengambilan ini mencakup paket yang tampil di beranda saja, bukan seluruh tender/paginasi. Tidak ada login atau bypass proteksi.</p>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Paket untuk ditinjau</h2><span class="muted" id="spse-load-state"></span></div>
+          <div class="table-scroll"><table><thead><tr><th>Paket / sumber</th><th>Informasi paket</th><th>Skor</th><th>Status</th><th>Detail</th></tr></thead><tbody id="spse-lead-body"></tbody></table></div>
+          <div class="pager"><span class="muted" id="spse-page-info"></span><div class="row"><button id="spse-prev">← Sebelumnya</button><button id="spse-next">Berikutnya →</button></div></div>
         </section>
       </section>
       </main>
@@ -757,6 +803,7 @@ butuh website, rekomendasi hosting</textarea>
           page = 0;
           showView();
           await loadLeads();
+          if (role === "marketing") await loadSpseDefaults();
           if (role === "marketing") await loadScheduler();
         } catch (e) {
           toast(e.message);
@@ -784,6 +831,7 @@ butuh website, rekomendasi hosting</textarea>
         if (!logged) return;
         const marketing = role === "marketing";
         setModule(activeModule);
+        $("spse-form").hidden = !marketing;
         $("workspace-marketing").hidden = !marketing;
         $("workspace-sales").hidden = marketing;
         $("role-name").textContent = marketing ? "Marketing" : "Sales";
@@ -811,6 +859,15 @@ butuh website, rekomendasi hosting</textarea>
         $("nav-spse").classList.toggle("active", activeModule === "spse");
         $("nav-sosmed").toggleAttribute("aria-current", activeModule === "sosmed");
         $("nav-spse").toggleAttribute("aria-current", activeModule === "spse");
+        if (role) loadLeads();
+      }
+      function toggleSidebar() {
+        const collapsed = $("app-screen").classList.toggle("sidebar-collapsed");
+        const button = $("sidebar-toggle");
+        button.setAttribute("aria-expanded", String(!collapsed));
+        button.setAttribute("aria-label", collapsed ? "Perluas sidebar" : "Ciutkan sidebar");
+        button.title = collapsed ? "Perluas sidebar" : "Ciutkan sidebar";
+        button.firstElementChild.textContent = collapsed ? "»" : "«";
       }
       async function loadLeads() {
         if (!role) return;
@@ -823,8 +880,9 @@ butuh website, rekomendasi hosting</textarea>
           search: $("filter").value,
           [role === "marketing" ? "status" : "sales_status"]:
             $("status-filter").value,
+          source: activeModule === "spse" ? "spse" : "all",
         });
-        $("load-state").textContent = "Memuat…";
+        $(activeModule === "spse" ? "spse-load-state" : "load-state").textContent = "Memuat…";
         try {
           const data = await api("/leads?" + q);
           if (id !== requestId || role !== activeRole) return;
@@ -835,8 +893,9 @@ butuh website, rekomendasi hosting</textarea>
           const next = await api("/leads?" + nextQuery);
           if (id !== requestId) return;
           hasNext = next.length > 0;
-          render();
-          $("load-state").textContent =
+          if (activeModule === "spse") renderSpse();
+          else render();
+          $(activeModule === "spse" ? "spse-load-state" : "load-state").textContent =
             "Diperbarui " +
             new Date().toLocaleTimeString("id-ID", {
               hour: "2-digit",
@@ -845,12 +904,21 @@ butuh website, rekomendasi hosting</textarea>
           await loadStats();
         } catch (e) {
           if (id === requestId) {
-            $("load-state").textContent = e.message;
-            $("lead-body").innerHTML =
-              '<tr><td colspan="5">Data gagal dimuat. Coba muat ulang.</td></tr>';
+            $(activeModule === "spse" ? "spse-load-state" : "load-state").textContent = e.message;
+            if (activeModule === "spse") $("spse-lead-body").innerHTML = '<tr><td colspan="5">Data gagal dimuat.</td></tr>';
+            else $("lead-body").innerHTML = '<tr><td colspan="5">Data gagal dimuat. Coba muat ulang.</td></tr>';
             toast(e.message);
           }
         }
+      }
+      function renderSpse() {
+        const statuses = role === "marketing" ? mktStatuses : salesStatuses;
+        $("spse-lead-body").innerHTML = rows.length ? rows.map((l, i) =>
+          `<tr><td><strong>${esc(l.content.split("\\n")[0].replace("Nama paket: ", ""))}</strong><p><a href="${esc(l.source_url)}" target="_blank" rel="noopener">Buka paket ↗</a></p></td><td><p>${esc(l.content)}</p><span class="muted">Keyword: ${esc(l.matched_keyword)}</span></td><td><span class="score">${l.lead_score}/100</span><p>Belum dianalisis</p></td><td><select aria-label="Status ${esc(l.author_name)}" onchange="updateStatus(${i},this)">${statuses.map((s) => `<option ${s === (role === "marketing" ? l.marketing_status : l.sales_status) ? "selected" : ""} value="${esc(s)}">${esc(labels[s] || s)}</option>`).join("")}</select></td><td><button onclick="openDetail(${i})">Lihat →</button></td></tr>`
+        ).join("") : '<tr><td colspan="5" style="padding:40px;text-align:center">Belum ada paket SPSE tersimpan. Jalankan pengambilan keyword di atas.</td></tr>';
+        $("spse-page-info").textContent = `Halaman ${page + 1}`;
+        $("spse-prev").disabled = page === 0;
+        $("spse-next").disabled = !hasNext;
       }
       async function loadStats() {
         const activeRole = role;
@@ -900,6 +968,32 @@ butuh website, rekomendasi hosting</textarea>
         page += delta;
         loadLeads();
       }
+      $("spse-prev").onclick = () => { if (page > 0) { page--; loadLeads(); } };
+      $("spse-next").onclick = () => { if (hasNext) { page++; loadLeads(); } };
+      async function loadSpseDefaults() {
+        try {
+          const defaults = await api("/spse/defaults");
+          $("spse-keywords").value = defaults.keywords.join(", ");
+        } catch (e) { toast(e.message); }
+      }
+      $("spse-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const button = $("spse-search-button");
+        const keywords = [...new Set($("spse-keywords").value.split(",").map((v) => v.trim()).filter(Boolean))];
+        if (!keywords.length) return toast("Masukkan minimal satu keyword");
+        button.disabled = true;
+        $("spse-result").textContent = "Mengambil daftar publik SPSE Nasional…";
+        try {
+          const result = await api("/spse/search", {method:"POST", body:JSON.stringify({keywords,limit:+$("spse-limit").value})});
+          $("spse-result").textContent = `${result.matched} paket cocok · ${result.saved} disimpan untuk review Marketing.`;
+          page = 0;
+          if (activeModule !== "spse") setModule("spse");
+          else await loadLeads();
+        } catch (err) {
+          $("spse-result").textContent = err.message;
+          toast(err.message);
+        } finally { button.disabled = false; }
+      };
       async function updateStatus(i, select) {
         select.disabled = true;
         const l = rows[i],
@@ -1082,6 +1176,7 @@ butuh website, rekomendasi hosting</textarea>
           role = (await api("/auth/me")).role;
           showView();
           await loadLeads();
+          if (role === "marketing") await loadSpseDefaults();
           if (role === "marketing") await loadScheduler();
         } catch {
           showView();
