@@ -126,6 +126,56 @@
         margin: auto;
         padding: 32px;
       }
+      .app-layout {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        max-width: 1600px;
+        min-height: calc(100vh - 68px);
+        margin: auto;
+      }
+      .sidebar {
+        padding: 28px 16px;
+        border-right: 1px solid var(--line);
+        background: #fff;
+      }
+      .sidebar-label {
+        padding: 0 12px;
+        margin: 4px 0 12px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .side-link {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 5px 0;
+        padding: 12px;
+        border-color: transparent;
+        text-align: left;
+      }
+      .side-link.active {
+        color: var(--green);
+        background: #edf3ee;
+        border-color: #dce8de;
+      }
+      .side-link span { font-size: 18px; }
+      .side-link small {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 400;
+      }
+      .app-content { min-width: 0; padding: 32px; }
+      .module-placeholder {
+        min-height: 320px;
+        padding: 32px;
+      }
+      .module-placeholder .tag { margin-bottom: 16px; }
       .row {
         display: flex;
         gap: 12px;
@@ -345,6 +395,17 @@
         main {
           padding: 20px 12px;
         }
+        .app-layout { grid-template-columns: 1fr; }
+        .sidebar {
+          display: flex;
+          gap: 8px;
+          padding: 10px 12px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .sidebar-label { display: none; }
+        .side-link { flex: 1; justify-content: center; margin: 0; }
+        .app-content { padding: 20px 12px; }
         .stats {
           grid-template-columns: repeat(2, 1fr);
           gap: 8px;
@@ -410,7 +471,18 @@
         berganti akun.
       </p>
     </section>
-    <main id="app-screen" hidden>
+    <div id="app-screen" class="app-layout" hidden>
+      <aside class="sidebar" aria-label="Navigasi modul">
+        <div class="sidebar-label">Workspace</div>
+        <button class="side-link active" id="nav-sosmed" onclick="setModule('sosmed')" aria-current="page">
+          <span aria-hidden="true">◎</span><div>Sosmed<small>Lead dari media sosial</small></div>
+        </button>
+        <button class="side-link" id="nav-spse" onclick="setModule('spse')">
+          <span aria-hidden="true">▤</span><div>SPSE<small>Pengadaan pemerintah</small></div>
+        </button>
+      </aside>
+      <main class="app-content">
+      <section id="module-sosmed">
       <div class="row between">
         <div>
           <h1 id="page-title"></h1>
@@ -583,6 +655,24 @@ butuh website, rekomendasi hosting</textarea>
           </div>
         </div>
       </section>
+      </section>
+      <section id="module-spse" hidden>
+        <div class="row between">
+          <div>
+            <h1>Prospek pengadaan SPSE</h1>
+            <p>Pantau peluang pengadaan pemerintah dari sumber SPSE.</p>
+          </div>
+          <span class="tag">Tahap 2 · Persiapan</span>
+        </div>
+        <section class="panel module-placeholder">
+          <span class="tag">Modul SPSE</span>
+          <h2>Scraping SPSE belum diaktifkan</h2>
+          <p>Area ini disiapkan untuk pencarian paket pengadaan, penyaringan peluang, dan pemantauan hasil dari SPSE.</p>
+          <p class="notice">Saat ini belum ada konektor/API scraping SPSE pada aplikasi. Data tidak akan ditampilkan sampai integrasi sumber dan alur pengambilan datanya diimplementasikan.</p>
+        </section>
+      </section>
+      </main>
+    </div>
     </main>
     <dialog id="detail">
       <div class="row between">
@@ -599,6 +689,7 @@ butuh website, rekomendasi hosting</textarea>
     <div id="toast" hidden role="status"></div>
     <script>
       let role = "",
+        activeModule = "sosmed",
         page = 0,
         rows = [],
         hasNext = false,
@@ -692,6 +783,7 @@ butuh website, rekomendasi hosting</textarea>
         $("account").hidden = !logged;
         if (!logged) return;
         const marketing = role === "marketing";
+        setModule(activeModule);
         $("workspace-marketing").hidden = !marketing;
         $("workspace-sales").hidden = marketing;
         $("role-name").textContent = marketing ? "Marketing" : "Sales";
@@ -710,6 +802,15 @@ butuh website, rekomendasi hosting</textarea>
             )
             .join("");
         $("filter").value = "";
+      }
+      function setModule(module) {
+        activeModule = module === "spse" ? "spse" : "sosmed";
+        $("module-sosmed").hidden = activeModule !== "sosmed";
+        $("module-spse").hidden = activeModule !== "spse";
+        $("nav-sosmed").classList.toggle("active", activeModule === "sosmed");
+        $("nav-spse").classList.toggle("active", activeModule === "spse");
+        $("nav-sosmed").toggleAttribute("aria-current", activeModule === "sosmed");
+        $("nav-spse").toggleAttribute("aria-current", activeModule === "spse");
       }
       async function loadLeads() {
         if (!role) return;
