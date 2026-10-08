@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import date
 from html.parser import HTMLParser
 import re
 from urllib.parse import urljoin
-from datetime import date
 
 import httpx
 
@@ -78,20 +78,22 @@ class SPSESourceAdapter:
         limit: int = 50,
     ) -> list[RawLead]:
         del start_date, end_date  # SPSE does not expose a reliable publication date here.
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; SALEP public procurement discovery/1.0)",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+        }
         async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-            headers = {"User-Agent": "SALEP public procurement discovery/1.0"}
             page = await client.get(SPSE_SEARCH_URL, headers=headers)
             page.raise_for_status()
             token_match = re.search(r"authenticityToken\s*[:=]\s*'([^']+)'", page.text)
             if not token_match:
                 raise RuntimeError("Token pencarian publik SPSE tidak ditemukan")
             token = token_match.group(1)
-        terms = [term.casefold() for term in keywords if term.strip()]
-        results: list[RawLead] = []
-        seen: set[str] = set()
-        start = 0
-        page_size = 100
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+            terms = [term.casefold() for term in keywords if term.strip()]
+            results: list[RawLead] = []
+            seen: set[str] = set()
+            start = 0
+            page_size = 100
             while len(results) < limit:
                 response = await client.post(
                     f"{SPSE_DATATABLE_URL}?tahun={date.today().year}",
