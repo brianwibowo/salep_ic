@@ -8,7 +8,7 @@ from app.sources import spse_source
 from app.sources.spse_source import SPSESourceAdapter
 from app.main import app
 from app.core import auth
-from app.api.routes import leads, spse
+from app.api.routes import leads
 from app.services.lead_repository import LeadRepository
 
 
@@ -51,6 +51,9 @@ def test_spse_live_search_persists_for_marketing_and_releases_to_sales(tmp_path,
     repository = LeadRepository(tmp_path / "spse-leads.db")
     monkeypatch.setattr(leads, "lead_repository", repository)
     monkeypatch.setattr("app.services.spse_service.lead_repository", repository)
+    async def no_sheet_write(*args, **kwargs):
+        return True
+    monkeypatch.setattr(leads.sheets_service, "append_lead", no_sheet_write)
     monkeypatch.setattr(auth, "DB_PATH", tmp_path / "spse-sessions.db")
     monkeypatch.setattr(auth.settings, "app_env", "development")
 

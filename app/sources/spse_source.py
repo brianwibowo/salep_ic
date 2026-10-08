@@ -45,7 +45,7 @@ class _TenderParser(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag == "a" and self._anchor:
             text = " ".join(self._anchor_text.split())
-            if "/lelang/" in self._anchor_href and text:
+            if self._row is not None and "/lelang/" in self._anchor_href and text:
                 self._row["title"] = text
                 self._row["url"] = urljoin(SPSE_NATIONAL_URL, self._anchor_href)
             self._anchor = False

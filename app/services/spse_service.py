@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timezone
+from typing import Any
 
 from app.agent.schemas import IntentType, LeadAnalysis, LeadRecord
 from app.services.lead_repository import lead_repository
@@ -17,7 +18,7 @@ DEFAULT_SPSE_KEYWORDS = [
 ]
 
 
-async def discover_spse_tenders(keywords: list[str], limit: int = 50) -> dict[str, int | list[dict]]:
+async def discover_spse_tenders(keywords: list[str], limit: int = 50) -> dict[str, Any]:
     """Fetch keyword-matched homepage tenders and persist them as pending raw leads."""
     matches = await SPSESourceAdapter().search(keywords, limit=limit)
     saved = 0
@@ -56,4 +57,4 @@ async def discover_spse_tenders(keywords: list[str], limit: int = 50) -> dict[st
         }
         lead_repository.save_lead(LeadRecord.model_validate(record))
         saved += 1
-    return {"matched": len(matches), "saved": saved, "leads": matches}
+    return {"matched": len(matches), "saved": saved, "leads": [m.model_dump() for m in matches]}
