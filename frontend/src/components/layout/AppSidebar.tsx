@@ -3,8 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 import { useLogout } from "@/hooks/auth/use-auth";
 import { getNavigation } from "@/constants/menus-constant";
 import { SalepRole } from "@/types/salep";
@@ -15,50 +26,63 @@ export function AppSidebar({ role }: { role: SalepRole }) {
   const navigation = getNavigation(role);
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary font-bold text-sidebar-primary-foreground">
-          S
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <div className="flex h-10 items-center gap-3 px-2">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-lg font-bold text-sidebar-primary-foreground">
+            S
+          </div>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate text-base font-semibold">SALEP</p>
+            <p className="truncate text-sm capitalize text-sidebar-muted">Tim {role}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-sm font-semibold text-sidebar-primary-foreground">SALEP</h1>
-          <p className="text-xs capitalize text-sidebar-muted">Tim {role}</p>
-        </div>
-      </div>
+      </SidebarHeader>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
-          const Icon = item.icon;
-          const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
-          return (
-            <Link
-              key={item.path}
-              href={item.path}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-              )}
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                      className="h-11 gap-3 px-3 text-base [&>svg]:size-5"
+                    >
+                      <Link href={item.path}>
+                        <Icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Keluar"
+              disabled={logout.isPending}
+              onClick={() => logout.mutate()}
             >
-              <Icon className="h-5 w-5" />
-              {item.title}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="border-t border-sidebar-border p-3">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-sidebar-muted hover:text-sidebar-foreground"
-          disabled={logout.isPending}
-          onClick={() => logout.mutate()}
-        >
-          <LogOut className="h-5 w-5" />
-          Keluar
-        </Button>
-      </div>
-    </aside>
+              <LogOut />
+              <span>Keluar</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }

@@ -5,6 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { useSession } from "@/hooks/auth/use-auth";
 import { SalepApiError } from "@/services/salep-api";
 
@@ -44,18 +49,21 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider>
       <AppSidebar role={session.data.role} />
-      <div className="pl-64">
+      <SidebarInset>
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-6 shadow-sm">
-          <div>
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <div>
             <p className="text-sm font-medium">SALEP</p>
             <p className="text-xs capitalize text-muted-foreground">Sesi {session.data.role}</p>
+            </div>
           </div>
           <ThemeToggle />
         </header>
-        <main className="p-6">{children}</main>
-      </div>
-    </div>
+        <div className="p-6">{children}</div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
