@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SALEP Frontend
 
-## Getting Started
+Frontend SALEP menggunakan Next.js dan terhubung ke FastAPI di folder `../backend`.
 
-First, run the development server:
+## Menjalankan secara lokal
 
-```bash
+1. Siapkan backend di `../backend`. Saat dijalankan dari folder itu, backend membaca konfigurasi dari `backend/.env`; isi API key yang diperlukan dan gunakan `APP_ENV=development` untuk sesi cookie lokal lewat HTTP.
+2. Buat `.env.local` di folder ini berdasarkan `env.example`. Nilai default mengarah ke `http://localhost:8000`.
+3. Jalankan backend pada port 8000, lalu dari root `salep_ic` buka terminal kedua:
+
+```powershell
+cd frontend
+Copy-Item env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka `http://localhost:3000`. Login demo memilih role Marketing atau Sales; backend membuat sesi cookie HttpOnly. Login ini belum memakai akun/password.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Integrasi API
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Service SALEP menggunakan helper bersama di `src/utils/api/apiService.ts`. Axios mengirim `withCredentials: true` agar sesi cookie HttpOnly diteruskan ke backend. API berjalan pada `/api/v1` di backend. Halaman ringkasan dan leads membaca data SQLite backend; Marketing juga dapat mengatur serta menjalankan discovery.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`NEXT_PUBLIC_API_URL` harus berisi root URL backend, tanpa akhiran `/api/v1`. Untuk host yang berbeda, backend perlu mengizinkan origin frontend di konfigurasi CORS.

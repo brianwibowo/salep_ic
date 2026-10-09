@@ -1,23 +1,34 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { authService, LoginData } from "@/services/auth-service";
-import { LoginForm } from "@/validations/auth-validation";
+import { salepAuthService } from "@/services/salep-auth-service";
+import { SalepRole } from "@/types/salep";
+
+export const sessionQueryKey = ["salep-session"] as const;
+
+export function useSession() {
+  return useQuery({
+    queryKey: sessionQueryKey,
+    queryFn: salepAuthService.me,
+    retry: false,
+    staleTime: 30_000,
+  });
+}
 
 export function useLogin() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  return useMutation<LoginData, Error, LoginForm>({
-    mutationFn: authService.login,
-    onSuccess: (data) => {
-      queryClient.clear();
-      toast.success(`Welcome back, ${data.user.fullName}!`);
-      router.push("/dashboard");
+  return useMutation({
+    mutationFn: (role: SalepRole) => salepAuthService.login(role),
+    onSuccess: (session) => {
+      queryClient.setQueryData(sessionQueryKey, session);
+      toast.success(`Masuk sebagai ${session.role === "marketing" ? "Marketing" : "Sales"}`);
+      router.replace("/dashboard");
     },
-    onError: (error) => {
-      toast.error(error.message || "Login gagal, coba lagi");
-    },
+    onError: (error: Error) => toast.error(error.message || "Login gagal"),
   });
 }
 
@@ -25,15 +36,12 @@ export function useLogout() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, void>({
-    mutationFn: authService.logout,
-    onSuccess: () => {
-      // Reset semua cached queries setelah logout
+  return useMutation({
+    mutationFn: salepAuthService.logout,
+    onSettled: async () => {
       queryClient.clear();
-      router.push("/login");
+      router.replace("/login");
     },
-    onError: (error) => {
-      toast.error(error.message || "Logout gagal");
-    },
+    onError: (error: Error) => toast.error(error.message || "Logout gagal"),
   });
 }

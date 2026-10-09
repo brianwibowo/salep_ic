@@ -95,7 +95,7 @@ export default function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="overflow-hidden rounded-[5px] border">
         <Table className="bg-white dark:bg-gray-800">
           <TableHeader className="bg-muted dark:bg-slate-700">
             {table.getHeaderGroups().map((headerGroup) => (

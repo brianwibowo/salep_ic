@@ -1,140 +1,152 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { ChevronDown, LogOut } from "lucide-react";
 import {
-  ChevronDown,
-  ChevronRight,
-  Settings,
-  LogOut,
-  Building2,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { navigation } from "@/constants/menus-constant";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
+  SidebarHeader,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { useLogout } from "@/hooks/auth/use-auth";
+import { getNavigation } from "@/constants/menus-constant";
+import { SalepRole } from "@/types/salep";
 
-// Cari parent title yang cocok dengan pathname
-function getActiveParent(path: string): string[] {
-  const match = navigation.find((item) =>
-    item.children?.some((child) => path.startsWith(child.path)),
-  );
-  return match ? [match.title] : [];
-}
-
-export function AppSidebar() {
+export function AppSidebar({ role }: { role: SalepRole }) {
   const pathname = usePathname();
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const { state, setOpen } = useSidebar();
+  const logout = useLogout();
+  const navigation = getNavigation(role);
+  const [leadsOpen, setLeadsOpen] = useState(pathname.startsWith("/leads"));
 
-  const toggleExpand = (title: string) => {
-    setExpandedItems((prev) =>
-      prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
-    );
-  };
-
-  const isActive = (path: string) => pathname === path;
-  const isParentActive = (children?: { path: string }[]) =>
-    children?.some((child) => pathname.startsWith(child.path));
-
-  useEffect(() => {
-    const activeParent = getActiveParent(pathname);
-    if (activeParent.length > 0) {
-      setExpandedItems((prev) =>
-        prev.includes(activeParent[0]) ? prev : [...prev, activeParent[0]],
-      );
-    }
-  }, [pathname]);
-console.log(expandedItems)
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground flex flex-col">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-6 border-b border-sidebar-border">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-          <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="px-4 pt-4 pb-2">
+        <div className="flex h-10 items-center gap-3 group-data-[collapsible=icon]:justify-center">
+          <Image src="/logo.png" alt="SALEP" width={32} height={32} className="size-8 shrink-0 object-contain" />
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <p className="truncate text-base font-semibold text-slate-950 dark:text-white">SALEP</p>
+            <p className="truncate text-xs capitalize text-sidebar-muted">Tim {role}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-sm font-semibold text-sidebar-primary-foreground">
-            GoFlow
-          </h1>
-          <p className="text-xs text-sidebar-muted">Admin Dashboard</p>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3">
-        <ul className="space-y-1">
-          {navigation.map((item) => (
-            <li key={item.title}>
-              {item.path ? (
-                <Link
-                  href={item.path}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive(item.path)
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.title}
-                </Link>
-              ) : (
-                <>
-                  <button
-                    onClick={() => toggleExpand(item.title)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                      isParentActive(item.children)
-                        ? "bg-sidebar-accent/30 text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    <span className="flex items-center gap-3">
-                      <item.icon className="h-5 w-5" />
-                      {item.title}
-                    </span>
-                    {expandedItems.includes(item.title) ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                  {expandedItems.includes(item.title) && item.children && (
-                    <ul className="mt-1 space-y-1 pl-11">
-                      {item.children.map((child) => (
-                        <li key={child.path}>
-                          <Link
-                            href={child.path}
-                            className={cn(
-                              "block rounded-lg px-3 py-2 text-sm transition-colors",
-                              isActive(child.path)
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                : "text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent/30",
-                            )}
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup className="px-4 pt-3">
+          <SidebarGroupLabel className="text-xs font-normal text-sidebar-muted">Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
+                if (item.path === "/leads") {
+                  return (
+                    <Collapsible
+                      key={item.path}
+                      open={leadsOpen}
+                      onOpenChange={setLeadsOpen}
+                      className="group/collapsible"
+                    >
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            isActive={pathname === "/leads" || (active && state === "collapsed")}
+                            tooltip={item.title}
+                            onClick={(event) => {
+                              if (state === "collapsed") {
+                                event.preventDefault();
+                                setOpen(true);
+                                setLeadsOpen(true);
+                              }
+                            }}
+                            className="h-11 gap-3 rounded-md px-2 text-base font-medium text-slate-950 hover:bg-slate-100 hover:text-slate-950 dark:text-white dark:hover:bg-slate-700 dark:hover:text-white data-[active=true]:!bg-[#9D0A0E] data-[active=true]:!text-white data-[active=true]:hover:!bg-[#9D0A0E] [&>svg]:size-6 [&>svg]:text-slate-900 dark:[&>svg]:text-white data-[active=true]:[&>svg]:text-white group-data-[collapsible=icon]:mx-auto"
                           >
-                            {child.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      </nav>
+                            <Icon />
+                            <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
+                            <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            <SidebarMenuSubItem>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={pathname === "/leads/social-media"}
+                                className="h-9 text-sm data-[active=true]:bg-[#9D0A0E] data-[active=true]:text-white"
+                              >
+                                <Link href="/leads/social-media">Sosial Media</Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                            <SidebarMenuSubItem>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={pathname === "/leads/spse"}
+                                className="h-9 text-sm data-[active=true]:bg-[#9D0A0E] data-[active=true]:text-white"
+                              >
+                                <Link href="/leads/spse">SPSE</Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                }
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                      className="h-11 gap-3 rounded-md px-2 text-base font-medium text-slate-950 hover:bg-slate-100 hover:text-slate-950 dark:text-white dark:hover:bg-slate-700 dark:hover:text-white data-[active=true]:!bg-[#9D0A0E] data-[active=true]:!text-white data-[active=true]:hover:!bg-[#9D0A0E] [&>svg]:size-6 [&>svg]:text-slate-900 dark:[&>svg]:text-white data-[active=true]:[&>svg]:text-white group-data-[collapsible=icon]:mx-auto"
+                    >
+                      <Link href={item.path}>
+                        <Icon />
+                        <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-      {/* Footer */}
-      <div className="border-t border-sidebar-border p-3">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors">
-          <Settings className="h-5 w-5" />
-          Settings
-        </button>
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors">
-          <LogOut className="h-5 w-5" />
-          Log out
-        </button>
-      </div>
-    </aside>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Keluar"
+              disabled={logout.isPending}
+              onClick={() => logout.mutate()}
+              className="h-11 gap-3 rounded-md px-2 text-base font-medium text-slate-950 hover:bg-slate-100 hover:text-slate-950 dark:text-white dark:hover:bg-slate-700 dark:hover:text-white [&>svg]:size-6 [&>svg]:text-slate-900 dark:[&>svg]:text-white group-data-[collapsible=icon]:mx-auto"
+            >
+              <LogOut />
+              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }
