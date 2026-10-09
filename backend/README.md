@@ -39,6 +39,16 @@ uvicorn app.main:app --reload
 API available at: `http://localhost:8000`
 Docs at: `http://localhost:8000/docs`
 
+API responses use a consistent envelope:
+
+```json
+{
+  "status": true,
+  "message": "Request berhasil",
+  "data": {}
+}
+```
+
 ### 4. Docker
 
 ```bash
@@ -65,6 +75,14 @@ POST /api/v1/search
   "limit": 20
 }
 ```
+
+The leads list supports filtering and pagination:
+
+```
+GET /api/v1/leads?page=1&limit=50&status=pending&source=threads&search=hosting
+```
+
+Paginated responses return `data.items` and `data.pagination` with `page`, `limit`, and `total`.
 
 ### Analyze Single Lead (Dev/Testing)
 ```

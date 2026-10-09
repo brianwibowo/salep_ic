@@ -353,6 +353,49 @@ class LeadRepository:
         finally:
             conn.close()
 
+    def _lead_filter_query(
+        self,
+        role: str,
+        status: str,
+        search: str,
+        sales_status: str,
+        source: str,
+    ) -> tuple[str, list[Any]]:
+        """Build the shared filtered query used by list and count operations."""
+
+        if role not in {"marketing", "sales"}:
+            raise ValueError("Unknown role")
+
+        conditions = []
+        params: list[Any] = []
+
+        if role.lower() == "sales":
+            conditions.append("marketing_status = 'valid'")
+        elif status and status.lower() != "all":
+            conditions.append("marketing_status = ?")
+            params.append(status.lower())
+
+        if sales_status != "all":
+            conditions.append("sales_status = ?")
+            params.append(sales_status)
+
+        if source != "all":
+            conditions.append("source = ?")
+            params.append(source)
+
+        if search:
+            kw = f"%{search.strip()}%"
+            conditions.append(
+                "(content LIKE ? OR author_name LIKE ? OR needs LIKE ? OR matched_keyword LIKE ?)"
+            )
+            params.extend([kw, kw, kw, kw])
+
+        where_clause = ""
+        if conditions:
+            where_clause = "WHERE " + " AND ".join(conditions)
+
+        return where_clause, params
+
     def get_leads(
         self,
         role: str = "marketing",
@@ -364,8 +407,6 @@ class LeadRepository:
         source: str = "all",
     ) -> list[dict[str, Any]]:
         """Retrieve leads matching role permissions and optional query filters."""
-        if role not in {"marketing", "sales"}:
-            raise ValueError("Unknown role")
         conn = self._get_connection()
         try:
             cur = conn.cursor()
@@ -412,6 +453,33 @@ class LeadRepository:
             cur.execute(query, params)
             rows = cur.fetchall()
             return [self._row_to_dict(r) for r in rows]
+        finally:
+            conn.close()
+
+    def count_leads(
+        self,
+        role: str = "marketing",
+        status: str = "all",
+        search: str = "",
+        sales_status: str = "all",
+        source: str = "all",
+    ) -> int:
+        """Count leads using exactly the same RBAC and filters as get_leads."""
+
+        conn = self._get_connection()
+        try:
+            where_clause, params = self._lead_filter_query(
+                role=role,
+                status=status,
+                search=search,
+                sales_status=sales_status,
+                source=source,
+            )
+            row = conn.execute(
+                f"SELECT COUNT(*) FROM leads {where_clause}",
+                params,
+            ).fetchone()
+            return int(row[0])
         finally:
             conn.close()
 

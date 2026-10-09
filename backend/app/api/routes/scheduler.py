@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, BackgroundTasks
 from app.services.scheduler import lead_scheduler
+from app.core.responses import success_response
 
 router = APIRouter(prefix="/api/v1/scheduler", tags=["scheduler"])
 
@@ -9,31 +10,37 @@ router = APIRouter(prefix="/api/v1/scheduler", tags=["scheduler"])
 @router.get("/status")
 async def get_scheduler_status():
     """Get current status of autonomous background lead discovery."""
-    return lead_scheduler.get_status()
+    return success_response(lead_scheduler.get_status(), "Status scheduler berhasil diambil")
 
 
 @router.post("/trigger")
 async def trigger_cycle(background_tasks: BackgroundTasks):
     """Trigger an autonomous search cycle immediately in the background."""
     background_tasks.add_task(lead_scheduler.run_cycle, trigger_type="api_trigger")
-    return {
+    return success_response({
         "status": "triggered",
         "message": "Autonomous lead discovery cycle dispatched in background.",
-    }
+    }, "Discovery berhasil dijadwalkan")
 
 
 @router.post("/start")
 async def start_scheduler():
     """Start the periodic autonomous scheduler."""
     lead_scheduler.start()
-    return {"status": "started", "scheduler": lead_scheduler.get_status()}
+    return success_response(
+        {"status": "started", "scheduler": lead_scheduler.get_status()},
+        "Scheduler berhasil dijalankan",
+    )
 
 
 @router.post("/stop")
 async def stop_scheduler():
     """Stop the periodic autonomous scheduler."""
     lead_scheduler.stop()
-    return {"status": "stopped", "scheduler": lead_scheduler.get_status()}
+    return success_response(
+        {"status": "stopped", "scheduler": lead_scheduler.get_status()},
+        "Scheduler berhasil dihentikan",
+    )
 
 
 from typing import Literal
@@ -76,4 +83,4 @@ async def save_config(config: DiscoveryConfig):
     temp.write_text(config.model_dump_json(indent=2))
     temp.replace(CONFIG_PATH)
     apply_config(config)
-    return lead_scheduler.get_status()
+    return success_response(lead_scheduler.get_status(), "Konfigurasi discovery berhasil disimpan")
