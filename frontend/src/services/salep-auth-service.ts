@@ -1,13 +1,22 @@
-import { salepApi } from "@/services/salep-api";
+import { apiConfig } from "@/configs/api-config";
+import { Get, Post, unwrapResponse } from "@/utils/api/apiService";
 import { SalepRole, SalepSession } from "@/types/salep";
 
+const BASE_URL = apiConfig.service_salep;
+
 export const salepAuthService = {
-  login: (role: SalepRole) =>
-    salepApi<SalepSession>("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ role }),
-    }),
-  me: () => salepApi<SalepSession>("/api/v1/auth/me"),
-  logout: () =>
-    salepApi<{ ok: boolean }>("/api/v1/auth/logout", { method: "POST" }),
+  login: async (role: SalepRole): Promise<SalepSession> => {
+    const res = await Post<SalepSession>(`${BASE_URL}/auth/login`, { role });
+    return unwrapResponse(res);
+  },
+
+  me: async (): Promise<SalepSession> => {
+    const res = await Get<SalepSession>(`${BASE_URL}/auth/me`);
+    return unwrapResponse(res);
+  },
+
+  logout: async (): Promise<void> => {
+    const res = await Post<{ ok: boolean }>(`${BASE_URL}/auth/logout`);
+    unwrapResponse(res);
+  },
 };

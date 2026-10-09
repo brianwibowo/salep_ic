@@ -11,7 +11,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useSession } from "@/hooks/auth/use-auth";
-import { SalepApiError } from "@/services/salep-api";
+import { ApiServiceError } from "@/utils/api/apiService";
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -19,7 +19,10 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const session = useSession();
 
   useEffect(() => {
-    if (session.error instanceof SalepApiError && session.error.status === 401) {
+    if (
+      session.error instanceof ApiServiceError &&
+      session.error.status === 401
+    ) {
       router.replace("/login");
     }
   }, [router, session.error]);
@@ -30,22 +33,37 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     }
   }, [pathname, router, session.data?.role]);
 
-  if (session.isPending || (session.error instanceof SalepApiError && session.error.status === 401)) {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Memeriksa sesi SALEP…</div>;
+  if (
+    session.isPending ||
+    (session.error instanceof ApiServiceError && session.error.status === 401)
+  ) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Memeriksa sesi SALEP…
+      </div>
+    );
   }
 
   if (session.isError || !session.data) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
         <p className="font-medium">Tidak dapat menghubungi backend SALEP.</p>
-        <p className="max-w-md text-sm text-muted-foreground">{session.error?.message}</p>
-        <Button variant="outline" onClick={() => session.refetch()}>Coba lagi</Button>
+        <p className="max-w-md text-sm text-muted-foreground">
+          {session.error?.message}
+        </p>
+        <Button variant="outline" onClick={() => session.refetch()}>
+          Coba lagi
+        </Button>
       </div>
     );
   }
 
   if (session.data.role === "sales" && pathname.startsWith("/discovery")) {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Membuka ringkasan leads…</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Membuka ringkasan leads…
+      </div>
+    );
   }
 
   return (
@@ -56,8 +74,10 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <div>
-            <p className="text-sm font-medium">SALEP</p>
-            <p className="text-xs capitalize text-muted-foreground">Sesi {session.data.role}</p>
+              <p className="text-sm font-medium">SALEP</p>
+              <p className="text-xs capitalize text-muted-foreground">
+                Sesi {session.data.role}
+              </p>
             </div>
           </div>
           <ThemeToggle />

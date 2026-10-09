@@ -1,39 +1,79 @@
-import { AxiosRequestConfig, AxiosError } from "axios";
+import { AxiosError, AxiosRequestConfig } from "axios";
 import axiosInstance, { ApiResponse } from "./axiosInstance";
 
-type ClientResponse<T> = {
+export type ClientResponse<T> = {
   status: boolean;
   message: string;
   data: T | undefined;
+  statusCode?: number;
 };
 
+export class ApiServiceError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiServiceError";
+    this.status = status;
+  }
+}
+
+export function unwrapResponse<T>(response: ClientResponse<T>): T {
+  if (!response.status || response.data === undefined) {
+    throw new ApiServiceError(response.message, response.statusCode || 0);
+  }
+
+  return response.data;
+}
+
 const handleResponse = <T>(result: ApiResponse<T>): ClientResponse<T> => {
-  // Success jika success true DAN statusCode 2xx
-  if (result.success && result.statusCode >= 200 && result.statusCode < 300) {
+  // The existing services use the standard { success, statusCode, result }
+  // envelope, while SALEP's FastAPI endpoints return the result directly.
+  if (
+    "success" in result &&
+    "statusCode" in result &&
+    "result" in result
+  ) {
+    if (result.success && result.statusCode >= 200 && result.statusCode < 300) {
+      return {
+        status: true,
+        message: result.message || "Success",
+        data: result.result,
+        statusCode: result.statusCode,
+      };
+    }
+
     return {
-      status: true,
-      message: result.message || "Success",
-      data: result.result,
+      status: false,
+      message: result.message || "Request failed",
+      data: undefined,
+      statusCode: result.statusCode,
     };
   }
 
-  // Jika bukan 2xx, dianggap error
   return {
-    status: false,
-    message: result.message || "Request failed",
-    data: undefined,
+    status: true,
+    message: "Success",
+    data: result as T,
   };
 };
 
 // Helper function untuk handle error
 const handleError = (error: unknown): ClientResponse<never> => {
   if (error instanceof AxiosError) {
-    const apiError = error.response?.data as ApiResponse | undefined;
+    const apiError = error.response?.data as
+      | (ApiResponse & { detail?: string })
+      | undefined;
 
     return {
       status: false,
-      message: apiError?.message || error.message || "Network error occurred",
+      message:
+        apiError?.message ||
+        apiError?.detail ||
+        error.message ||
+        "Network error occurred",
       data: undefined,
+      statusCode: error.response?.status,
     };
   }
 

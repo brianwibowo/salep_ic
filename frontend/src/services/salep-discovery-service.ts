@@ -1,36 +1,46 @@
-import { salepApi } from "@/services/salep-api";
+import { apiConfig } from "@/configs/api-config";
+import { Get, Post, Put, unwrapResponse } from "@/utils/api/apiService";
 import { SchedulerStatus, SearchResult } from "@/types/salep";
+import {
+  DiscoveryConfig,
+  ManualSearchInput,
+} from "@/validations/salep-validation";
 
-export interface DiscoveryConfig {
-  keywords: string[];
-  sources: Array<"threads" | "linkedin">;
-  limit_per_run: number;
-}
+export type {
+  DiscoveryConfig,
+  ManualSearchInput,
+} from "@/validations/salep-validation";
+
+const BASE_URL = apiConfig.service_salep;
 
 export const salepDiscoveryService = {
-  status: () => salepApi<SchedulerStatus>("/api/v1/scheduler/status"),
-  saveConfig: (config: DiscoveryConfig) =>
-    salepApi<SchedulerStatus>("/api/v1/scheduler/config", {
-      method: "PUT",
-      body: JSON.stringify(config),
-    }),
-  trigger: () =>
-    salepApi<{ status: string; message: string }>("/api/v1/scheduler/trigger", {
-      method: "POST",
-    }),
-  start: () =>
-    salepApi<{ status: string }>("/api/v1/scheduler/start", { method: "POST" }),
-  stop: () =>
-    salepApi<{ status: string }>("/api/v1/scheduler/stop", { method: "POST" }),
-  search: (input: {
-    keywords: string[];
-    start_date: string;
-    end_date: string;
-    sources: Array<"threads" | "linkedin" | "mock">;
-    limit: number;
-  }) =>
-    salepApi<SearchResult>("/api/v1/search", {
-      method: "POST",
-      body: JSON.stringify(input),
-    }),
+  status: async (): Promise<SchedulerStatus> => {
+    const res = await Get<SchedulerStatus>(`${BASE_URL}/scheduler/status`);
+    return unwrapResponse(res);
+  },
+
+  saveConfig: async (config: DiscoveryConfig): Promise<SchedulerStatus> => {
+    const res = await Put<SchedulerStatus>(`${BASE_URL}/scheduler/config`, config);
+    return unwrapResponse(res);
+  },
+
+  trigger: async (): Promise<{ status: string; message: string }> => {
+    const res = await Post<{ status: string; message: string }>(`${BASE_URL}/scheduler/trigger`);
+    return unwrapResponse(res);
+  },
+
+  start: async (): Promise<{ status: string }> => {
+    const res = await Post<{ status: string }>(`${BASE_URL}/scheduler/start`);
+    return unwrapResponse(res);
+  },
+
+  stop: async (): Promise<{ status: string }> => {
+    const res = await Post<{ status: string }>(`${BASE_URL}/scheduler/stop`);
+    return unwrapResponse(res);
+  },
+
+  search: async (input: ManualSearchInput): Promise<SearchResult> => {
+    const res = await Post<SearchResult>(`${BASE_URL}/search`, input);
+    return unwrapResponse(res);
+  },
 };

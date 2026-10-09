@@ -1,9 +1,4 @@
-import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-} from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -15,12 +10,14 @@ export interface ApiResponse<T = any> {
 interface ApiError {
   status: number;
   message: string;
+  detail?: string;
   errors?: Record<string, string[]>;
 }
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   timeout: 10000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -28,15 +25,6 @@ const axiosInstance: AxiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Pastikan hanya di client-side
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("accessToken");
-
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-
     if (process.env.NODE_ENV === "development") {
       console.log("Request:", config.method?.toUpperCase(), config.url);
     }
@@ -56,61 +44,12 @@ axiosInstance.interceptors.response.use(
 
     return response;
   },
-  async (error: AxiosError<ApiError>) => {
-    const originalRequest = error.config as AxiosRequestConfig & {
-      _retry?: boolean;
-    };
-
-    const noRetryRoutes = ["/auth/login", "/auth/renew-token"];
-
-    // Handle 401 - Unauthorized (token expired)
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !noRetryRoutes.some((path) => originalRequest.url?.includes(path))
-    ) {
-      originalRequest._retry = true;
-
-      try {
-        const refreshToken =
-          typeof window !== "undefined"
-            ? localStorage.getItem("refreshToken")
-            : null;
-
-        if (!refreshToken) {
-          throw new Error("No refresh token available");
-        }
-
-        const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/renew-token`,
-          { refreshToken },
-        );
-
-        const { accessToken, refreshToken: newRefreshToken } =
-          response.data.data;
-
-        if (typeof window !== "undefined") {
-          localStorage.setItem("accessToken", accessToken);
-          localStorage.setItem("refreshToken", newRefreshToken);
-        }
-
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        }
-
-        return axiosInstance(originalRequest);
-      } catch (refreshError) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-          window.location.href = "/login";
-        }
-        return Promise.reject(refreshError);
-      }
-    }
-
+  (error: AxiosError<ApiError>) => {
     const errorMessage =
-      error.response?.data?.message || error.message || "Terjadi kesalahan";
+      error.response?.data?.message ||
+      error.response?.data?.detail ||
+      error.message ||
+      "Terjadi kesalahan";
 
     if (process.env.NODE_ENV === "development") {
       console.error("API Error:", {

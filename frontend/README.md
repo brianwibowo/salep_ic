@@ -19,6 +19,6 @@ Buka `http://localhost:3000`. Login demo memilih role Marketing atau Sales; back
 
 ## Integrasi API
 
-Client SALEP ada di `src/services/salep-api.ts` dan menggunakan `credentials: include` untuk sesi cookie. API berjalan pada `/api/v1` di backend. Halaman ringkasan dan leads membaca data SQLite backend; Marketing juga dapat mengatur serta menjalankan discovery.
+Service SALEP menggunakan helper bersama di `src/utils/api/apiService.ts`. Axios mengirim `withCredentials: true` agar sesi cookie HttpOnly diteruskan ke backend. API berjalan pada `/api/v1` di backend. Halaman ringkasan dan leads membaca data SQLite backend; Marketing juga dapat mengatur serta menjalankan discovery.
 
 `NEXT_PUBLIC_API_URL` harus berisi root URL backend, tanpa akhiran `/api/v1`. Untuk host yang berbeda, backend perlu mengizinkan origin frontend di konfigurasi CORS.
