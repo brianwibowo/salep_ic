@@ -27,7 +27,6 @@ import {
 } from "@/hooks/leads/use-leads";
 import { Lead } from "@/types/salep";
 
-const PAGE_SIZE = 50;
 const salesStatuses: Lead["sales_status"][] = [
   "Belum Dihubungi",
   "Sedang Dihubungi",
@@ -48,17 +47,18 @@ export function LeadsPageContent({
   const [salesStatus, setSalesStatus] = useState("all");
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: PAGE_SIZE,
+    pageSize: 50,
   });
-
-  const leads = useLeads({
+  const page = pagination.pageIndex + 1;
+  const filters = {
     search,
     status: isMarketing ? status : "all",
     source,
     sales_status: salesStatus,
-    offset: pagination.pageIndex * pagination.pageSize,
+    page,
     limit: pagination.pageSize,
-  });
+  };
+  const leads = useLeads(filters);
   const updateMarketing = useUpdateLeadStatus();
   const updateSales = useUpdateSalesStatus();
 
@@ -76,8 +76,12 @@ export function LeadsPageContent({
           const lead = row.original;
           return (
             <div className="max-w-xl whitespace-normal">
-              <p className="font-medium">{lead.author_name || "Prospek tanpa nama"}</p>
-              <p className="mt-1 line-clamp-2 text-muted-foreground">{lead.content}</p>
+              <p className="font-medium">
+                {lead.author_name || "Prospek tanpa nama"}
+              </p>
+              <p className="mt-1 line-clamp-2 text-muted-foreground">
+                {lead.content}
+              </p>
               {lead.needs?.length > 0 && (
                 <p className="mt-2 text-xs text-muted-foreground">
                   Kebutuhan: {lead.needs.join(", ")}
@@ -90,7 +94,9 @@ export function LeadsPageContent({
       {
         accessorKey: "source",
         header: "Sumber",
-        cell: ({ row }) => <span className="capitalize">{row.original.source}</span>,
+        cell: ({ row }) => (
+          <span className="capitalize">{row.original.source}</span>
+        ),
       },
       {
         accessorKey: "lead_score",
@@ -173,11 +179,9 @@ export function LeadsPageContent({
     [isMarketing, updateMarketing, updateSales],
   );
 
-  const data = leads.data ?? [];
-  const pageCount =
-    data.length < pagination.pageSize
-      ? pagination.pageIndex + 1
-      : pagination.pageIndex + 2;
+  const data = leads.data?.items ?? [];
+  const total = leads.data?.pagination.total ?? 0;
+  const pageCount = Math.ceil(total / pagination.pageSize);
   const table = useReactTable({
     data,
     columns,
@@ -252,7 +256,9 @@ export function LeadsPageContent({
               <select
                 className="h-9 w-full rounded-md border bg-background px-3"
                 value={salesStatus}
-                onChange={(event) => setFilter(setSalesStatus)(event.target.value)}
+                onChange={(event) =>
+                  setFilter(setSalesStatus)(event.target.value)
+                }
               >
                 <option value="all">Semua tindak lanjut</option>
                 {salesStatuses.map((item) => (
@@ -285,7 +291,10 @@ export function LeadsPageContent({
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -294,13 +303,19 @@ export function LeadsPageContent({
           <TableBody>
             {leads.isPending ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   Memuat leads…
                 </TableCell>
               </TableRow>
             ) : data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   Tidak ada leads untuk filter ini.
                 </TableCell>
               </TableRow>
@@ -309,7 +324,10 @@ export function LeadsPageContent({
                 <TableRow key={row.id} className="align-top">
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="px-4 py-4">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -318,7 +336,7 @@ export function LeadsPageContent({
           </TableBody>
         </Table>
         <div className="border-t">
-          <DataTablePagination table={table} pageCountUnknown />
+          <DataTablePagination table={table} />
         </div>
       </section>
     </div>
