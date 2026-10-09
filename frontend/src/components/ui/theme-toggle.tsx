@@ -14,7 +14,7 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return <div className="h-9 w-9" />;
+  if (!mounted) return <div className="size-8" />;
 
   const isDark = theme === "dark";
 
@@ -22,13 +22,14 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
+      className="size-8"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Toggle theme"
     >
       {isDark ? (
-        <Sun className="h-5 w-5 transition-all" />
+        <Sun className="size-6 transition-all" />
       ) : (
-        <Moon className="h-5 w-5 transition-all" />
+        <Moon className="size-6 transition-all" />
       )}
     </Button>
   );

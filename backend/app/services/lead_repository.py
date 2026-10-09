@@ -384,7 +384,9 @@ class LeadRepository:
                 conditions.append("sales_status = ?")
                 params.append(sales_status)
 
-            if source != "all":
+            if source == "social_media":
+                conditions.append("LOWER(source) IN ('threads', 'linkedin')")
+            elif source != "all":
                 conditions.append("source = ?")
                 params.append(source)
 

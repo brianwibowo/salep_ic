@@ -54,7 +54,7 @@ export default function Login() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setRole(option.id)}
-                className={`flex items-start gap-3 rounded-lg border p-4 text-left transition-colors ${
+                className={`flex items-start gap-3 rounded-[5px] border p-4 text-left transition-colors ${
                   selected
                     ? "border-primary bg-primary/5 ring-1 ring-primary"
                     : "border-border hover:bg-muted/60"

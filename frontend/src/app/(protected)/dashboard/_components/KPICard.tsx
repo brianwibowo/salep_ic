@@ -29,7 +29,7 @@ export function KPICard({
   const isNegative = change && change < 0;
 
   return (
-    <div className="rounded-xl bg-card p-6 shadow-card">
+    <div className="rounded-[5px] bg-card p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
