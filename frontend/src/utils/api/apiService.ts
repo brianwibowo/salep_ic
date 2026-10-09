@@ -1,11 +1,17 @@
 import { AxiosError, AxiosRequestConfig } from "axios";
-import axiosInstance, { ApiResponse } from "./axiosInstance";
+import axiosInstance, { ApiResponsePayload } from "./axiosInstance";
 
 export type ClientResponse<T> = {
   status: boolean;
   message: string;
   data: T | undefined;
   statusCode?: number;
+};
+
+type StandardApiResponse<T> = {
+  status: boolean;
+  message: string;
+  data: T | undefined;
 };
 
 export class ApiServiceError extends Error {
@@ -26,7 +32,21 @@ export function unwrapResponse<T>(response: ClientResponse<T>): T {
   return response.data;
 }
 
-const handleResponse = <T>(result: ApiResponse<T>): ClientResponse<T> => {
+const handleResponse = <T>(result: ApiResponsePayload<T>): ClientResponse<T> => {
+  if (
+    "status" in result &&
+    typeof result.status === "boolean" &&
+    "message" in result &&
+    "data" in result
+  ) {
+    const response = result as unknown as StandardApiResponse<T>;
+    return {
+      status: response.status,
+      message: response.message,
+      data: response.data,
+    };
+  }
+
   // The existing services use the standard { success, statusCode, result }
   // envelope, while SALEP's FastAPI endpoints return the result directly.
   if (
@@ -62,7 +82,7 @@ const handleResponse = <T>(result: ApiResponse<T>): ClientResponse<T> => {
 const handleError = (error: unknown): ClientResponse<never> => {
   if (error instanceof AxiosError) {
     const apiError = error.response?.data as
-      | (ApiResponse & { detail?: string })
+      | (ApiResponsePayload<unknown> & { detail?: string })
       | undefined;
 
     return {
@@ -89,7 +109,7 @@ export const Get = async <T>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.get<ApiResponse<T>>(url, config);
+    const response = await axiosInstance.get<ApiResponsePayload<T>>(url, config);
     return handleResponse(response.data);
   } catch (error) {
     return handleError(error);
@@ -102,7 +122,7 @@ export const Post = async <T, D = any>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.post<ApiResponse<T>>(
+    const response = await axiosInstance.post<ApiResponsePayload<T>>(
       url,
       data,
       config,
@@ -119,7 +139,7 @@ export const Put = async <T, D = any>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.put<ApiResponse<T>>(url, data, config);
+    const response = await axiosInstance.put<ApiResponsePayload<T>>(url, data, config);
     return handleResponse(response.data);
   } catch (error) {
     return handleError(error);
@@ -131,7 +151,7 @@ export const Delete = async <T>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.delete<ApiResponse<T>>(url, config);
+    const response = await axiosInstance.delete<ApiResponsePayload<T>>(url, config);
     return handleResponse(response.data);
   } catch (error) {
     return handleError(error);
@@ -144,7 +164,7 @@ export const Patch = async <T, D = any>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.patch<ApiResponse<T>>(
+    const response = await axiosInstance.patch<ApiResponsePayload<T>>(
       url,
       data,
       config,

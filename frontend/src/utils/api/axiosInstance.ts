@@ -1,11 +1,19 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
+  status: boolean;
+  message: string;
+  data: T | null;
+}
+
+export interface LegacyApiResponse<T = unknown> {
   success: boolean;
   statusCode: number;
   message?: string;
   result: T;
 }
+
+export type ApiResponsePayload<T> = ApiResponse<T> | LegacyApiResponse<T>;
 
 interface ApiError {
   status: number;
@@ -37,7 +45,7 @@ axiosInstance.interceptors.request.use(
 );
 
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  (response: AxiosResponse<ApiResponsePayload<unknown>>) => {
     if (process.env.NODE_ENV === "development") {
       console.log("Response:", response.status, response.config.url);
     }
