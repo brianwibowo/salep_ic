@@ -23,19 +23,20 @@ router = APIRouter(prefix="/api/v1", tags=["leads"])
 @router.get("/leads")
 async def get_leads_endpoint(
     request: Request,
-    offset: int = Query(default=0, ge=0),
+    page: int = Query(default=1, ge=1),
     sales_status: str = Query(default="all"),
     source: str = Query(default="all", description="Filter by source, e.g. spse or threads"),
     status: str = Query(default="all", description="Marketing status: 'all', 'valid', 'invalid', 'pending'"),
     search: str = Query(default="", description="Search query filter"),
     limit: int = Query(default=50, ge=1, le=100),
-) -> ApiResponse[list[dict[str, Any]]]:
+) -> ApiResponse[dict[str, Any]]:
     """Retrieve leads based on role access permissions.
 
     - Tim Sales: strictly filtered to 'valid' leads only.
     - Tim Marketing: view all leads or filter by status.
     """
     try:
+        offset = (page - 1) * limit
         leads = lead_repository.get_leads(
             role=request.state.role,
             offset=offset,
@@ -45,7 +46,20 @@ async def get_leads_endpoint(
             search=search,
             limit=limit,
         )
-        return success_response(leads, "Daftar leads berhasil diambil")
+        total = lead_repository.count_leads(
+            role=request.state.role,
+            sales_status=sales_status,
+            source=source,
+            status=status,
+            search=search,
+        )
+        return success_response(
+            {
+                "items": leads,
+                "pagination": {"page": page, "limit": limit, "total": total},
+            },
+            "Daftar leads berhasil diambil",
+        )
     except Exception as e:
         logger.error("Failed to query leads: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to query leads: {str(e)}")

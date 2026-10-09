@@ -47,8 +47,8 @@ def test_session_locked_and_logout(clients):
 
 def test_role_spoof_and_detail(clients):
     marketing, sales, _ = clients
-    assert len(data(marketing.get('/api/v1/leads'))) == 5
-    result = data(sales.get('/api/v1/leads?role=marketing&status=invalid'))
+    assert len(data(marketing.get('/api/v1/leads'))['items']) == 5
+    result = data(sales.get('/api/v1/leads?role=marketing&status=invalid'))['items']
     assert len(result) == 2
     assert all(l['marketing_status']=='valid' for l in result)
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
@@ -97,13 +97,17 @@ def test_qualification_and_pagination(clients):
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 200
     marketing.patch('/api/v1/leads/lead_demo_003/status',json={'marketing_status':'invalid'})
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
-    first = data(marketing.get('/api/v1/leads?limit=2'))
-    second = data(marketing.get('/api/v1/leads?limit=2&offset=2'))
+    first_page = data(marketing.get('/api/v1/leads?limit=2&page=1'))
+    second_page = data(marketing.get('/api/v1/leads?limit=2&page=2'))
+    assert first_page['pagination'] == {'page': 1, 'limit': 2, 'total': 5}
+    assert second_page['pagination'] == {'page': 2, 'limit': 2, 'total': 5}
+    first = first_page['items']
+    second = second_page['items']
     assert len(first)==len(second)==2
     assert not {l['lead_id'] for l in first}&{l['lead_id'] for l in second}
-    assert len(data(marketing.get('/api/v1/leads?status=pending')))==1
-    assert len(data(sales.get('/api/v1/leads?sales_status=Sedang%20Dihubungi')))==1
-    assert len(data(marketing.get('/api/v1/leads?search=Brian')))==1
+    assert len(data(marketing.get('/api/v1/leads?status=pending'))['items'])==1
+    assert len(data(sales.get('/api/v1/leads?sales_status=Sedang%20Dihubungi'))['items'])==1
+    assert len(data(marketing.get('/api/v1/leads?search=Brian'))['items'])==1
 
 
 def test_search_validation(clients):
