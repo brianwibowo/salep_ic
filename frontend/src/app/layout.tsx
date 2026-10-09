@@ -4,6 +4,11 @@ import "./globals.css";
 import { ProvidersWrapper } from "../providers/provider";
 import { Toaster } from "sonner";
 
+export const metadata: Metadata = {
+  title: "SALEP | Sales Intelligence",
+  description: "Temukan dan kelola prospek penjualan.",
+};
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -20,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

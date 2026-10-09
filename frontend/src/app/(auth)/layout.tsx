@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <div className="bg-teal-500 flex p-2 items-center justify-center rounded-md">
             <ChartSpline />
           </div>
-          <h1 className="text-xl font-bold">GoFlow Dashboard</h1>
+          <h1 className="text-xl font-bold">SALEP</h1>
         </div>
         {children}
       </div>
