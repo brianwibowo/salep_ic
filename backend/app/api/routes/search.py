@@ -5,11 +5,12 @@ from fastapi import APIRouter, HTTPException
 from app.agent.schemas import SearchRequest, SearchResponse
 from app.services.lead_service import run_search
 from app.core.logging import logger
+from app.core.responses import ApiResponse, success_response
 
 router = APIRouter(prefix="/api/v1", tags=["search"])
 
 
-@router.post("/search", response_model=SearchResponse)
+@router.post("/search", response_model=ApiResponse[SearchResponse])
 async def search_leads(request: SearchRequest):
     """Execute a real-time search: keywords → source search → AI analysis → results.
 
@@ -17,7 +18,7 @@ async def search_leads(request: SearchRequest):
     """
     try:
         result = await run_search(request)
-        return result
+        return success_response(result, "Pencarian leads berhasil")
 
     except Exception as e:
         logger.error("Search failed: %s", e)

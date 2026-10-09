@@ -7,6 +7,10 @@ from app.api.routes import leads
 from app.services.lead_repository import LeadRepository
 
 
+def data(response):
+    return response.json()["data"]
+
+
 @pytest.fixture
 def clients(tmp_path, monkeypatch):
     repository = LeadRepository(tmp_path / 'leads.db')
@@ -30,9 +34,9 @@ def test_session_locked_and_logout(clients):
     marketing, sales, anon = clients
     assert anon.get('/api/v1/leads').status_code == 401
     assert sales.post('/api/v1/auth/login', json={'role':'marketing'}).status_code == 409
-    assert sales.get('/api/v1/auth/me').json()['role'] == 'sales'
+    assert data(sales.get('/api/v1/auth/me'))['role'] == 'sales'
     sales.cookies.set('salep_current_role', 'marketing')
-    assert sales.get('/api/v1/auth/me').json()['role'] == 'sales'
+    assert data(sales.get('/api/v1/auth/me'))['role'] == 'sales'
     token = sales.cookies.get(auth.COOKIE)
     sales.post('/api/v1/auth/logout')
     assert sales.get('/api/v1/leads').status_code == 401
@@ -43,13 +47,13 @@ def test_session_locked_and_logout(clients):
 
 def test_role_spoof_and_detail(clients):
     marketing, sales, _ = clients
-    assert len(marketing.get('/api/v1/leads').json()) == 5
-    result = sales.get('/api/v1/leads?role=marketing&status=invalid').json()
+    assert len(data(marketing.get('/api/v1/leads'))) == 5
+    result = data(sales.get('/api/v1/leads?role=marketing&status=invalid'))
     assert len(result) == 2
     assert all(l['marketing_status']=='valid' for l in result)
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
     assert sales.get('/api/v1/leads/recent').status_code == 403
-    assert 'pending' not in sales.get('/api/v1/leads/stats').json()
+    assert 'pending' not in data(sales.get('/api/v1/leads/stats'))
 
 
 def test_write_permissions(clients):
@@ -93,13 +97,13 @@ def test_qualification_and_pagination(clients):
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 200
     marketing.patch('/api/v1/leads/lead_demo_003/status',json={'marketing_status':'invalid'})
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
-    first = marketing.get('/api/v1/leads?limit=2').json()
-    second = marketing.get('/api/v1/leads?limit=2&offset=2').json()
+    first = data(marketing.get('/api/v1/leads?limit=2'))
+    second = data(marketing.get('/api/v1/leads?limit=2&offset=2'))
     assert len(first)==len(second)==2
     assert not {l['lead_id'] for l in first}&{l['lead_id'] for l in second}
-    assert len(marketing.get('/api/v1/leads?status=pending').json())==1
-    assert len(sales.get('/api/v1/leads?sales_status=Sedang%20Dihubungi').json())==1
-    assert len(marketing.get('/api/v1/leads?search=Brian').json())==1
+    assert len(data(marketing.get('/api/v1/leads?status=pending')))==1
+    assert len(data(sales.get('/api/v1/leads?sales_status=Sedang%20Dihubungi')))==1
+    assert len(data(marketing.get('/api/v1/leads?search=Brian')))==1
 
 
 def test_search_validation(clients):
@@ -115,7 +119,7 @@ def test_scheduler_config_saved(clients, tmp_path, monkeypatch):
         monkeypatch.setattr(scheduler.settings,attr,getattr(scheduler.settings,attr))
     response=clients[0].put('/api/v1/scheduler/config',json={'keywords':[' hosting ','managed service','hosting'],'sources':['threads'],'limit_per_run':5})
     assert response.status_code==200
-    assert response.json()['keywords']==['hosting','managed service']
-    assert response.json()['interval_minutes']==30
+    assert data(response)['keywords']==['hosting','managed service']
+    assert data(response)['interval_minutes']==30
     assert (tmp_path/'discovery.json').exists()
     assert clients[0].put('/api/v1/scheduler/config',json={'keywords':[' '],'sources':['threads'],'limit_per_run':5}).status_code==422

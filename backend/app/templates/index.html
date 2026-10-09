@@ -780,19 +780,21 @@ butuh website, rekomendasi hosting</textarea>
           ...options,
           headers: { "Content-Type": "application/json", ...options.headers },
         });
-        const data = await r.json();
+        const envelope = await r.json();
         if (!r.ok) {
           if (r.status === 401) {
             role = "";
             showView();
           }
           throw Error(
-            typeof data.detail === "string"
-              ? data.detail
+            typeof envelope.message === "string"
+              ? envelope.message
+              : typeof envelope.detail === "string"
+                ? envelope.detail
               : "Periksa kembali input Anda",
           );
         }
-        return data;
+        return envelope.data;
       }
       async function loginAs(value) {
         try {
