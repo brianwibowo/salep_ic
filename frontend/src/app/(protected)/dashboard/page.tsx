@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const stats = useLeadStats();
   const recent = useLeads({ limit: 5, page: 1 });
   const isSales = session?.role === "sales";
+  const recentItems = recent.data?.items ?? [];
 
   const cards = isSales
     ? [
@@ -136,14 +137,14 @@ export default function DashboardPage() {
           <p className="p-5 text-sm text-muted-foreground">Memuat leads…</p>
         ) : null}
         {recent.isError ? <ApiNotice message={recent.error.message} /> : null}
-        {recent.data?.items.length === 0 ? (
+        {recentItems.length === 0 ? (
           <p className="p-5 text-sm text-muted-foreground">
             Belum ada data leads.
           </p>
         ) : null}
-        {recent.data && recent.data.items.length > 0 ? (
+        {recentItems.length > 0 ? (
           <div className="divide-y">
-            {recent.data.items.map((lead) => (
+            {recentItems.map((lead) => (
               <div
                 key={lead.lead_id}
                 className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
