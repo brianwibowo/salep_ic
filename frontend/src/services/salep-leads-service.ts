@@ -1,10 +1,9 @@
 import { apiConfig } from "@/configs/api-config";
+import type { PaginatedResponse, PaginationFilter } from "@/types/pagination";
 import { Get, Patch, unwrapResponse } from "@/utils/api/apiService";
-import { Lead, LeadStats } from "@/types/salep";
+import type { Lead, LeadStats } from "@/types/salep";
 
-export interface LeadFilters {
-  offset?: number;
-  limit?: number;
+export interface LeadFilters extends PaginationFilter {
   status?: string;
   sales_status?: string;
   source?: string;
@@ -14,14 +13,16 @@ export interface LeadFilters {
 const BASE_URL = apiConfig.service_salep;
 
 export const salepLeadsService = {
-  list: async (filters: LeadFilters = {}): Promise<Lead[]> => {
+  list: async (filters: LeadFilters = {}): Promise<PaginatedResponse<Lead>> => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== "") params.set(key, String(value));
     });
     const query = params.toString();
 
-    const res = await Get<Lead[]>(`${BASE_URL}/leads${query ? `?${query}` : ""}`);
+    const res = await Get<PaginatedResponse<Lead>>(
+      `${BASE_URL}/leads${query ? `?${query}` : ""}`,
+    );
     return unwrapResponse(res);
   },
 

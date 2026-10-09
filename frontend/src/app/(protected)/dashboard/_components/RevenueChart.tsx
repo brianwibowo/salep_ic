@@ -76,7 +76,7 @@ export function RevenueChart() {
   };
 
   return (
-    <div className="rounded-xl bg-card p-6 shadow-card">
+    <div className="rounded-[5px] bg-card p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold text-card-foreground">

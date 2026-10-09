@@ -1,10 +1,12 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, type CSSProperties } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { UserRound } from "lucide-react";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   SidebarInset,
   SidebarProvider,
@@ -67,20 +69,25 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      defaultOpen={false}
+      style={{ "--sidebar-width-icon": "4.5rem" } as CSSProperties}
+    >
       <AppSidebar role={session.data.role} />
       <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger />
-            <div>
-              <p className="text-sm font-medium">SALEP</p>
-              <p className="text-xs capitalize text-muted-foreground">
-                Sesi {session.data.role}
-              </p>
-            </div>
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-5">
+          <div className="flex items-center">
+            <SidebarTrigger className="size-8 [&>svg]:size-6" />
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium capitalize">{session.data.role}</span>
+            <Avatar className="size-8 border-2 border-amber-400 bg-amber-400">
+              <AvatarFallback className="bg-amber-400 text-slate-900">
+                <UserRound className="size-5" />
+              </AvatarFallback>
+            </Avatar>
+            <ThemeToggle />
+          </div>
         </header>
         <div className="p-6">{children}</div>
       </SidebarInset>

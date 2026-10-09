@@ -39,7 +39,7 @@ export default function DiscoveryPage() {
   const [endDate, setEndDate] = useState(() => localDate(new Date()));
 
   if (!isMarketing) {
-    return <p className="rounded-lg border p-5 text-sm text-muted-foreground">Discovery hanya tersedia untuk role Marketing.</p>;
+    return <p className="rounded-[5px] border p-5 text-sm text-muted-foreground">Discovery hanya tersedia untuk role Marketing.</p>;
   }
 
   const toggleSource = <T extends string>(current: T[], value: T, set: (items: T[]) => void) => {
@@ -92,7 +92,7 @@ export default function DiscoveryPage() {
       </div>
 
       {scheduler.isError && <ApiNotice message={scheduler.error.message} />}
-      <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <section className="rounded-[5px] border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="font-semibold">Scheduler otomatis</h2>
@@ -115,7 +115,7 @@ export default function DiscoveryPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <section className="rounded-[5px] border bg-card p-5">
         <h2 className="font-semibold">Pengaturan scheduler</h2>
         <p className="mt-1 text-sm text-muted-foreground">Pengaturan disimpan di backend dan digunakan scheduler berikutnya.</p>
         <form className="mt-4 space-y-4" onSubmit={save}>
@@ -130,7 +130,7 @@ export default function DiscoveryPage() {
         </form>
       </section>
 
-      <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <section className="rounded-[5px] border bg-card p-5">
         <h2 className="font-semibold">Pencarian manual</h2>
         <p className="mt-1 text-sm text-muted-foreground">Pencarian memakai keyword yang dimasukkan di sini dan menjalankan analisis AI.</p>
         <form className="mt-4 space-y-4" onSubmit={runSearch}>
@@ -157,5 +157,5 @@ function Metric({ label, value }: { label: string; value?: number }) {
 }
 
 function ApiNotice({ message }: { message: string }) {
-  return <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{message}</p>;
+  return <p role="alert" className="rounded-[5px] border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{message}</p>;
 }

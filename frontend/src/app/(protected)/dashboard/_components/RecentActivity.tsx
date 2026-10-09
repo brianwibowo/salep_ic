@@ -72,7 +72,7 @@ const typeStyles = {
 
 export function RecentActivity() {
   return (
-    <div className="rounded-xl bg-card p-6 shadow-card h-full">
+    <div className="rounded-[5px] bg-card p-6 h-full">
       <h3 className="text-base font-semibold text-card-foreground">
         Recent Activity
       </h3>

@@ -410,13 +410,37 @@ class LeadRepository:
         conn = self._get_connection()
         try:
             cur = conn.cursor()
-            where_clause, params = self._lead_filter_query(
-                role=role,
-                status=status,
-                search=search,
-                sales_status=sales_status,
-                source=source,
-            )
+            conditions = []
+            params: list[Any] = []
+
+            # RBAC Enforcement: Sales role only sees valid leads
+            if role.lower() == "sales":
+                conditions.append("marketing_status = 'valid'")
+            else:
+                if status and status.lower() != "all":
+                    conditions.append("marketing_status = ?")
+                    params.append(status.lower())
+
+            if sales_status != "all":
+                conditions.append("sales_status = ?")
+                params.append(sales_status)
+
+            if source == "social_media":
+                conditions.append("LOWER(source) IN ('threads', 'linkedin')")
+            elif source != "all":
+                conditions.append("source = ?")
+                params.append(source)
+
+            if search:
+                kw = f"%{search.strip()}%"
+                conditions.append(
+                    "(content LIKE ? OR author_name LIKE ? OR needs LIKE ? OR matched_keyword LIKE ?)"
+                )
+                params.extend([kw, kw, kw, kw])
+
+            where_clause = ""
+            if conditions:
+                where_clause = "WHERE " + " AND ".join(conditions)
 
             query = f"""
                 SELECT * FROM leads

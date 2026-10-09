@@ -48,7 +48,7 @@ const alerts: StockAlert[] = [
 
 export function LowStockAlerts() {
   return (
-    <div className="rounded-xl bg-card p-6 shadow-card">
+    <div className="rounded-[5px] bg-card p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-base font-semibold text-card-foreground">
@@ -68,7 +68,7 @@ export function LowStockAlerts() {
         {alerts.map((alert) => (
           <div
             key={alert.id}
-            className="flex items-center justify-between rounded-lg border border-border p-3"
+            className="flex items-center justify-between rounded-[5px] border border-border p-3"
           >
             <div className="flex items-center gap-3">
               <div
