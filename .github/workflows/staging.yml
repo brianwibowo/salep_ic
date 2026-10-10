@@ -62,7 +62,6 @@ jobs:
           port: ${{ secrets.STAGING_DEPLOY_PORT }}
           username: ${{ secrets.STAGING_DEPLOY_USER }}
           key: ${{ secrets.STAGING_DEPLOY_SSH_KEY }}
-          fingerprint: ${{ secrets.STAGING_DEPLOY_FINGERPRINT }}
           source: deploy/docker-compose.staging.yml
           target: /opt/salep/staging
       - name: Pull and restart staging stack
@@ -72,7 +71,6 @@ jobs:
           port: ${{ secrets.STAGING_DEPLOY_PORT }}
           username: ${{ secrets.STAGING_DEPLOY_USER }}
           key: ${{ secrets.STAGING_DEPLOY_SSH_KEY }}
-          fingerprint: ${{ secrets.STAGING_DEPLOY_FINGERPRINT }}
           script: |
             set -Eeuo pipefail
             cd /opt/salep/staging
