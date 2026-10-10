@@ -64,6 +64,8 @@ jobs:
           key: ${{ secrets.STAGING_DEPLOY_SSH_KEY }}
           source: deploy/docker-compose.staging.yml
           target: /opt/salep/staging
+          strip_components: 1
+          overwrite: true
       - name: Pull and restart staging stack
         uses: appleboy/ssh-action@v1.2.0
         with:
