@@ -1,0 +1,29 @@
+services:
+  backend-staging:
+    image: ghcr.io/brianwibowo/salep_ic-backend:${IMAGE_TAG:-staging}
+    container_name: salep-backend-staging
+    env_file:
+      - /opt/salep/staging/backend.env
+    ports:
+      - "127.0.0.1:8101:8000"
+    volumes:
+      - /opt/salep/staging/data:/app/data
+      - /opt/salep/staging/service-account.json:/app/service-account.json:ro
+    restart: unless-stopped
+    networks:
+      - salep-staging
+
+  frontend-staging:
+    image: ghcr.io/brianwibowo/salep_ic-frontend:${IMAGE_TAG:-staging}
+    container_name: salep-frontend-staging
+    ports:
+      - "127.0.0.1:8100:3000"
+    depends_on:
+      - backend-staging
+    restart: unless-stopped
+    networks:
+      - salep-staging
+
+networks:
+  salep-staging:
+    name: salep-staging
