@@ -94,9 +94,9 @@ def test_spse_live_search_persists_for_marketing_and_releases_to_sales(tmp_path,
         json={"keywords": ["software"], "limit": 10},
     )
     assert result.status_code == 200, result.text
-    assert result.json()["matched"] >= 1
+    assert result.json()["data"]["matched"] >= 1
 
-    pending = marketing.get("/api/v1/leads?source=spse&status=pending").json()
+    pending = marketing.get("/api/v1/leads?source=spse&status=pending").json()["data"]["items"]
     assert pending
     tender = pending[0]
     assert "spse.inaproc.id" in tender["source_url"]
@@ -107,7 +107,7 @@ def test_spse_live_search_persists_for_marketing_and_releases_to_sales(tmp_path,
         json={"marketing_status": "valid"},
     )
     assert approved.status_code == 200
-    assert any(x["lead_id"] == tender["lead_id"] for x in sales.get("/api/v1/leads?source=spse").json())
+    assert any(x["lead_id"] == tender["lead_id"] for x in sales.get("/api/v1/leads?source=spse").json()["data"]["items"])
 
     marketing.close()
     sales.close()

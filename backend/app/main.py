@@ -5,13 +5,15 @@ FastAPI application entry point.
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import health, search, leads, scheduler, web, spse
 from app.core.auth import router as auth_router, enforce_access
 from app.core.config import settings
 from app.core.logging import logger
+from app.core.responses import detail_message, error_response
 from app.services.scheduler import lead_scheduler
 
 
@@ -50,6 +52,29 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(HTTPException)
+async def handle_http_exception(_: Request, exc: HTTPException):
+    return error_response(
+        message=detail_message(exc.detail),
+        status_code=exc.status_code,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation_exception(_: Request, exc: RequestValidationError):
+    return error_response(
+        message="Validasi request gagal",
+        status_code=422,
+        data={"errors": exc.errors()},
+    )
+
+
+@app.exception_handler(Exception)
+async def handle_unexpected_exception(_: Request, exc: Exception):
+    logger.exception("Unhandled API error: %s", exc)
+    return error_response("Terjadi kesalahan pada server", status_code=500)
 
 app.add_middleware(
     CORSMiddleware,

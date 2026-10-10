@@ -1,39 +1,99 @@
-import { AxiosRequestConfig, AxiosError } from "axios";
-import axiosInstance, { ApiResponse } from "./axiosInstance";
+import { AxiosError, AxiosRequestConfig } from "axios";
+import axiosInstance, { ApiResponsePayload } from "./axiosInstance";
 
-type ClientResponse<T> = {
+export type ClientResponse<T> = {
+  status: boolean;
+  message: string;
+  data: T | undefined;
+  statusCode?: number;
+};
+
+type StandardApiResponse<T> = {
   status: boolean;
   message: string;
   data: T | undefined;
 };
 
-const handleResponse = <T>(result: ApiResponse<T>): ClientResponse<T> => {
-  // Success jika success true DAN statusCode 2xx
-  if (result.success && result.statusCode >= 200 && result.statusCode < 300) {
+export class ApiServiceError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiServiceError";
+    this.status = status;
+  }
+}
+
+export function unwrapResponse<T>(response: ClientResponse<T>): T {
+  if (!response.status || response.data === undefined) {
+    throw new ApiServiceError(response.message, response.statusCode || 0);
+  }
+
+  return response.data;
+}
+
+const handleResponse = <T>(result: ApiResponsePayload<T>): ClientResponse<T> => {
+  if (
+    "status" in result &&
+    typeof result.status === "boolean" &&
+    "message" in result &&
+    "data" in result
+  ) {
+    const response = result as unknown as StandardApiResponse<T>;
     return {
-      status: true,
-      message: result.message || "Success",
-      data: result.result,
+      status: response.status,
+      message: response.message,
+      data: response.data,
     };
   }
 
-  // Jika bukan 2xx, dianggap error
+  // The existing services use the standard { success, statusCode, result }
+  // envelope, while SALEP's FastAPI endpoints return the result directly.
+  if (
+    "success" in result &&
+    "statusCode" in result &&
+    "result" in result
+  ) {
+    if (result.success && result.statusCode >= 200 && result.statusCode < 300) {
+      return {
+        status: true,
+        message: result.message || "Success",
+        data: result.result,
+        statusCode: result.statusCode,
+      };
+    }
+
+    return {
+      status: false,
+      message: result.message || "Request failed",
+      data: undefined,
+      statusCode: result.statusCode,
+    };
+  }
+
   return {
-    status: false,
-    message: result.message || "Request failed",
-    data: undefined,
+    status: true,
+    message: "Success",
+    data: result as T,
   };
 };
 
 // Helper function untuk handle error
 const handleError = (error: unknown): ClientResponse<never> => {
   if (error instanceof AxiosError) {
-    const apiError = error.response?.data as ApiResponse | undefined;
+    const apiError = error.response?.data as
+      | (ApiResponsePayload<unknown> & { detail?: string })
+      | undefined;
 
     return {
       status: false,
-      message: apiError?.message || error.message || "Network error occurred",
+      message:
+        apiError?.message ||
+        apiError?.detail ||
+        error.message ||
+        "Network error occurred",
       data: undefined,
+      statusCode: error.response?.status,
     };
   }
 
@@ -49,7 +109,7 @@ export const Get = async <T>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.get<ApiResponse<T>>(url, config);
+    const response = await axiosInstance.get<ApiResponsePayload<T>>(url, config);
     return handleResponse(response.data);
   } catch (error) {
     return handleError(error);
@@ -62,7 +122,7 @@ export const Post = async <T, D = any>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.post<ApiResponse<T>>(
+    const response = await axiosInstance.post<ApiResponsePayload<T>>(
       url,
       data,
       config,
@@ -79,7 +139,7 @@ export const Put = async <T, D = any>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.put<ApiResponse<T>>(url, data, config);
+    const response = await axiosInstance.put<ApiResponsePayload<T>>(url, data, config);
     return handleResponse(response.data);
   } catch (error) {
     return handleError(error);
@@ -91,7 +151,7 @@ export const Delete = async <T>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.delete<ApiResponse<T>>(url, config);
+    const response = await axiosInstance.delete<ApiResponsePayload<T>>(url, config);
     return handleResponse(response.data);
   } catch (error) {
     return handleError(error);
@@ -104,7 +164,7 @@ export const Patch = async <T, D = any>(
   config?: AxiosRequestConfig,
 ): Promise<ClientResponse<T>> => {
   try {
-    const response = await axiosInstance.patch<ApiResponse<T>>(
+    const response = await axiosInstance.patch<ApiResponsePayload<T>>(
       url,
       data,
       config,

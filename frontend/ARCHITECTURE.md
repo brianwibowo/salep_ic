@@ -180,8 +180,10 @@ export default function LeadsPage() {
    - Jangan menulis *inline styles* (`style={{...}}`). Selalu gunakan Tailwind classes (`className="..."`).
    - Gunakan fungsi `cn()` dari `src/lib/utils.ts` jika perlu menggabungkan Tailwind classes secara dinamis.
 
-4. **Koneksi API (Axios Instance)**
-   - Pengaturan header (seperti Authorization/Token/Cookie) dan interceptor global sudah ditangani secara tersentralisasi di `src/utils/api/axiosInstance.ts`. Hindari melakukan set header secara manual di setiap request.
+4. **Koneksi API SALEP (Session Cookie)**
+   - API SALEP memakai sesi cookie `HttpOnly` yang dibuat backend saat login sebagai Marketing atau Sales. Gunakan helper `src/utils/api/apiService.ts`; Axios mengirim request dengan `withCredentials: true`. Jangan menyimpan token sesi di `localStorage`.
+   - URL backend berasal dari `NEXT_PUBLIC_API_URL` dan tidak memuat `/api/v1`. Endpoint SALEP diawali `/api/v1`.
+   - `src/utils/api/axiosInstance.ts` adalah shared client untuk seluruh service. Response envelope standar dan response raw FastAPI diproses oleh `apiService.ts`.
 
 ---
 *Dokumentasi ini dibuat agar kita memiliki pemahaman dan standar koding yang sama. Happy Coding! 🚀*
