@@ -1,0 +1,60 @@
+name: Main CD
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: brianwibowo
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  cd:
+    name: Build and deploy main backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR for image publishing
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish main backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/salep_ic-backend-main:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/salep_ic-backend-main:main
+      - name: Upload Compose file to VM
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.MAIN_DEPLOY_HOST }}
+          port: ${{ secrets.MAIN_DEPLOY_PORT }}
+          username: ${{ secrets.MAIN_DEPLOY_USER }}
+          key: ${{ secrets.MAIN_DEPLOY_SSH_KEY }}
+          source: deploy/docker-compose.main.yml
+          target: /opt/salep/main
+          strip_components: 1
+          overwrite: true
+      - name: Pull and restart main stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.MAIN_DEPLOY_HOST }}
+          port: ${{ secrets.MAIN_DEPLOY_PORT }}
+          username: ${{ secrets.MAIN_DEPLOY_USER }}
+          key: ${{ secrets.MAIN_DEPLOY_SSH_KEY }}
+          script: |
+            set -Eeuo pipefail
+            cd /opt/salep/main
+            export IMAGE_TAG='${{ github.sha }}'
+            docker compose -f docker-compose.main.yml pull
+            docker compose -f docker-compose.main.yml up -d --remove-orphans
+            docker image prune -f
