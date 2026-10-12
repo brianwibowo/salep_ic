@@ -35,7 +35,7 @@ export function AppSidebar({ role }: { role: SalepRole }) {
   const pathname = usePathname();
   const { state, setOpen } = useSidebar();
   const logout = useLogout();
-  const navigation = getNavigation(role);
+  const navigation = getNavigation();
   const [leadsOpen, setLeadsOpen] = useState(pathname.startsWith("/leads"));
 
   return (

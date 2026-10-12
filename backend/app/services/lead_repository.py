@@ -71,11 +71,11 @@ class LeadRepository:
                     "CREATE INDEX IF NOT EXISTS idx_leads_score ON leads(lead_score)"
                 )
             
-            # Check if seeding is needed
+            # Check if seeding or SPSE seeding is needed
             cur = conn.cursor()
-            cur.execute("SELECT COUNT(*) FROM leads")
-            count = cur.fetchone()[0]
-            if count == 0:
+            cur.execute("SELECT COUNT(*) FROM leads WHERE source='spse'")
+            spse_count = cur.fetchone()[0]
+            if spse_count == 0:
                 self._seed_sample_leads(conn)
         finally:
             conn.close()
@@ -203,6 +203,54 @@ class LeadRepository:
                 "sales_status": "Batal",
                 "notes": "Pencari kerja, bukan calon klien B2B.",
             },
+            {
+                "lead_id": "lead_spse_001",
+                "source": "spse",
+                "source_url": "https://spse.inaproc.id/nasional/lelang/8553802/pengumumanlelang",
+                "author_name": "Kementerian Komunikasi dan Informatika",
+                "author_profile_url": "https://spse.inaproc.id/nasional",
+                "published_at": datetime.now(timezone.utc).isoformat(),
+                "matched_keyword": "cloud infrastructure managed service",
+                "content": "Nama paket: Pengadaan Layanan Cloud Infrastructure dan Managed Services Server\nTahap tender saat ini: Upload Dokumen Penawaran\nInstansi: Kementerian Komunikasi dan Informatika\nNilai HPS: Rp. 485.000.000,00\nDetail: Pascakualifikasi Dua File | Tender | Harga Terendah Ambang Batas | Jasa Lainnya - TA 2026",
+                "is_potential_lead": 1,
+                "intent": "looking_for_vendor",
+                "industry": "government_it",
+                "needs": ["Cloud Infrastructure Managed Services", "Server 24/7 Monitoring", "SLA Support Enterprise"],
+                "pain_points": ["Tenggat waktu upload dokumen ketat", "Persyaratan teknis kepatuhan ISO 27001"],
+                "recommended_services": [
+                    {"product_id": "svc-001", "product_name": "Cloud Managed Services", "match_score": 95, "reason": "Sesuai spesifikasi pengadaan cloud pemerintah."}
+                ],
+                "lead_score": 92,
+                "confidence": 0.95,
+                "evidence": ["Pengadaan Cloud Infrastructure", "Nilai HPS Rp 485 Jt", "Tahap Upload Dokumen Penawaran"],
+                "marketing_status": "valid",
+                "sales_status": "Belum Dihubungi",
+                "notes": "Tender aktif — dokumen penawaran perlu disiapkan tim proposal sales.",
+            },
+            {
+                "lead_id": "lead_spse_002",
+                "source": "spse",
+                "source_url": "https://spse.inaproc.id/nasional/lelang/8553803/pengumumanlelang",
+                "author_name": "Dinas Komunikasi, Informatika dan Statistik",
+                "author_profile_url": "https://spse.inaproc.id/nasional",
+                "published_at": datetime.now(timezone.utc).isoformat(),
+                "matched_keyword": "pengembangan aplikasi portal web",
+                "content": "Nama paket: Pengembangan Aplikasi Portal Satu Data dan Pemeliharaan Database\nTahap tender saat ini: Pemberian Penjelasan (Aanwijzing)\nInstansi: Dinas Komunikasi, Informatika dan Statistik\nNilai HPS: Rp. 320.000.000,00\nDetail: Pascakualifikasi Satu File | Tender Cepat | Jasa Lainnya - TA 2026",
+                "is_potential_lead": 1,
+                "intent": "looking_for_vendor",
+                "industry": "government_it",
+                "needs": ["Aplikasi Web Satu Data", "Integrasi Database Terpusat", "Visualisasi Dashboard Interaktif"],
+                "pain_points": ["Data lintas dinas terpecah-pecah", "Perlu integrasi API antar instansi"],
+                "recommended_services": [
+                    {"product_id": "svc-002", "product_name": "Custom Software & Web Portal", "match_score": 90, "reason": "Solusi portal data pemerintah daerah."}
+                ],
+                "lead_score": 88,
+                "confidence": 0.92,
+                "evidence": ["Aplikasi Portal Satu Data", "Tahap Pemberian Penjelasan", "Nilai HPS Rp 320 Jt"],
+                "marketing_status": "valid",
+                "sales_status": "Sedang Dihubungi",
+                "notes": "Tim teknis sedang menyiapkan pertanyaan untuk sesi aanwijzing.",
+            },
         ]
 
         now_str = datetime.now(timezone.utc).isoformat()
@@ -243,7 +291,7 @@ class LeadRepository:
 
             conn.execute(
                 """
-                INSERT INTO leads (
+                INSERT OR REPLACE INTO leads (
                     lead_id, source, source_url, author_name, author_profile_url,
                     published_at, matched_keyword, content, is_potential_lead,
                     intent, industry, needs, pain_points, recommended_services,
@@ -493,6 +541,19 @@ class LeadRepository:
             if not row:
                 return None
             return self._row_to_dict(row)
+        finally:
+            conn.close()
+
+    def delete_lead(self, lead_id: str) -> bool:
+        """Delete a lead from the local database."""
+        conn = self._get_connection()
+        try:
+            with conn:
+                result = conn.execute(
+                    "DELETE FROM leads WHERE lead_id = ?",
+                    (lead_id,),
+                )
+            return result.rowcount > 0
         finally:
             conn.close()
 

@@ -1,5 +1,5 @@
-import { LeadsPageContent } from "../page";
+import { SpseLeadsPageContent } from "./_components/spse-leads-page-content";
 
 export default function SpseLeadsPage() {
-  return <LeadsPageContent sourcePreset="spse" />;
+  return <SpseLeadsPageContent />;
 }

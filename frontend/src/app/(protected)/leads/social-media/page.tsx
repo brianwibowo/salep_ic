@@ -1,5 +1,5 @@
-import { LeadsPageContent } from "../page";
+import { SocialMediaLeadsPageContent } from "./_components/social-media-leads-page-content";
 
 export default function SocialMediaLeadsPage() {
-  return <LeadsPageContent sourcePreset="social_media" />;
+  return <SocialMediaLeadsPageContent />;
 }

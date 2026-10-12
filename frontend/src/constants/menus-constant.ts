@@ -1,12 +1,8 @@
-import { Compass, LayoutDashboard, Users } from "lucide-react";
-import { SalepRole } from "@/types/salep";
+import { LayoutDashboard, Users } from "lucide-react";
 
-export function getNavigation(role: SalepRole) {
+export function getNavigation() {
   return [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { title: "Leads", icon: Users, path: "/leads" },
-    ...(role === "marketing"
-      ? [{ title: "Discovery", icon: Compass, path: "/discovery" }]
-      : []),
   ];
 }

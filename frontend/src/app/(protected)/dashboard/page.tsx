@@ -8,10 +8,9 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { NumberCounter } from "@/components/ui/number-counter";
 import { useLeads, useLeadStats } from "@/hooks/leads/use-leads";
 import { useSession } from "@/hooks/auth/use-auth";
-
-const number = new Intl.NumberFormat("id-ID");
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -118,89 +117,11 @@ export default function DashboardPage() {
               <Icon className="h-4 w-4" />
             </div>
             <p className="mt-3 text-3xl font-semibold">
-              {value === undefined ? "—" : number.format(value)}
+              <NumberCounter value={value} />
             </p>
           </section>
         ))}
       </div>
-
-      <section className="rounded-[5px] border bg-card p-5">
-        <div className="mb-4">
-          <h2 className="font-semibold">Distribusi status leads</h2>
-          <p className="text-sm text-muted-foreground">
-            {isSales
-              ? "Status tindak lanjut prospek."
-              : "Status validasi prospek."}
-          </p>
-        </div>
-        {recent.isPending ? (
-          <p className="p-5 text-sm text-muted-foreground">Memuat leads…</p>
-        ) : null}
-        {recent.isError ? <ApiNotice message={recent.error.message} /> : null}
-        {recentItems.length === 0 ? (
-          <p className="p-5 text-sm text-muted-foreground">
-            Belum ada data leads.
-          </p>
-        ) : null}
-        {recentItems.length > 0 ? (
-          <div className="divide-y">
-            {recentItems.map((lead) => (
-              <div
-                key={lead.lead_id}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {lead.author_name || "Prospek tanpa nama"}
-                  </p>
-                  <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                    {lead.content}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3 text-sm">
-                  <span className="capitalize text-muted-foreground">
-                    {lead.source}
-                  </span>
-                  <span className="rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary">
-                    Skor {lead.lead_score}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <ChartContainer config={chartConfig} className="h-[280px]">
-            <BarChart
-              accessibilityLayer
-              data={chartData}
-              layout="vertical"
-              margin={{ left: 4, right: 16 }}
-            >
-              <CartesianGrid horizontal={false} />
-              <XAxis
-                type="number"
-                allowDecimals={false}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                type="category"
-                dataKey="stage"
-                width={132}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12 }}
-              />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" radius={5} maxBarSize={28}>
-                {chartData.map((item) => (
-                  <Cell key={item.stage} fill={item.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        )}
-      </section>
     </div>
   );
 }
