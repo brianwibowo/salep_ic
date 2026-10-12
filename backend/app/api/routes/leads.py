@@ -106,6 +106,16 @@ async def get_lead_detail(
     return success_response(lead, "Detail lead berhasil diambil")
 
 
+@router.delete("/leads/{lead_id}")
+async def delete_lead_endpoint(lead_id: str, request: Request) -> ApiResponse[dict[str, bool]]:
+    """Delete a lead. Only the Marketing role may remove leads."""
+    if request.state.role != "marketing":
+        raise HTTPException(status_code=403, detail="Akses khusus marketing")
+    if not lead_repository.delete_lead(lead_id):
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return success_response({"deleted": True}, "Lead berhasil dihapus")
+
+
 @router.patch("/leads/{lead_id}/status")
 async def update_lead_status(
     lead_id: str,

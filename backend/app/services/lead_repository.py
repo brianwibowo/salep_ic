@@ -496,6 +496,19 @@ class LeadRepository:
         finally:
             conn.close()
 
+    def delete_lead(self, lead_id: str) -> bool:
+        """Delete a lead from the local database."""
+        conn = self._get_connection()
+        try:
+            with conn:
+                result = conn.execute(
+                    "DELETE FROM leads WHERE lead_id = ?",
+                    (lead_id,),
+                )
+            return result.rowcount > 0
+        finally:
+            conn.close()
+
     def update_marketing_status(self, lead_id: str, new_status: str) -> dict[str, Any] | None:
         """Update qualification status (valid, invalid, pending)."""
         clean_status = new_status.strip().lower()

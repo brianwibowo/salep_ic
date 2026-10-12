@@ -1,6 +1,6 @@
 import { apiConfig } from "@/configs/api-config";
 import type { PaginatedResponse, PaginationFilter } from "@/types/pagination";
-import { Get, Patch, unwrapResponse } from "@/utils/api/apiService";
+import { Delete, Get, Patch, unwrapResponse } from "@/utils/api/apiService";
 import type { Lead, LeadStats } from "@/types/salep";
 
 export interface LeadFilters extends PaginationFilter {
@@ -28,6 +28,13 @@ export const salepLeadsService = {
 
   stats: async (): Promise<LeadStats> => {
     const res = await Get<LeadStats>(`${BASE_URL}/leads/stats`);
+    return unwrapResponse(res);
+  },
+
+  delete: async (leadId: string): Promise<{ deleted: boolean }> => {
+    const res = await Delete<{ deleted: boolean }>(
+      `${BASE_URL}/leads/${encodeURIComponent(leadId)}`,
+    );
     return unwrapResponse(res);
   },
 
