@@ -8,10 +8,9 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { NumberCounter } from "@/components/ui/number-counter";
 import { useLeads, useLeadStats } from "@/hooks/leads/use-leads";
 import { useSession } from "@/hooks/auth/use-auth";
-
-const number = new Intl.NumberFormat("id-ID");
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -118,7 +117,7 @@ export default function DashboardPage() {
               <Icon className="h-4 w-4" />
             </div>
             <p className="mt-3 text-3xl font-semibold">
-              {value === undefined ? "—" : number.format(value)}
+              <NumberCounter value={value} />
             </p>
           </section>
         ))}
