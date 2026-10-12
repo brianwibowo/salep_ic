@@ -132,7 +132,7 @@ export function SpseLeadsTable({
               >
                 <Eye className="size-4" />
               </Button>
-              <Button
+              {/* <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
@@ -141,7 +141,7 @@ export function SpseLeadsTable({
                 onClick={() => onViewSchedule(lead)}
               >
                 <Clock className="size-4" />
-              </Button>
+              </Button> */}
               {isMarketing && (
                 <Button
                   type="button"
