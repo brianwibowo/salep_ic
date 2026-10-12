@@ -5,7 +5,12 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.services.spse_service import DEFAULT_SPSE_KEYWORDS, discover_spse_tenders
+from app.services.spse_service import (
+    DEFAULT_SPSE_KEYWORDS,
+    discover_spse_tenders,
+    get_tender_schedule,
+    get_lead_spse_schedule,
+)
 from app.core.responses import success_response
 
 
@@ -25,6 +30,28 @@ async def get_defaults(request: Request) -> dict[str, Any]:
         {"keywords": DEFAULT_SPSE_KEYWORDS, "source": "https://spse.inaproc.id/nasional"},
         "Default pencarian SPSE berhasil diambil",
     )
+
+
+@router.get("/tender/{tender_id}/jadwal")
+async def get_tender_jadwal_endpoint(tender_id: str) -> dict[str, Any]:
+    """Retrieve full SPSE tender schedule and active stage progress."""
+    try:
+        schedule = await get_tender_schedule(tender_id)
+        return success_response(schedule, "Jadwal lelang SPSE berhasil diambil")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Gagal mengambil jadwal tender: {exc}") from exc
+
+
+@router.get("/leads/{lead_id}/jadwal")
+async def get_lead_jadwal_endpoint(lead_id: str) -> dict[str, Any]:
+    """Retrieve SPSE tender schedule for a specific lead."""
+    try:
+        schedule = await get_lead_spse_schedule(lead_id)
+        return success_response(schedule, "Jadwal lelang lead SPSE berhasil diambil")
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve)) from ve
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Gagal mengambil jadwal lead: {exc}") from exc
 
 
 @router.post("/search")

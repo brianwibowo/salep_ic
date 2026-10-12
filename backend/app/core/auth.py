@@ -50,7 +50,15 @@ async def enforce_access(request, call_next):
             if origin and origin.rstrip('/') not in allowed_origins:
                 return error_response('Origin tidak diizinkan', status_code=403)
         if role == 'sales':
-            allowed = (request.method == 'GET' and (path == '/api/v1/leads' or path == '/api/v1/leads/stats' or (path.startswith('/api/v1/leads/') and path.rsplit('/', 1)[-1] not in {'recent'}))) or (request.method == 'PATCH' and path.endswith('/sales-status'))
+            allowed = (
+                request.method == 'GET' and (
+                    path == '/api/v1/leads' or
+                    path == '/api/v1/leads/stats' or
+                    path.startswith('/api/v1/spse/tender/') or
+                    path.startswith('/api/v1/spse/leads/') or
+                    (path.startswith('/api/v1/leads/') and path.rsplit('/', 1)[-1] not in {'recent'})
+                )
+            ) or (request.method == 'PATCH' and path.endswith('/sales-status'))
             if not allowed:
                 return error_response('Akses khusus marketing', status_code=403)
         elif path.endswith('/sales-status'):
