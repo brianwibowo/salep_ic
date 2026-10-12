@@ -48,7 +48,7 @@ export function SpseLeadDeleteDialog({
             disabled={!lead || isDeleting}
             onClick={onConfirm}
           >
-            {isDeleting ? "Menghapus…" : "Hapus paket"}
+            {isDeleting ? "Menghapus…" : "Hapus"}
           </Button>
         </DialogFooter>
       </DialogContent>

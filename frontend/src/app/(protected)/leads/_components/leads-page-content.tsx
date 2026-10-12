@@ -739,7 +739,7 @@ export function LeadsPageContent({
                 });
               }}
             >
-              {deleteLead.isPending ? "Menghapus…" : "Hapus lead"}
+              {deleteLead.isPending ? "Menghapus…" : "Hapus"}
             </Button>
           </DialogFooter>
         </DialogContent>
