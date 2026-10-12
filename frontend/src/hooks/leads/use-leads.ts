@@ -64,3 +64,12 @@ export function useUpdateSalesStatus() {
     onError: (error: Error) => toast.error(error.message || "Status tindak lanjut gagal diperbarui"),
   });
 }
+
+export function useSpseSchedule(leadId: string | null) {
+  return useQuery({
+    queryKey: [...leadsQueryKeys.all, "spse-schedule", leadId] as const,
+    queryFn: () => salepLeadsService.getSpseSchedule(leadId!),
+    enabled: Boolean(leadId),
+  });
+}
+

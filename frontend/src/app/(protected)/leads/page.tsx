@@ -9,7 +9,17 @@ import {
   type ColumnDef,
   type PaginationState,
 } from "@tanstack/react-table";
-import { ChevronDown, Compass, Eye, ExternalLink, Search, SlidersHorizontal, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  Compass,
+  Eye,
+  ExternalLink,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Calendar,
+  Clock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import {
@@ -21,7 +31,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -30,6 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SpseScheduleDialog } from "@/components/leads/spse-schedule-dialog";
 import { useSession } from "@/hooks/auth/use-auth";
 import {
   useDeleteLead,
@@ -53,6 +68,7 @@ export function LeadsPageContent({
 }) {
   const { data: session } = useSession();
   const isMarketing = session?.role === "marketing";
+  const [selectedSpseLead, setSelectedSpseLead] = useState<Lead | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [source, setSource] = useState<string>(sourcePreset);
@@ -89,6 +105,7 @@ export function LeadsPageContent({
         header: "Prospek",
         cell: ({ row }) => {
           const lead = row.original;
+          const isSpse = lead.source === "spse";
           return (
             <div className="max-w-xl whitespace-normal">
               <p className="font-medium">
@@ -101,6 +118,18 @@ export function LeadsPageContent({
                 <p className="mt-2 text-xs text-muted-foreground">
                   Kebutuhan: {lead.needs.join(", ")}
                 </p>
+              )}
+              {isSpse && (
+                <div className="mt-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSpseLead(lead)}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-500/20 dark:text-blue-300"
+                  >
+                    <Calendar className="size-3.5" />
+                    <span>Pantau Jadwal & Progres SPSE</span>
+                  </button>
+                </div>
               )}
             </div>
           );
@@ -178,17 +207,33 @@ export function LeadsPageContent({
       },
       {
         id: "post",
-        header: "Posting",
-        cell: ({ row }) => (
-          <a
-            className="inline-flex items-center gap-1 text-primary hover:underline"
-            href={row.original.source_url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Buka <ExternalLink className="size-3.5" />
-          </a>
-        ),
+        header: "Tautan & Jadwal",
+        cell: ({ row }) => {
+          const lead = row.original;
+          const isSpse = lead.source === "spse";
+          return (
+            <div className="flex flex-col gap-1.5 whitespace-nowrap">
+              <a
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+                href={lead.source_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {isSpse ? "Pengumuman" : "Buka"}{" "}
+                <ExternalLink className="size-3.5" />
+              </a>
+              {isSpse && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedSpseLead(lead)}
+                  className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  <Clock className="size-3" /> Jadwal Lelang
+                </button>
+              )}
+            </div>
+          );
+        },
       },
       {
         id: "actions",
@@ -274,20 +319,29 @@ export function LeadsPageContent({
             <div className="flex flex-wrap items-center gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" className="h-9 rounded-[5px] shadow-none">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 rounded-[5px] shadow-none"
+                  >
                     <SlidersHorizontal className="size-4" />
                     Filter
                     <ChevronDown className="size-4 text-muted-foreground" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="start" className="w-72 space-y-4 rounded-[5px]">
+                <PopoverContent
+                  align="start"
+                  className="w-72 space-y-4 rounded-[5px]"
+                >
                   {isMarketing && (
                     <label className="block space-y-1.5 text-sm font-medium">
                       Status validasi
                       <select
                         className="h-9 w-full rounded-[5px] border bg-background px-3 font-normal"
                         value={status}
-                        onChange={(event) => setFilter(setStatus)(event.target.value)}
+                        onChange={(event) =>
+                          setFilter(setStatus)(event.target.value)
+                        }
                       >
                         <option value="all">Semua status marketing</option>
                         <option value="pending">Menunggu review</option>
@@ -302,11 +356,15 @@ export function LeadsPageContent({
                       <select
                         className="h-9 w-full rounded-[5px] border bg-background px-3 font-normal"
                         value={source}
-                        onChange={(event) => setFilter(setSource)(event.target.value)}
+                        onChange={(event) =>
+                          setFilter(setSource)(event.target.value)
+                        }
                       >
                         {sourcePreset === "social_media" ? (
                           <>
-                            <option value="social_media">Semua sosial media</option>
+                            <option value="social_media">
+                              Semua sosial media
+                            </option>
                             <option value="threads">Threads</option>
                             <option value="linkedin">LinkedIn</option>
                           </>
@@ -329,27 +387,38 @@ export function LeadsPageContent({
                       <select
                         className="h-9 w-full rounded-[5px] border bg-background px-3 font-normal"
                         value={salesStatus}
-                        onChange={(event) => setFilter(setSalesStatus)(event.target.value)}
+                        onChange={(event) =>
+                          setFilter(setSalesStatus)(event.target.value)
+                        }
                       >
                         <option value="all">Semua tindak lanjut</option>
-                        {salesStatuses.map((item) => <option key={item}>{item}</option>)}
+                        {salesStatuses.map((item) => (
+                          <option key={item}>{item}</option>
+                        ))}
                       </select>
                     </label>
                   )}
                 </PopoverContent>
               </Popover>
-              {(sourcePreset === "spse" || sourcePreset === "social_media") && isMarketing && (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="h-9 shrink-0 rounded-[5px] border-[#9D0A0E] text-[#9D0A0E] shadow-none hover:bg-[#9D0A0E]/5 hover:text-[#9D0A0E]"
-                >
-                  <Link href={sourcePreset === "spse" ? "/discovery/spse" : "/discovery"}>
-                    <Compass className="size-4" />
-                    Discovery
-                  </Link>
-                </Button>
-              )}
+              {(sourcePreset === "spse" || sourcePreset === "social_media") &&
+                isMarketing && (
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-9 shrink-0 rounded-[5px] border-[#9D0A0E] text-[#9D0A0E] shadow-none hover:bg-[#9D0A0E]/5 hover:text-[#9D0A0E]"
+                  >
+                    <Link
+                      href={
+                        sourcePreset === "spse"
+                          ? "/discovery/spse"
+                          : "/discovery"
+                      }
+                    >
+                      <Compass className="size-4" />
+                      Discovery
+                    </Link>
+                  </Button>
+                )}
             </div>
             <label className="relative w-full md:max-w-sm md:flex-1">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -434,43 +503,66 @@ export function LeadsPageContent({
               <DialogHeader>
                 <DialogTitle>Detail Lead</DialogTitle>
                 <DialogDescription>
-                  {selectedLead.author_name || "Prospek tanpa nama"} · {selectedLead.source}
+                  {selectedLead.author_name || "Prospek tanpa nama"} ·{" "}
+                  {selectedLead.source}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-5">
                 <dl className="grid gap-4 rounded-[5px] border p-4 sm:grid-cols-2">
                   <div>
                     <dt className="text-xs text-muted-foreground">Skor lead</dt>
-                    <dd className="mt-1 font-semibold">{selectedLead.lead_score}/100</dd>
+                    <dd className="mt-1 font-semibold">
+                      {selectedLead.lead_score}/100
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">Keyakinan analisis</dt>
-                    <dd className="mt-1 font-semibold">{Math.round(selectedLead.confidence * 100)}%</dd>
+                    <dt className="text-xs text-muted-foreground">
+                      Keyakinan analisis
+                    </dt>
+                    <dd className="mt-1 font-semibold">
+                      {Math.round(selectedLead.confidence * 100)}%
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">Status marketing</dt>
-                    <dd className="mt-1 font-medium capitalize">{selectedLead.marketing_status}</dd>
+                    <dt className="text-xs text-muted-foreground">
+                      Status marketing
+                    </dt>
+                    <dd className="mt-1 font-medium capitalize">
+                      {selectedLead.marketing_status}
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted-foreground">Tindak lanjut</dt>
-                    <dd className="mt-1 font-medium">{selectedLead.sales_status}</dd>
+                    <dt className="text-xs text-muted-foreground">
+                      Tindak lanjut
+                    </dt>
+                    <dd className="mt-1 font-medium">
+                      {selectedLead.sales_status}
+                    </dd>
                   </div>
                   {selectedLead.industry && (
                     <div>
-                      <dt className="text-xs text-muted-foreground">Industri</dt>
-                      <dd className="mt-1 font-medium">{selectedLead.industry.replace(/_/g, " ")}</dd>
+                      <dt className="text-xs text-muted-foreground">
+                        Industri
+                      </dt>
+                      <dd className="mt-1 font-medium">
+                        {selectedLead.industry.replace(/_/g, " ")}
+                      </dd>
                     </div>
                   )}
                   {selectedLead.matched_keyword && (
                     <div>
                       <dt className="text-xs text-muted-foreground">Keyword</dt>
-                      <dd className="mt-1 font-medium">{selectedLead.matched_keyword}</dd>
+                      <dd className="mt-1 font-medium">
+                        {selectedLead.matched_keyword}
+                      </dd>
                     </div>
                   )}
                 </dl>
                 {sourcePreset !== "all" && (
                   <label className="block max-w-sm space-y-2 text-sm font-medium">
-                    {isMarketing ? "Ubah status marketing" : "Ubah status tindak lanjut"}
+                    {isMarketing
+                      ? "Ubah status marketing"
+                      : "Ubah status tindak lanjut"}
                     {isMarketing ? (
                       <select
                         className="h-10 w-full rounded-[5px] border bg-background px-3"
@@ -480,7 +572,8 @@ export function LeadsPageContent({
                           updateMarketing.mutate(
                             {
                               leadId: selectedLead.lead_id,
-                              status: event.target.value as Lead["marketing_status"],
+                              status: event.target
+                                .value as Lead["marketing_status"],
                             },
                             { onSuccess: setSelectedLead },
                           )
@@ -499,13 +592,16 @@ export function LeadsPageContent({
                           updateSales.mutate(
                             {
                               leadId: selectedLead.lead_id,
-                              status: event.target.value as Lead["sales_status"],
+                              status: event.target
+                                .value as Lead["sales_status"],
                             },
                             { onSuccess: setSelectedLead },
                           )
                         }
                       >
-                        {salesStatuses.map((item) => <option key={item}>{item}</option>)}
+                        {salesStatuses.map((item) => (
+                          <option key={item}>{item}</option>
+                        ))}
                       </select>
                     )}
                   </label>
@@ -520,7 +616,9 @@ export function LeadsPageContent({
                   <div>
                     <h3 className="mb-2 text-sm font-semibold">Kebutuhan</h3>
                     <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                      {selectedLead.needs.map((need) => <li key={need}>{need}</li>)}
+                      {selectedLead.needs.map((need) => (
+                        <li key={need}>{need}</li>
+                      ))}
                     </ul>
                   </div>
                 )}
@@ -528,21 +626,32 @@ export function LeadsPageContent({
                   <div>
                     <h3 className="mb-2 text-sm font-semibold">Kendala</h3>
                     <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                      {selectedLead.pain_points.map((pain) => <li key={pain}>{pain}</li>)}
+                      {selectedLead.pain_points.map((pain) => (
+                        <li key={pain}>{pain}</li>
+                      ))}
                     </ul>
                   </div>
                 )}
                 {selectedLead.recommended_services.length > 0 && (
                   <div>
-                    <h3 className="mb-2 text-sm font-semibold">Rekomendasi layanan</h3>
+                    <h3 className="mb-2 text-sm font-semibold">
+                      Rekomendasi layanan
+                    </h3>
                     <div className="space-y-2">
                       {selectedLead.recommended_services.map((service) => (
-                        <div key={service.product_id} className="rounded-[5px] border p-3">
+                        <div
+                          key={service.product_id}
+                          className="rounded-[5px] border p-3"
+                        >
                           <div className="flex items-center justify-between gap-3 text-sm font-medium">
                             <span>{service.product_name}</span>
-                            <span className="shrink-0 text-primary">{service.match_score}%</span>
+                            <span className="shrink-0 text-primary">
+                              {service.match_score}%
+                            </span>
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground">{service.reason}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {service.reason}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -572,7 +681,8 @@ export function LeadsPageContent({
           <DialogHeader>
             <DialogTitle>Hapus lead?</DialogTitle>
             <DialogDescription>
-              Lead dari {pendingDelete?.author_name || "prospek tanpa nama"} akan dihapus permanen dari database SALEP.
+              Lead dari {pendingDelete?.author_name || "prospek tanpa nama"}{" "}
+              akan dihapus permanen dari database SALEP.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -608,6 +718,11 @@ export function LeadsPageContent({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <SpseScheduleDialog
+        lead={selectedSpseLead}
+        open={Boolean(selectedSpseLead)}
+        onOpenChange={(open) => !open && setSelectedSpseLead(null)}
+      />
     </div>
   );
 }

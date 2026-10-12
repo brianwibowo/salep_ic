@@ -66,3 +66,22 @@ export interface SearchResult {
   qualified: number;
   leads: Lead[];
 }
+
+export interface TenderStage {
+  no: string;
+  stage: string;
+  start: string;
+  end: string;
+  changes?: string;
+  status: "completed" | "active" | "upcoming";
+}
+
+export interface TenderScheduleResponse {
+  tender_id: string;
+  source_url: string;
+  current_stage: string;
+  stages: TenderStage[];
+  title?: string;
+  instansi?: string;
+  note?: string;
+}

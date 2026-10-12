@@ -1,7 +1,7 @@
 import { apiConfig } from "@/configs/api-config";
 import type { PaginatedResponse, PaginationFilter } from "@/types/pagination";
 import { Delete, Get, Patch, unwrapResponse } from "@/utils/api/apiService";
-import type { Lead, LeadStats } from "@/types/salep";
+import type { Lead, LeadStats, TenderScheduleResponse } from "@/types/salep";
 
 export interface LeadFilters extends PaginationFilter {
   status?: string;
@@ -44,18 +44,25 @@ export const salepLeadsService = {
   ): Promise<Lead> => {
     const res = await Patch<Lead>(
       `${BASE_URL}/leads/${encodeURIComponent(leadId)}/status`,
-      { marketing_status }
+      { marketing_status },
     );
     return unwrapResponse(res);
   },
 
   updateSalesStatus: async (
     leadId: string,
-    sales_status: Lead["sales_status"]
+    sales_status: Lead["sales_status"],
   ): Promise<Lead> => {
     const res = await Patch<Lead>(
       `${BASE_URL}/leads/${encodeURIComponent(leadId)}/sales-status`,
-      { sales_status }
+      { sales_status },
+    );
+    return unwrapResponse(res);
+  },
+
+  getSpseSchedule: async (leadId: string): Promise<TenderScheduleResponse> => {
+    const res = await Get<TenderScheduleResponse>(
+      `${BASE_URL}/spse/leads/${encodeURIComponent(leadId)}/jadwal`,
     );
     return unwrapResponse(res);
   },
