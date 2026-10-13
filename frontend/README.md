@@ -5,7 +5,7 @@ Frontend SALEP menggunakan Next.js dan terhubung ke FastAPI di folder `../backen
 ## Menjalankan secara lokal
 
 1. Siapkan backend di `../backend`. Saat dijalankan dari folder itu, backend membaca konfigurasi dari `backend/.env`; isi API key yang diperlukan dan gunakan `APP_ENV=development` untuk sesi cookie lokal lewat HTTP.
-2. Buat `.env.local` di folder ini berdasarkan `env.example`. Nilai default mengarah ke `http://localhost:8000`.
+2. Buat `.env.local` di folder ini berdasarkan `env.example`. Untuk menjalankan backend lokal, gunakan `NEXT_PUBLIC_API_URL=http://localhost:3000` dan `BACKEND_PROXY_URL=http://localhost:8000`; request browser akan melewati proxy Next.js lokal.
 3. Jalankan backend pada port 8000, lalu dari root `salep_ic` buka terminal kedua:
 
 ```powershell

@@ -12,11 +12,12 @@
 //     TARGET_HOST
 //   );
 
-//   const headers = new Headers(request.headers);
-//   headers.set("host", "salep-staging.icdigital.io");
-//   headers.set("origin", TARGET_HOST);
-//   headers.set("referer", `${TARGET_HOST}/`);
-//   headers.set("sec-fetch-site", "same-origin");
+  // const headers = new Headers(request.headers);
+  // const targetOrigin = new URL(TARGET_HOST);
+  // headers.set("host", targetOrigin.host);
+  // headers.set("origin", targetOrigin.origin);
+  // headers.set("referer", `${targetOrigin.origin}/`);
+  // headers.set("sec-fetch-site", "same-origin");
 
 //   const body = ["GET", "HEAD"].includes(request.method)
 //     ? undefined
