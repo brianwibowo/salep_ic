@@ -93,10 +93,13 @@ jobs:
             cd /opt/salep/staging
             export IMAGE_TAG='${{ github.sha }}'
             docker compose -f docker-compose.staging.yml pull
+            
             if grep -Eq '^DATABASE_URL=.+$' /opt/salep/staging/backend.env; then
-              docker compose -f docker-compose.staging.yml run --rm --no-deps backend-staging alembic upgrade head
+              # REMOVED --no-deps so the database starts first
+              docker compose -f docker-compose.staging.yml run --rm backend-staging alembic upgrade head
             else
               echo 'DATABASE_URL is not configured; keeping legacy SQLite persistence for this deployment.'
             fi
+            
             docker compose -f docker-compose.staging.yml up -d --remove-orphans
             docker image prune -f
