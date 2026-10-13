@@ -156,7 +156,9 @@ export function LeadsPageContent({
         header: "Skor",
         cell: ({ row }) => (
           <span className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
-            {row.original.lead_score}
+            {row.original.quality_flags?.includes("llm_analysis_failed")
+              ? "Belum dianalisis"
+              : row.original.lead_score}
           </span>
         ),
       },
@@ -560,12 +562,24 @@ export function LeadsPageContent({
                   {selectedLead.source}
                 </DialogDescription>
               </DialogHeader>
+              {selectedLead.quality_flags?.includes("llm_analysis_failed") && (
+                <div
+                  role="status"
+                  className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200"
+                >
+                  Analisis AI belum tersedia. Konten sumber disimpan sebagai data
+                  mentah; periksa posting ini secara manual sebelum mengubahnya
+                  menjadi lead valid.
+                </div>
+              )}
               <div className="space-y-5">
                 <dl className="grid gap-4 rounded-[5px] border p-4 sm:grid-cols-2">
                   <div>
                     <dt className="text-xs text-muted-foreground">Skor lead</dt>
                     <dd className="mt-1 font-semibold">
-                      {selectedLead.lead_score}/100
+                      {selectedLead.quality_flags?.includes("llm_analysis_failed")
+                        ? "Belum dianalisis"
+                        : `${selectedLead.lead_score}/100`}
                     </dd>
                   </div>
                   <div>
@@ -573,7 +587,9 @@ export function LeadsPageContent({
                       Keyakinan analisis
                     </dt>
                     <dd className="mt-1 font-semibold">
-                      {Math.round(selectedLead.confidence * 100)}%
+                      {selectedLead.quality_flags?.includes("llm_analysis_failed")
+                        ? "Belum dianalisis"
+                        : `${Math.round(selectedLead.confidence * 100)}%`}
                     </dd>
                   </div>
                   <div>

@@ -120,14 +120,24 @@ export function SocialMediaDiscoveryDialog({
 
     try {
       toast.info("Discovery dimulai di latar belakang. Anda dapat menutup pop-up ini kapan saja.");
-      await searchMutation.mutateAsync({
+      const result = await searchMutation.mutateAsync({
         keywords,
         start_date: startDate,
         end_date: endDate,
         sources,
         limit,
       });
-      toast.success("Discovery selesai! Data prospek baru telah ditambahkan ke tabel.");
+      const rawOnlyCount = result.leads.filter((lead) =>
+        lead.quality_flags?.includes("llm_analysis_failed"),
+      ).length;
+      if (rawOnlyCount > 0) {
+        toast.warning(
+          `${rawOnlyCount} posting disimpan sebagai data mentah karena analisis AI gagal. Silakan review manual di tabel leads.`,
+          { duration: 8000 },
+        );
+      } else {
+        toast.success("Discovery selesai! Data prospek baru telah ditambahkan ke tabel.");
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Pencarian gagal";
       if (msg.includes("504") || msg.includes("timeout") || msg.includes("Time-out")) {
@@ -163,9 +173,16 @@ export function SocialMediaDiscoveryDialog({
         url: trimmed,
         save_to_sheet: true,
       });
-      toast.success(
-        `Berhasil mengambil postingan dari ${res.author_name || "pengguna"} (Skor: ${res.lead_score})!`,
-      );
+      if (res.quality_flags?.includes("llm_analysis_failed")) {
+        toast.warning(
+          "Posting berhasil diambil dan disimpan sebagai data mentah karena analisis AI gagal. Silakan review manual di tabel leads.",
+          { duration: 8000 },
+        );
+      } else {
+        toast.success(
+          `Berhasil mengambil postingan dari ${res.author_name || "pengguna"} (Skor: ${res.lead_score})!`,
+        );
+      }
       setDirectUrl("");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal menganalisis URL";
