@@ -28,15 +28,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useLogout } from "@/hooks/auth/use-auth";
-import { getNavigation } from "@/constants/menus-constant";
+import { getNavigation, type NavItem } from "@/constants/menus-constant";
 import { SalepRole } from "@/types/salep";
+
+const BTN =
+  "h-11 gap-3 rounded-md px-2 text-base font-medium text-slate-950 hover:bg-slate-100 hover:text-slate-950 dark:text-white dark:hover:bg-slate-700 dark:hover:text-white data-[active=true]:!bg-[#9D0A0E] data-[active=true]:!text-white data-[active=true]:hover:!bg-[#9D0A0E] [&>svg]:size-6 [&>svg]:text-slate-900 dark:[&>svg]:text-white data-[active=true]:[&>svg]:text-white group-data-[collapsible=icon]:mx-auto";
+const SUB_BTN =
+  "h-9 text-sm data-[active=true]:bg-[#9D0A0E] data-[active=true]:text-white";
 
 export function AppSidebar({ role }: { role: SalepRole }) {
   const pathname = usePathname();
   const { state, setOpen } = useSidebar();
   const logout = useLogout();
   const navigation = getNavigation();
-  const [leadsOpen, setLeadsOpen] = useState(pathname.startsWith("/leads"));
 
   return (
     <Sidebar collapsible="icon">
@@ -55,69 +59,23 @@ export function AppSidebar({ role }: { role: SalepRole }) {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
-                if (item.path === "/leads") {
+                if (item.role && item.role !== role) return null;
+                if (item.children) {
                   return (
-                    <Collapsible
+                    <CollapsibleGroup
                       key={item.path}
-                      open={leadsOpen}
-                      onOpenChange={setLeadsOpen}
-                      className="group/collapsible"
-                    >
-                      <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            isActive={pathname === "/leads" || (active && state === "collapsed")}
-                            tooltip={item.title}
-                            onClick={(event) => {
-                              if (state === "collapsed") {
-                                event.preventDefault();
-                                setOpen(true);
-                                setLeadsOpen(true);
-                              }
-                            }}
-                            className="h-11 gap-3 rounded-md px-2 text-base font-medium text-slate-950 hover:bg-slate-100 hover:text-slate-950 dark:text-white dark:hover:bg-slate-700 dark:hover:text-white data-[active=true]:!bg-[#9D0A0E] data-[active=true]:!text-white data-[active=true]:hover:!bg-[#9D0A0E] [&>svg]:size-6 [&>svg]:text-slate-900 dark:[&>svg]:text-white data-[active=true]:[&>svg]:text-white group-data-[collapsible=icon]:mx-auto"
-                          >
-                            <Icon />
-                            <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                            <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden" />
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <SidebarMenuSub>
-                            <SidebarMenuSubItem>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={pathname === "/leads/social-media"}
-                                className="h-9 text-sm data-[active=true]:bg-[#9D0A0E] data-[active=true]:text-white"
-                              >
-                                <Link href="/leads/social-media">Sosial Media</Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                            <SidebarMenuSubItem>
-                              <SidebarMenuSubButton
-                                asChild
-                                isActive={pathname === "/leads/spse"}
-                                className="h-9 text-sm data-[active=true]:bg-[#9D0A0E] data-[active=true]:text-white"
-                              >
-                                <Link href="/leads/spse">SPSE</Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
-                    </Collapsible>
+                      item={item}
+                      pathname={pathname}
+                      sidebarState={state}
+                      onExpandSidebar={() => setOpen(true)}
+                    />
                   );
                 }
+                const Icon = item.icon;
+                const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={active}
-                      tooltip={item.title}
-                      className="h-11 gap-3 rounded-md px-2 text-base font-medium text-slate-950 hover:bg-slate-100 hover:text-slate-950 dark:text-white dark:hover:bg-slate-700 dark:hover:text-white data-[active=true]:!bg-[#9D0A0E] data-[active=true]:!text-white data-[active=true]:hover:!bg-[#9D0A0E] [&>svg]:size-6 [&>svg]:text-slate-900 dark:[&>svg]:text-white data-[active=true]:[&>svg]:text-white group-data-[collapsible=icon]:mx-auto"
-                    >
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title} className={BTN}>
                       <Link href={item.path}>
                         <Icon />
                         <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
@@ -148,5 +106,57 @@ export function AppSidebar({ role }: { role: SalepRole }) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  );
+}
+
+function CollapsibleGroup({
+  item,
+  pathname,
+  sidebarState,
+  onExpandSidebar,
+}: {
+  item: NavItem;
+  pathname: string;
+  sidebarState: "expanded" | "collapsed";
+  onExpandSidebar: () => void;
+}) {
+  const active = pathname.startsWith(item.path);
+  const [open, setOpen] = useState(active);
+  const Icon = item.icon;
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            isActive={active && sidebarState === "collapsed"}
+            tooltip={item.title}
+            onClick={(event) => {
+              if (sidebarState === "collapsed") {
+                event.preventDefault();
+                onExpandSidebar();
+                setOpen(true);
+              }
+            }}
+            className={BTN}
+          >
+            <Icon />
+            <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
+            <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {item.children!.map((child) => (
+              <SidebarMenuSubItem key={child.path}>
+                <SidebarMenuSubButton asChild isActive={pathname === child.path} className={SUB_BTN}>
+                  <Link href={child.path}>{child.title}</Link>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
   );
 }

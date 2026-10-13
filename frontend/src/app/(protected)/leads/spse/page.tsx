@@ -1,5 +1,5 @@
-import { SpseLeadsPageContent } from "./_components/spse-leads-page-content";
+import { redirect } from "next/navigation";
 
-export default function SpseLeadsPage() {
-  return <SpseLeadsPageContent />;
+export default function LegacySpsePage() {
+  redirect("/pengadaan/spse");
 }

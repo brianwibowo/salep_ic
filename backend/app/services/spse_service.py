@@ -75,7 +75,7 @@ async def get_lead_spse_schedule(lead_id: str) -> dict[str, Any]:
         raise ValueError("Lead ini bukan bertipe SPSE")
 
     url = lead.get("source_url", "")
-    match = re.search(r"/lelang/(\d+)", url)
+    match = re.search(r"/lelang/(\d+)", url) or re.search(r"/(\d{4,})", url) or re.search(r"(\d{5,})", url)
     if not match:
         raise ValueError("URL lead tidak memuat ID tender yang valid")
     tender_id = match.group(1)

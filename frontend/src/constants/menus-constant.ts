@@ -1,9 +1,37 @@
-import { ChartPie, LayoutDashboard, Users } from "lucide-react";
+import {
+  ChartPie,
+  ClipboardList,
+  Compass,
+  FileText,
+  Gavel,
+  LayoutDashboard,
+  Users,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-export function getNavigation() {
+export interface NavItem {
+  title: string;
+  icon: LucideIcon;
+  path: string;
+  children?: { title: string; path: string }[];
+  /** When set, only users with this role see the item. */
+  role?: "marketing" | "sales";
+}
+
+export function getNavigation(): NavItem[] {
   return [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-    { title: "Leads", icon: Users, path: "/leads" },
-    { title: "Final", icon: ChartPie, path: "/final" },
+    { title: "Leads", icon: Users, path: "/leads/social-media" },
+    {
+      title: "Pengadaan",
+      icon: Gavel,
+      path: "/pengadaan",
+      children: [
+        { title: "SiRUP", path: "/pengadaan/sirup" },
+        { title: "SPSE", path: "/pengadaan/spse" },
+        { title: "Final", path: "/pengadaan/final" },
+      ],
+    },
+    { title: "Discovery", icon: Compass, path: "/discovery", role: "marketing" },
   ];
 }

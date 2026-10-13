@@ -165,7 +165,7 @@ export default function SPSEDiscoveryPage() {
               <Metric label="Paket disimpan sebagai lead" value={search.data.saved} />
             </div>
             <Button asChild variant="outline" className="mt-4 rounded-[5px] shadow-none">
-              <Link href="/leads/spse">Lihat Leads SPSE</Link>
+              <Link href="/pengadaan/spse">Lihat Leads SPSE</Link>
             </Button>
           </div>
         )}

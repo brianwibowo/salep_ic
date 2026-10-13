@@ -164,3 +164,32 @@ export interface TenderScheduleResponse {
   instansi?: string;
   note?: string;
 }
+
+export interface InaprocSyncStats {
+  run_id: string;
+  source: string;
+  track: string;
+  seen: number;
+  inserted: number;
+  updated: number;
+  rejected: number;
+  unchanged: number;
+}
+
+export interface InaprocSyncRequest {
+  fiscal_years: number[];
+  keyword?: string;
+  limit?: number;
+  fetch_details?: boolean;
+  tracks?: Array<"sirup" | "tender" | "non_tender" | "pencatatan_non_tender" | "swakelola" | "darurat">;
+}
+
+export interface InaprocSyncResponse {
+  results: InaprocSyncStats[];
+}
+
+export interface InaprocTracksResponse {
+  sirup: string;
+  spse: Record<string, string>;
+}
+
