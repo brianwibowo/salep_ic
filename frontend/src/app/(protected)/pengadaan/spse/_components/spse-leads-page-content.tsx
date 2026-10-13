@@ -17,6 +17,7 @@ import { SpseLeadDeleteDialog } from "./spse-lead-delete-dialog";
 import { SpseLeadDetailsDialog } from "./spse-lead-details-dialog";
 import { SpseLeadsTable } from "./spse-leads-table";
 import { SpseLeadsToolbar } from "./spse-leads-toolbar";
+import { SpseSyncDialog } from "./spse-sync-dialog";
 
 export function SpseLeadsPageContent() {
   const { data: session } = useSession();
@@ -27,6 +28,7 @@ export function SpseLeadsPageContent() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedScheduleLead, setSelectedScheduleLead] = useState<Lead | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Lead | null>(null);
+  const [isSyncOpen, setIsSyncOpen] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 50,
@@ -130,13 +132,30 @@ export function SpseLeadsPageContent() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold">Leads SPSE</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {isMarketing
-            ? "Tinjau dan validasi prospek pengadaan dari SPSE."
-            : "Kelola tindak lanjut untuk prospek pengadaan yang sudah valid."}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <span>INAPROC</span>
+            <span>•</span>
+            <span className="text-[#9D0A0E]">Sistem Pengadaan Secara Elektronik</span>
+          </div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Leads SPSE — Prospek Pengadaan
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {isMarketing
+              ? "Tinjau dan validasi prospek tender/lelang dari SPSE Nasional untuk identifikasi peluang IT."
+              : "Kelola tindak lanjut penjualan untuk prospek pengadaan SPSE yang telah tervalidasi."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 rounded-[5px] border bg-card px-3 py-1.5 text-xs shadow-xs">
+            <span className="text-muted-foreground">Total Paket:</span>
+            <span className="font-semibold text-foreground">
+              {total.toLocaleString("id-ID")}
+            </span>
+          </div>
+        </div>
       </div>
 
       {leads.isError && (
@@ -159,6 +178,7 @@ export function SpseLeadsPageContent() {
           onStatusChange={handleStatusChange}
           onSalesStatusChange={handleSalesStatusChange}
           onRefresh={() => void leads.refetch()}
+          onOpenSync={() => setIsSyncOpen(true)}
         />
         <SpseLeadsTable
           data={data}
@@ -170,6 +190,10 @@ export function SpseLeadsPageContent() {
           onViewLead={setSelectedLead}
           onViewSchedule={setSelectedScheduleLead}
           onDeleteLead={setPendingDelete}
+          onMarketingStatusChange={handleMarketingStatusUpdate}
+          onSalesStatusChange={handleSalesStatusUpdate}
+          isUpdatingMarketing={updateMarketing.isPending}
+          isUpdatingSales={updateSales.isPending}
         />
       </section>
 
@@ -204,6 +228,12 @@ export function SpseLeadsPageContent() {
         lead={selectedScheduleLead}
         open={selectedScheduleLead !== null}
         onOpenChange={(open) => !open && setSelectedScheduleLead(null)}
+      />
+
+      <SpseSyncDialog
+        open={isSyncOpen}
+        onOpenChange={setIsSyncOpen}
+        onSuccess={() => void leads.refetch()}
       />
     </div>
   );

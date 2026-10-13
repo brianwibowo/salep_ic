@@ -9,11 +9,13 @@ export const sirupQueryKeys = {
   tracks: () => [...sirupQueryKeys.all, "tracks"] as const,
 };
 
-export function useInaprocTracks() {
+export function useInaprocTracks(enabled = true) {
   return useQuery({
     queryKey: sirupQueryKeys.tracks(),
     queryFn: sirupService.tracks,
     staleTime: 5 * 60_000,
+    enabled,
+    retry: false,
   });
 }
 

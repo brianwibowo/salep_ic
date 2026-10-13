@@ -143,7 +143,7 @@ export default function FinalPage() {
 
         <section className="rounded-md border bg-card p-5">
           <h2 className="font-semibold">Prioritas sales</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Skor menggabungkan kategori IT, nilai paket, track, dan reason.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Prioritas menggabungkan kategori IT, nilai paket, track, dan reason.</p>
           <div className="mt-4 space-y-3">
             {(summary.data?.by_priority ?? []).map((item) => <div key={item.priority} className="flex items-center justify-between rounded-md border p-3"><div className="flex items-center gap-3"><PriorityBadge priority={item.priority} /><span className="text-sm">{number.format(item.count)} paket</span></div><span className="text-sm font-medium">{currency.format(item.hps_amount)}</span></div>)}
             {!summary.data?.by_priority?.length && <Empty />}

@@ -34,7 +34,7 @@ export default function SirupPage() {
   const [lastSyncStats, setLastSyncStats] = useState<InaprocSyncStats[] | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
-  const tracksQuery = useInaprocTracks();
+  const tracksQuery = useInaprocTracks(isMarketing);
   const syncMutation = useSirupSync();
 
   const sirupPortalUrl =

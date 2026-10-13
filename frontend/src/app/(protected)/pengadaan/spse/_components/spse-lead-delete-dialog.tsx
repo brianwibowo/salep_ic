@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { parseSpseLeadContent } from "@/lib/spse-parser";
 import type { Lead } from "@/types/salep";
 
 interface SpseLeadDeleteDialogProps {
@@ -24,19 +25,23 @@ export function SpseLeadDeleteDialog({
   onOpenChange,
   onConfirm,
 }: SpseLeadDeleteDialogProps) {
+  const parsed = lead ? parseSpseLeadContent(lead.content, lead.author_name) : null;
+  const displayName = parsed?.title || lead?.author_name || "tanpa nama";
+
   return (
     <Dialog open={lead !== null} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-[5px] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Hapus paket SPSE?</DialogTitle>
           <DialogDescription>
-            Paket {lead?.author_name || "tanpa nama"} akan dihapus permanen dari database SALEP.
+            Paket <span className="font-semibold text-foreground">“{displayName}”</span> akan dihapus permanen dari daftar prospek SPSE.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button
             type="button"
             variant="outline"
+            className="rounded-[5px]"
             disabled={isDeleting}
             onClick={() => onOpenChange(false)}
           >
@@ -45,6 +50,7 @@ export function SpseLeadDeleteDialog({
           <Button
             type="button"
             variant="destructive"
+            className="rounded-[5px]"
             disabled={!lead || isDeleting}
             onClick={onConfirm}
           >

@@ -175,7 +175,7 @@ def parse_spse_rows(
             continue
 
         external_id = str(row.get("external_id") or row.get("kode") or row.get("kode_tender") or "").strip()
-        package_name = " ".join(str(row.get("package_name") or row.get("nama_paket") or "").split())
+        package_name = clean_text(row.get("package_name") or row.get("nama_paket"))
         if not external_id or not package_name:
             continue
         stage_label = clean_text(row.get("current_stage_label") or row.get("tahap")) or None
