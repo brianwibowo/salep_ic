@@ -24,7 +24,7 @@ interface ApiError {
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  timeout: 10000,
+  timeout: 120000,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -53,15 +53,16 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error: AxiosError<ApiError>) => {
+    const isTimeout = error.code === "ECONNABORTED" || error.message?.includes("timeout");
     const errorMessage =
       error.response?.data?.message ||
       error.response?.data?.detail ||
-      error.message ||
+      (isTimeout ? "Waktu tunggu permintaan habis (timeout). Silakan coba lagi." : error.message) ||
       "Terjadi kesalahan";
 
     if (process.env.NODE_ENV === "development") {
       console.error("API Error:", {
-        status: error.response?.status,
+        status: error.response?.status ?? (isTimeout ? 408 : error.code),
         message: errorMessage,
         url: error.config?.url,
       });

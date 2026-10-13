@@ -70,9 +70,7 @@ class ProcurementRepository:
     go through Alembic; it exists only for local smoke tests and first boot.
     """
 
-    def __init__(self, database_url: str, *, create_schema: bool = False) -> None:
-        if not database_url:
-            raise ValueError("DATABASE_URL wajib diisi untuk Inaproc ingestion")
+    def __init__(self, database_url: str | None = None, *, create_schema: bool = False) -> None:
         self.engine = build_engine(database_url)
         if create_schema:
             Base.metadata.create_all(self.engine)

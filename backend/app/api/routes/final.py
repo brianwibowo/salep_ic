@@ -29,7 +29,7 @@ def _service() -> FinalAnalyticsService:
 @router.get("/summary")
 async def final_summary(
     request: Request,
-    fiscal_years: list[int] | None = Query(default=None, ge=2000, le=2100),
+    fiscal_years: list[int] | None = Query(default=None),
     reasons: list[FinalReason] | None = Query(default=None),
     tracks: list[ProcurementTrack] | None = Query(default=None),
     categories: list[str] | None = Query(default=None),
@@ -43,7 +43,7 @@ async def final_summary(
 @router.get("")
 async def final_records(
     request: Request,
-    fiscal_years: list[int] | None = Query(default=None, ge=2000, le=2100),
+    fiscal_years: list[int] | None = Query(default=None),
     reasons: list[FinalReason] | None = Query(default=None),
     tracks: list[ProcurementTrack] | None = Query(default=None),
     categories: list[str] | None = Query(default=None),
