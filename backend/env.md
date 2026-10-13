@@ -1,0 +1,46 @@
+# ==============================================================================
+# SALEP CONFIGURATION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. LLM Provider (PILIH SALAH SATU - Opsi Gratis Tersedia!)
+# ------------------------------------------------------------------------------
+
+# OPSI A (SANGAT DIREKOMENDASIKAN - 100% GRATIS & CEPAT): Google Gemini
+# Dapatkan API Key GRATIS tanpa kartu kredit di: https://aistudio.google.com
+# Free Tier: 15 Request/menit, 1.500 Request/hari, 1 Juta Token/menit.
+GEMINI_API_KEY=AIzaSyYourGeminiApiKeyHere
+
+# OPSI B (100% GRATIS & SUPER CEPAT): Groq Cloud (Llama 3.3 70B)
+# Dapatkan API Key GRATIS di: https://console.groq.com
+# GROQ_API_KEY=gsk_yourGroqApiKeyHere
+
+# OPSI C: OpenAI (Berbayar)
+# OPENAI_API_KEY=sk-your-openai-api-key-here
+# OPENAI_MODEL=gpt-4o-mini
+
+# OPSI D: Ollama (100% Offline di Laptop / VPS tanpa internet)
+# LLM_PROVIDER=ollama
+# LLM_MODEL=qwen2.5:7b
+# LLM_BASE_URL=http://localhost:11434/v1
+
+# ------------------------------------------------------------------------------
+# 2. Google Sheets Storage (Opsional - jika dikosongkan, leads tetap diproses)
+# ------------------------------------------------------------------------------
+GOOGLE_SHEETS_ID=your-spreadsheet-id-here
+GOOGLE_SERVICE_ACCOUNT_JSON=service-account.json
+
+# ------------------------------------------------------------------------------
+# 3. Data Ingestion (Apify for Threads & LinkedIn)
+# ------------------------------------------------------------------------------
+# Dapatkan token gratis ($5/bulan free credit) di: https://console.apify.com/settings/integrations
+APIFY_API_TOKEN=apify_api_yourTokenHere
+# THREADS_ACTOR_ID=igview-owner~threads-search-scraper
+# LINKEDIN_ACTOR_ID=curious_coder~linkedin-post-search-scraper
+
+# ------------------------------------------------------------------------------
+# 4. Environment, Domain & Logging
+# ------------------------------------------------------------------------------
+APP_ENV=production
+APP_DOMAIN=salep1.duckdns.org
+LOG_LEVEL=INFO

@@ -4,6 +4,9 @@ services:
     container_name: salep-backend-staging
     env_file:
       - /opt/salep/staging/backend.env
+    environment:
+      SALEP_PROCESS_ROLE: api
+      AUTO_SEARCH_ENABLED: "false"
     ports:
       - "127.0.0.1:8101:8000"
     volumes:
@@ -12,6 +15,28 @@ services:
     restart: unless-stopped
     networks:
       - salep-staging
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker-staging:
+    image: ghcr.io/brianwibowo/salep_ic-backend:${IMAGE_TAG:-staging}
+    container_name: salep-worker-staging
+    env_file:
+      - /opt/salep/staging/backend.env
+    environment:
+      SALEP_PROCESS_ROLE: worker
+      AUTO_SEARCH_ENABLED: "true"
+    volumes:
+      - /opt/salep/staging/data:/app/data
+      - /opt/salep/staging/service-account.json:/app/service-account.json:ro
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+    networks:
+      - salep-staging
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   frontend-staging:
     image: ghcr.io/brianwibowo/salep_ic-frontend:${IMAGE_TAG:-staging}
@@ -23,6 +48,29 @@ services:
     restart: unless-stopped
     networks:
       - salep-staging
+
+  # Add the database service
+  postgres:
+    image: postgres:16  # Best practice: always pin a specific major version
+    container_name: salep-postgres-staging
+    environment:
+      POSTGRES_USER: salep
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: salep
+    volumes:
+      - salep-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - salep-staging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salep -d salep"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  salep-db-data:
+    name: salep-db-staging-data
 
 networks:
   salep-staging:

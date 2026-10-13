@@ -24,6 +24,18 @@ export function useLeadStats() {
   });
 }
 
+export function useDeleteLead() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: salepLeadsService.delete,
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: leadsQueryKeys.all });
+      toast.success("Lead berhasil dihapus");
+    },
+    onError: (error: Error) => toast.error(error.message || "Lead gagal dihapus"),
+  });
+}
+
 export function useUpdateLeadStatus() {
   const client = useQueryClient();
   return useMutation({
@@ -52,3 +64,12 @@ export function useUpdateSalesStatus() {
     onError: (error: Error) => toast.error(error.message || "Status tindak lanjut gagal diperbarui"),
   });
 }
+
+export function useSpseSchedule(leadId: string | null) {
+  return useQuery({
+    queryKey: [...leadsQueryKeys.all, "spse-schedule", leadId] as const,
+    queryFn: () => salepLeadsService.getSpseSchedule(leadId!),
+    enabled: Boolean(leadId),
+  });
+}
+

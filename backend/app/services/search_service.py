@@ -7,9 +7,11 @@ from typing import Any
 
 from app.agent.schemas import RawLead
 from app.core.logging import logger
+from app.core.resilience import CircuitBreaker, call_with_resilience
 from app.sources.mock_source import MockSourceAdapter
 from app.sources.threads_source import ThreadsSourceAdapter
 from app.sources.linkedin_source import LinkedInSourceAdapter
+from app.services.threads_quality import apply_threads_quality_gate
 
 # Keyword expansion groups for MVP (static synonyms)
 KEYWORD_GROUPS: dict[str, list[str]] = {
@@ -122,6 +124,10 @@ SOURCE_REGISTRY: dict[str, Any] = {
     "linkedin": LinkedInSourceAdapter(),
 }
 
+_source_circuits: dict[str, CircuitBreaker] = {
+    name: CircuitBreaker(name=f"source:{name}") for name in SOURCE_REGISTRY
+}
+
 
 def expand_keywords(keywords: list[str]) -> list[str]:
     """Clean and optionally expand keywords with synonyms from known domain groups."""
@@ -150,9 +156,11 @@ def expand_keywords(keywords: list[str]) -> list[str]:
 def _dedup_key(lead: RawLead) -> str:
     """Generate a deduplication key for a lead.
 
-    Primary: source + source_url
+    Primary for Threads: canonical post ID. Other sources use source + URL.
     Fallback: hash(content + author + published_at)
     """
+    if lead.source == "threads" and lead.canonical_post_id:
+        return f"threads:{lead.canonical_post_id}"
     if lead.source_url:
         return f"{lead.source}:{lead.source_url}"
 
@@ -206,13 +214,24 @@ async def search_sources(
             continue
 
         try:
-            results = await adapter.search(
-                keywords=keywords,
-                start_date=start_date,
-                end_date=end_date,
-                limit=limit,
+            results = await call_with_resilience(
+                lambda: adapter.search(
+                    keywords=keywords,
+                    start_date=start_date,
+                    end_date=end_date,
+                    limit=limit,
+                ),
+                circuit=_source_circuits.setdefault(source_name, CircuitBreaker(name=f"source:{source_name}")),
+                operation_name=f"source_search:{source_name}",
             )
-            logger.info("Source '%s' returned %d results", source_name, len(results))
+            if source_name == "threads":
+                gated = [gated for item in results if (gated := apply_threads_quality_gate(item)) is not None]
+                logger.info(
+                    "Threads quality gate: %d raw → %d accepted (dropped %d)",
+                    len(results), len(gated), len(results) - len(gated),
+                )
+                results = gated
+            logger.info("Source '%s' returned %d quality results", source_name, len(results))
             all_results.extend(results)
 
         except Exception as e:

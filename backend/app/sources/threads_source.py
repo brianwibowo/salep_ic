@@ -9,6 +9,7 @@ import httpx
 from app.agent.schemas import RawLead
 from app.core.config import settings
 from app.core.logging import logger
+from app.services.threads_quality import canonical_threads_post_id
 
 
 class ThreadsSourceAdapter:
@@ -86,7 +87,8 @@ class ThreadsSourceAdapter:
         if not caption:
             return None
 
-        # Qualification belongs to the IT-wide agent, not a web-only lexical filter.
+        # The shared deterministic quality gate runs after normalization in
+        # search_service so every Threads query follows the same policy.
 
         # URL
         post_url = item.get("postUrl") or item.get("thread_url") or ""
@@ -109,6 +111,15 @@ class ThreadsSourceAdapter:
             except Exception:
                 published_at = None
 
+        canonical_id = canonical_threads_post_id(
+            post_url,
+            post_code=post_code,
+            explicit_id=item.get("id") or item.get("postId") or item.get("threadId"),
+            content=caption,
+            author_name=author_name,
+            published_at=published_at,
+        )
+
         return RawLead(
             source=self.source_name,
             source_url=post_url,
@@ -117,6 +128,7 @@ class ThreadsSourceAdapter:
             published_at=published_at,
             content=caption,
             matched_keyword=matched_kw,
+            canonical_post_id=canonical_id,
         )
 
     async def health_check(self) -> dict[str, Any]:

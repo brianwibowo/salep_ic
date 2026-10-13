@@ -1,6 +1,7 @@
 """Scheduler control endpoints — inspect and trigger automated lead discovery."""
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+from app.core.config import settings
 from app.services.scheduler import lead_scheduler
 from app.core.responses import success_response
 
@@ -26,6 +27,8 @@ async def trigger_cycle(background_tasks: BackgroundTasks):
 @router.post("/start")
 async def start_scheduler():
     """Start the periodic autonomous scheduler."""
+    if settings.process_role == "api":
+        raise HTTPException(status_code=409, detail="Scheduler dimiliki process worker; gunakan SALEP_PROCESS_ROLE=worker")
     lead_scheduler.start()
     return success_response(
         {"status": "started", "scheduler": lead_scheduler.get_status()},

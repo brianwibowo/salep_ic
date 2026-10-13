@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { salepAuthService } from "@/services/salep-auth-service";
-import { SalepRole } from "@/types/salep";
 
 export const sessionQueryKey = ["salep-session"] as const;
+type LoginCredentials = { username: string; password: string };
 
 export function useSession() {
   return useQuery({
@@ -22,7 +22,7 @@ export function useLogin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (role: SalepRole) => salepAuthService.login(role),
+    mutationFn: ({ username, password }: LoginCredentials) => salepAuthService.login(username, password),
     onSuccess: (session) => {
       queryClient.setQueryData(sessionQueryKey, session);
       toast.success(`Masuk sebagai ${session.role === "marketing" ? "Marketing" : "Sales"}`);

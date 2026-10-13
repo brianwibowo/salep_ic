@@ -58,3 +58,30 @@ async def discover_spse_tenders(keywords: list[str], limit: int = 50) -> dict[st
         lead_repository.save_lead(LeadRecord.model_validate(record))
         saved += 1
     return {"matched": len(matches), "saved": saved, "leads": [m.model_dump() for m in matches]}
+
+
+async def get_tender_schedule(tender_id: str) -> dict[str, Any]:
+    """Return only verified upstream schedule data; errors remain visible."""
+    return await SPSESourceAdapter().fetch_tender_schedule(tender_id)
+
+
+async def get_lead_spse_schedule(lead_id: str) -> dict[str, Any]:
+    """Retrieve schedule specifically linked to a stored lead."""
+    import re
+    lead = lead_repository.get_lead(lead_id)
+    if not lead:
+        raise ValueError("Lead tidak ditemukan")
+    if lead.get("source") != "spse":
+        raise ValueError("Lead ini bukan bertipe SPSE")
+
+    url = lead.get("source_url", "")
+    match = re.search(r"/lelang/(\d+)", url)
+    if not match:
+        raise ValueError("URL lead tidak memuat ID tender yang valid")
+    tender_id = match.group(1)
+
+    schedule = await get_tender_schedule(tender_id)
+    schedule["lead_id"] = lead_id
+    schedule["title"] = lead.get("content", "").split("\n")[0].replace("Nama paket:", "").strip()
+    schedule["instansi"] = lead.get("author_name")
+    return schedule

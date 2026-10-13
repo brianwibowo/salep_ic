@@ -1,0 +1,12 @@
+[
+  {"id": "positive-hosting", "content": "Butuh hosting VPS untuk toko online, ada rekomendasi vendor yang bisa bantu 24 jam?", "author_name": "Rina", "relevant": true, "spam": false},
+  {"id": "positive-managed", "content": "Kami sedang cari managed service server dan monitoring jaringan kantor. Mohon rekomendasi provider.", "author_name": "Budi", "relevant": true, "spam": false},
+  {"id": "positive-security", "content": "Perusahaan butuh pentest dan audit keamanan sebelum go live, ada vendor yang bisa memberikan penawaran?", "author_name": "Sari", "relevant": true, "spam": false},
+  {"id": "positive-software", "content": "Ada yang bisa develop aplikasi inventory dan integrasi API untuk bisnis retail kami?", "author_name": "Dewi", "relevant": true, "spam": false},
+  {"id": "positive-network", "content": "Mencari jasa instalasi wifi dan firewall untuk kantor baru di Jakarta.", "author_name": "Andi", "relevant": true, "spam": false},
+  {"id": "negative-learning", "content": "Belajar membuat aplikasi web dengan Python dari tutorial gratis.", "author_name": "Nina", "relevant": false, "spam": false},
+  {"id": "negative-job", "content": "Open to work sebagai junior software developer, silakan hubungi saya.", "author_name": "Tono", "relevant": false, "spam": true},
+  {"id": "negative-giveaway", "content": "GIVEAWAY iPhone terbaru! Klik link bit.ly/hadiah dan tag 10 teman untuk menang.", "author_name": "Promo", "relevant": false, "spam": true},
+  {"id": "negative-followers", "content": "Jual followers Instagram murah, diskon 99% hari ini saja.", "author_name": "Seller", "relevant": false, "spam": true},
+  {"id": "negative-discussion", "content": "Menurut kalian bagaimana masa depan teknologi cloud di Indonesia?", "author_name": "Rafi", "relevant": false, "spam": false}
+]

@@ -1,0 +1,17 @@
+{
+  "tender": {
+    "data": [{"kode_tender": "20000000001", "nama_paket": "Tender Server", "instansi": "Instansi A", "tahap": "Upload Dokumen Penawaran", "hps": "Rp 100.000.000,00"}]
+  },
+  "non_tender": {
+    "data": [{"kode_tender": "20000000002", "nama_paket": "Pengadaan Cloud", "instansi": "Instansi B", "tahap": "Pengumuman", "hps": "Rp 200.000.000,00"}]
+  },
+  "pencatatan_non_tender": {
+    "data": [{"kode_tender": "20000000005", "nama_paket": "Pencatatan Lisensi Backup", "instansi": "Instansi E", "tahap": "Pencatatan", "hps": "Rp 150.000.000,00"}]
+  },
+  "swakelola": {
+    "data": [{"kode_tender": "20000000003", "nama_paket": "Pencatatan Data Center", "instansi": "Instansi C", "tahap": "Pelaksanaan", "hps": "Rp 300.000.000,00"}]
+  },
+  "darurat": {
+    "data": [{"kode_tender": "20000000004", "nama_paket": "Pemulihan Infrastruktur Darurat", "instansi": "Instansi D", "tahap": "Pengumuman", "hps": "Rp 400.000.000,00"}]
+  }
+}

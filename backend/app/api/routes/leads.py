@@ -106,6 +106,16 @@ async def get_lead_detail(
     return success_response(lead, "Detail lead berhasil diambil")
 
 
+@router.delete("/leads/{lead_id}")
+async def delete_lead_endpoint(lead_id: str, request: Request) -> ApiResponse[dict[str, bool]]:
+    """Delete a lead. Only the Marketing role may remove leads."""
+    if request.state.role != "marketing":
+        raise HTTPException(status_code=403, detail="Akses khusus marketing")
+    if not lead_repository.delete_lead(lead_id):
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return success_response({"deleted": True}, "Lead berhasil dihapus")
+
+
 @router.patch("/leads/{lead_id}/status")
 async def update_lead_status(
     lead_id: str,
@@ -136,6 +146,14 @@ async def update_lead_status(
                         author_profile_url=lead_data["author_profile_url"],
                         content=lead_data["content"],
                         matched_keyword=lead_data.get("matched_keyword") or "manual_qualification",
+                        canonical_post_id=lead_data.get("canonical_post_id"),
+                        deterministic_relevance_score=lead_data.get("deterministic_relevance_score") or 0,
+                        deterministic_relevance_label=lead_data.get("deterministic_relevance_label") or "unreviewed",
+                        deterministic_relevance_reason=lead_data.get("deterministic_relevance_reason"),
+                        spam_label=lead_data.get("spam_label") or "unknown",
+                        spam_score=lead_data.get("spam_score") or 0,
+                        is_spam=bool(lead_data.get("is_spam")),
+                        quality_flags=lead_data.get("quality_flags") or [],
                     )
                     analysis = LeadAnalysis(
                         is_potential_lead=lead_data["is_potential_lead"],
@@ -201,6 +219,8 @@ async def analyze_url_endpoint(request: AnalyzeUrlRequest):
     try:
         record = await analyze_and_save_url(request.url, save_to_sheet=request.save_to_sheet)
         return success_response(record, "URL lead berhasil dianalisis")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error("URL analysis failed for '%s': %s", request.url, e)
         raise HTTPException(status_code=500, detail=f"Failed to analyze URL: {str(e)}")

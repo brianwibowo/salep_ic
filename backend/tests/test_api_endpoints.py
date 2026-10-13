@@ -15,14 +15,20 @@ def data(response):
 def clients(tmp_path, monkeypatch):
     repository = LeadRepository(tmp_path / 'leads.db')
     monkeypatch.setattr(leads, 'lead_repository', repository)
-    monkeypatch.setattr(auth, 'DB_PATH', tmp_path / 'sessions.db')
     monkeypatch.setattr(auth.settings, 'app_env', 'development')
+    monkeypatch.setattr(auth.settings, 'auth_database_url', f'sqlite:///{tmp_path / "sessions.db"}')
+    monkeypatch.setattr(auth.settings, 'database_url', '')
+    from app.services.auth_service import get_auth_store
+    get_auth_store.cache_clear()
+    store = get_auth_store()
+    store.create_user('marketing', 'marketing-test-passphrase', 'marketing')
+    store.create_user('sales', 'sales-test-passphrase', 'sales')
     async def no_sheet(*args, **kwargs):
         return True
     monkeypatch.setattr(leads.sheets_service, 'append_lead', no_sheet)
     marketing, sales, anonymous = [TestClient(app) for _ in range(3)]
-    assert marketing.post('/api/v1/auth/login', json={'role':'marketing'}).status_code == 200
-    assert sales.post('/api/v1/auth/login', json={'role':'sales'}).status_code == 200
+    assert marketing.post('/api/v1/auth/login', json={'username':'marketing', 'password':'marketing-test-passphrase'}).status_code == 200
+    assert sales.post('/api/v1/auth/login', json={'username':'sales', 'password':'sales-test-passphrase'}).status_code == 200
     return marketing, sales, anonymous
 
 
@@ -33,7 +39,7 @@ def test_dashboard(clients):
 def test_session_locked_and_logout(clients):
     marketing, sales, anon = clients
     assert anon.get('/api/v1/leads').status_code == 401
-    assert sales.post('/api/v1/auth/login', json={'role':'marketing'}).status_code == 409
+    assert sales.post('/api/v1/auth/login', json={'username':'marketing', 'password':'marketing-test-passphrase'}).status_code == 409
     assert data(sales.get('/api/v1/auth/me'))['role'] == 'sales'
     sales.cookies.set('salep_current_role', 'marketing')
     assert data(sales.get('/api/v1/auth/me'))['role'] == 'sales'
@@ -42,14 +48,14 @@ def test_session_locked_and_logout(clients):
     assert sales.get('/api/v1/leads').status_code == 401
     anon.cookies.set(auth.COOKIE, token)
     assert anon.get('/api/v1/leads').status_code == 401
-    assert sales.post('/api/v1/auth/login', json={'role':'marketing'}).status_code == 200
+    assert sales.post('/api/v1/auth/login', json={'username':'marketing', 'password':'marketing-test-passphrase'}).status_code == 200
 
 
 def test_role_spoof_and_detail(clients):
     marketing, sales, _ = clients
-    assert len(data(marketing.get('/api/v1/leads'))['items']) == 5
+    assert len(data(marketing.get('/api/v1/leads'))['items']) == 7
     result = data(sales.get('/api/v1/leads?role=marketing&status=invalid'))['items']
-    assert len(result) == 2
+    assert len(result) == 4
     assert all(l['marketing_status']=='valid' for l in result)
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
     assert sales.get('/api/v1/leads/recent').status_code == 403
@@ -62,9 +68,14 @@ def test_write_permissions(clients):
 
 
 def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monkeypatch):
-    marketing = clients[0]
-    monkeypatch.setattr(auth.settings, 'app_env', 'production')
+    marketing, sales, _ = clients
+    # Keep the local SQLite auth store for this contract test while exercising
+    # the configured public origin used by production deployments.
+    monkeypatch.setattr(auth.settings, 'app_env', 'development')
     monkeypatch.setattr(auth.settings, 'app_domain', 'salep1.duckdns.org')
+    async def discover(*args, **kwargs):
+        return {'matched': 0, 'saved': 0}
+    monkeypatch.setattr('app.api.routes.spse.discover_spse_tenders', discover)
 
     allowed = marketing.post(
         '/api/v1/spse/search',
@@ -73,7 +84,7 @@ def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monk
     )
     # The route may fail to fetch live SPSE in a test environment, but must pass
     # the origin check (502 is an upstream fetch failure; 403 is a bad origin).
-    assert allowed.status_code != 403
+    assert allowed.status_code == 200
 
     denied = marketing.post(
         '/api/v1/spse/search',
@@ -99,14 +110,14 @@ def test_qualification_and_pagination(clients):
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
     first_page = data(marketing.get('/api/v1/leads?limit=2&page=1'))
     second_page = data(marketing.get('/api/v1/leads?limit=2&page=2'))
-    assert first_page['pagination'] == {'page': 1, 'limit': 2, 'total': 5}
-    assert second_page['pagination'] == {'page': 2, 'limit': 2, 'total': 5}
+    assert first_page['pagination'] == {'page': 1, 'limit': 2, 'total': 7}
+    assert second_page['pagination'] == {'page': 2, 'limit': 2, 'total': 7}
     first = first_page['items']
     second = second_page['items']
     assert len(first)==len(second)==2
     assert not {l['lead_id'] for l in first}&{l['lead_id'] for l in second}
     assert len(data(marketing.get('/api/v1/leads?status=pending'))['items'])==1
-    assert len(data(sales.get('/api/v1/leads?sales_status=Sedang%20Dihubungi'))['items'])==1
+    assert len(data(sales.get('/api/v1/leads?sales_status=Sedang%20Dihubungi'))['items'])==2
     assert len(data(marketing.get('/api/v1/leads?search=Brian'))['items'])==1
 
 

@@ -3,20 +3,19 @@
 import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { toast } from "sonner";
 import { useLogin } from "@/hooks/auth/use-auth";
-import { SalepRole } from "@/types/salep";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function Login() {
-  const [role, setRole] = useState<SalepRole>("marketing");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const login = useLogin();
 
   function handleAccountLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    toast.info("Login akun belum tersedia. Silakan gunakan akses demo untuk sementara.");
+    login.mutate({ username: username.trim(), password });
   }
 
   return (
@@ -54,6 +53,8 @@ export default function Login() {
                 name="username"
                 autoComplete="username"
                 placeholder="Masukkan username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
                 className="h-12 rounded-[5px] border-slate-300 bg-white px-4 text-sm shadow-none placeholder:text-slate-400 focus-visible:ring-[#9D0A0E]"
               />
             </div>
@@ -66,6 +67,8 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="Masukkan password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   className="h-12 rounded-[5px] border-slate-300 bg-white px-4 pr-12 text-sm shadow-none placeholder:text-slate-400 focus-visible:ring-[#9D0A0E]"
                 />
                 <button
@@ -79,45 +82,12 @@ export default function Login() {
               </div>
             </div>
 
-            <Button type="submit" className="h-12 w-full rounded-[5px] bg-[#9D0A0E] text-sm font-medium text-white shadow-none hover:bg-[#83080C]">
-              Masuk
+            <Button type="submit" disabled={login.isPending || !username.trim() || !password} className="h-12 w-full rounded-[5px] bg-[#9D0A0E] text-sm font-medium text-white shadow-none hover:bg-[#83080C]">
+              {login.isPending ? "Memeriksa…" : "Masuk"}
             </Button>
           </form>
-
-          <div className="my-7 flex items-center gap-4 text-xs text-slate-400">
-            <span className="h-px flex-1 bg-slate-200" />
-            atau masuk dengan demo
-            <span className="h-px flex-1 bg-slate-200" />
-          </div>
-
-          <div className="mb-3 grid grid-cols-2 gap-3">
-            {(["marketing", "sales"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={role === option}
-                onClick={() => setRole(option)}
-                className={`h-10 rounded-[5px] border text-sm font-medium capitalize transition-colors ${
-                  role === option
-                    ? "border-[#9D0A0E] bg-[#9D0A0E]/5 text-[#9D0A0E]"
-                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-12 w-full rounded-[5px] border-[#9D0A0E] text-sm font-medium text-[#9D0A0E] shadow-none hover:bg-[#9D0A0E]/5 hover:text-[#9D0A0E]"
-            disabled={login.isPending}
-            onClick={() => login.mutate(role)}
-          >
-            {login.isPending ? "Menyiapkan demo…" : `Masuk demo sebagai ${role === "marketing" ? "Marketing" : "Sales"}`}
-          </Button>
-          <p className="mt-4 text-center text-xs leading-5 text-slate-400">
-            Login akun belum aktif. Pilih peran demo untuk masuk tanpa username dan password.
+          <p className="mt-5 text-center text-xs leading-5 text-slate-400">
+            Gunakan akun organisasi yang diberikan admin SALEP.
           </p>
         </div>
       </section>

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from typing import Literal
@@ -86,6 +86,15 @@ class RawLead(BaseModel):
     published_at: datetime | None = None
     content: str
     matched_keyword: str
+    # Deterministic provenance and quality fields populated by source adapters/gates.
+    canonical_post_id: str | None = None
+    deterministic_relevance_score: int = Field(default=0, ge=0, le=100)
+    deterministic_relevance_label: str = "unreviewed"
+    deterministic_relevance_reason: str | None = None
+    spam_label: str = "unknown"
+    spam_score: int = Field(default=0, ge=0, le=100)
+    is_spam: bool = False
+    quality_flags: list[str] = Field(default_factory=list)
 
 
 # --- Full Lead Record (Raw + Analysis) ---
@@ -115,11 +124,19 @@ class LeadRecord(BaseModel):
     lead_score: int = Field(ge=0, le=100)
     confidence: float = Field(ge=0.0, le=1.0)
     evidence: list[str] = Field(default_factory=list)
-    analyzed_at: datetime = Field(default_factory=datetime.utcnow)
+    analyzed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: LeadStatus = LeadStatus.NEW
     marketing_status: str = Field(default="pending", description="Status kualifikasi marketing: 'pending', 'valid', 'invalid'")
     sales_status: str = Field(default="Belum Dihubungi", description="Status follow-up sales: 'Belum Dihubungi', 'Sedang Dihubungi', 'Closing', 'Batal'")
     score_breakdown: ScoreBreakdown | None = None
+    canonical_post_id: str | None = None
+    deterministic_relevance_score: int = Field(default=0, ge=0, le=100)
+    deterministic_relevance_label: str = "unreviewed"
+    deterministic_relevance_reason: str | None = None
+    spam_label: str = "unknown"
+    spam_score: int = Field(default=0, ge=0, le=100)
+    is_spam: bool = False
+    quality_flags: list[str] = Field(default_factory=list)
 
 
 class UpdateStatusRequest(BaseModel):

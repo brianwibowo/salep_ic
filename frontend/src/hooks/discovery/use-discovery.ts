@@ -5,6 +5,7 @@ import {
   DiscoveryConfig,
   salepDiscoveryService,
 } from "@/services/salep-discovery-service";
+import type { SPSESearchResult } from "@/services/salep-discovery-service";
 import { leadsQueryKeys } from "@/hooks/leads/use-leads";
 
 export const schedulerQueryKey = ["salep-scheduler"] as const;
@@ -45,6 +46,24 @@ export function useManualSearch() {
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: leadsQueryKeys.all });
       await client.invalidateQueries({ queryKey: schedulerQueryKey });
+    },
+  });
+}
+
+export function useSPSEDefaults(enabled = true) {
+  return useQuery({
+    queryKey: ["salep-discovery", "spse-defaults"],
+    queryFn: salepDiscoveryService.spseDefaults,
+    enabled,
+  });
+}
+
+export function useSPSESearch() {
+  const client = useQueryClient();
+  return useMutation<SPSESearchResult, Error, { keywords: string[]; limit: number }>({
+    mutationFn: salepDiscoveryService.searchSPSE,
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: leadsQueryKeys.all });
     },
   });
 }
