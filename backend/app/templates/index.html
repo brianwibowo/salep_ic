@@ -484,24 +484,13 @@
         Temukan kebutuhan IT, validasi peluang, dan kelola tindak lanjut dalam
         satu tempat.
       </p>
-      <div class="roles">
-        <button class="role" onclick="loginAs('marketing')">
-          <strong>Marketing</strong
-          ><span
-            >Cari kebutuhan IT dan tinjau hasil analisis sebelum menyerahkannya
-            ke sales.</span
-          ><b>Masuk sebagai Marketing →</b></button
-        ><button class="role" onclick="loginAs('sales')">
-          <strong>Sales</strong
-          ><span
-            >Kerjakan prospek yang sudah divalidasi dan perbarui progres tindak
-            lanjut.</span
-          ><b>Masuk sebagai Sales →</b>
-        </button>
-      </div>
+      <form id="login-form" class="fields" style="max-width: 420px; margin-top: 28px">
+        <label>Username<input id="login-username" name="username" autocomplete="username" required /></label>
+        <label>Password<input id="login-password" name="password" type="password" autocomplete="current-password" required /></label>
+        <button class="primary" type="submit">Masuk</button>
+      </form>
       <p class="muted" style="margin-top: 20px">
-        Login demo tanpa password. Role terkunci selama sesi; keluar untuk
-        berganti akun.
+        Gunakan akun organisasi yang diberikan admin SALEP.
       </p>
     </section>
     <div id="app-screen" class="app-layout" hidden>
@@ -796,11 +785,15 @@ butuh website, rekomendasi hosting</textarea>
         }
         return envelope.data;
       }
-      async function loginAs(value) {
+      async function loginAs(event) {
+        event.preventDefault();
         try {
           const data = await api("/auth/login", {
             method: "POST",
-            body: JSON.stringify({ role: value }),
+            body: JSON.stringify({
+              username: $("login-username").value.trim(),
+              password: $("login-password").value,
+            }),
           });
           role = data.role;
           page = 0;
@@ -812,6 +805,7 @@ butuh website, rekomendasi hosting</textarea>
           toast(e.message);
         }
       }
+      $("login-form").addEventListener("submit", loginAs);
       async function logout() {
         try {
           await api("/auth/logout", { method: "POST" });

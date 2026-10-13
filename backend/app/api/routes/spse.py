@@ -39,7 +39,7 @@ async def get_tender_jadwal_endpoint(tender_id: str) -> dict[str, Any]:
         schedule = await get_tender_schedule(tender_id)
         return success_response(schedule, "Jadwal lelang SPSE berhasil diambil")
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Gagal mengambil jadwal tender: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Gagal mengambil jadwal tender dari SPSE: {exc}") from exc
 
 
 @router.get("/leads/{lead_id}/jadwal")
@@ -51,7 +51,7 @@ async def get_lead_jadwal_endpoint(lead_id: str) -> dict[str, Any]:
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve)) from ve
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Gagal mengambil jadwal lead: {exc}") from exc
+        raise HTTPException(status_code=502, detail=f"Gagal mengambil jadwal lead dari SPSE: {exc}") from exc
 
 
 @router.post("/search")

@@ -4,11 +4,30 @@ services:
     container_name: salep-backend-staging
     env_file:
       - /opt/salep/staging/backend.env
+    environment:
+      SALEP_PROCESS_ROLE: api
+      AUTO_SEARCH_ENABLED: "false"
     ports:
       - "127.0.0.1:8101:8000"
     volumes:
       - /opt/salep/staging/data:/app/data
       - /opt/salep/staging/service-account.json:/app/service-account.json:ro
+    restart: unless-stopped
+    networks:
+      - salep-staging
+
+  worker-staging:
+    image: ghcr.io/brianwibowo/salep_ic-backend:${IMAGE_TAG:-staging}
+    container_name: salep-worker-staging
+    env_file:
+      - /opt/salep/staging/backend.env
+    environment:
+      SALEP_PROCESS_ROLE: worker
+      AUTO_SEARCH_ENABLED: "true"
+    volumes:
+      - /opt/salep/staging/data:/app/data
+      - /opt/salep/staging/service-account.json:/app/service-account.json:ro
+    command: ["python", "-m", "app.worker"]
     restart: unless-stopped
     networks:
       - salep-staging

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urljoin, urlparse
 
 from app.agent.salep_agent import analyze_lead
 from app.agent.schemas import (
@@ -21,6 +22,7 @@ from app.services.scoring_service import calculate_lead_score, calculate_score_b
 from app.services.search_service import expand_keywords, search_sources, deduplicate
 from app.services.google_sheets import sheets_service
 from app.services.lead_repository import lead_repository
+from app.services.threads_quality import apply_threads_quality_gate, canonical_threads_post_id
 
 
 def build_lead_record(raw: RawLead, analysis: LeadAnalysis) -> LeadRecord:
@@ -54,6 +56,14 @@ def build_lead_record(raw: RawLead, analysis: LeadAnalysis) -> LeadRecord:
         marketing_status=initial_status,
         sales_status="Belum Dihubungi",
         score_breakdown=score_breakdown,
+        canonical_post_id=raw.canonical_post_id,
+        deterministic_relevance_score=raw.deterministic_relevance_score,
+        deterministic_relevance_label=raw.deterministic_relevance_label,
+        deterministic_relevance_reason=raw.deterministic_relevance_reason,
+        spam_label=raw.spam_label,
+        spam_score=raw.spam_score,
+        is_spam=raw.is_spam,
+        quality_flags=raw.quality_flags,
     )
 
 
@@ -135,11 +145,32 @@ async def extract_post_from_url(url: str) -> RawLead:
     import httpx
 
     clean_url = url.strip()
-    source = "threads" if "threads." in clean_url else ("linkedin" if "linkedin.com" in clean_url else "web")
+    allowed_hosts = {"threads.net", "threads.com", "linkedin.com"}
+    def validate_social_url(candidate: str) -> str:
+        parsed = urlparse(candidate)
+        host = (parsed.hostname or "").casefold().rstrip(".")
+        if parsed.scheme != "https" or not any(host == domain or host.endswith(f".{domain}") for domain in allowed_hosts):
+            raise ValueError("URL harus merupakan tautan HTTPS Threads atau LinkedIn")
+        return host
+
+    host = validate_social_url(clean_url)
+    source = "threads" if host.endswith(("threads.net", "threads.com")) else "linkedin"
     headers = {"User-Agent": "facebookexternalhit/1.1"}
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.get(clean_url, headers=headers, follow_redirects=True)
+    # Follow only a short chain of redirects that remains on the two allowed
+    # social domains.  This prevents the URL-analysis endpoint becoming an
+    # SSRF proxy while keeping normal www/canonical redirects working.
+    async with httpx.AsyncClient(timeout=15.0, follow_redirects=False) as client:
+        current_url = clean_url
+        for _ in range(3):
+            resp = await client.get(current_url, headers=headers)
+            if not 300 <= resp.status_code < 400:
+                break
+            location = resp.headers.get("location")
+            if not location:
+                break
+            current_url = urljoin(current_url, location)
+            validate_social_url(current_url)
         resp_text = resp.text
 
     desc_match = re.search(r"<meta\s+property=[\"\x27]og:description[\"\x27]\s+content=[\"\x27](.*?)[\"\x27]", resp_text)
@@ -182,6 +213,12 @@ async def extract_post_from_url(url: str) -> RawLead:
 async def analyze_and_save_url(url: str, save_to_sheet: bool = True) -> LeadRecord:
     """Analyze a direct post URL using Gemini AI and optionally save to Google Sheets."""
     raw_lead = await extract_post_from_url(url)
+    if raw_lead.source == "threads":
+        raw_lead = apply_threads_quality_gate(raw_lead) or raw_lead.model_copy(update={
+            "canonical_post_id": canonical_threads_post_id(raw_lead.source_url, content=raw_lead.content, author_name=raw_lead.author_name),
+            "deterministic_relevance_label": "manual_review",
+            "deterministic_relevance_reason": "direct_url_not_accepted_by_gate",
+        })
     analysis = await analyze_lead(raw_lead.content)
     lead_record = build_lead_record(raw_lead, analysis)
 

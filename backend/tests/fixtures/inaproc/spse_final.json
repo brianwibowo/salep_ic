@@ -1,0 +1,39 @@
+{
+  "draw": 1,
+  "recordsTotal": 4,
+  "recordsFiltered": 4,
+  "data": [
+    {
+      "kode_tender": "10000000001",
+      "nama_paket": "Managed Service Infrastruktur Data Center",
+      "instansi": "Kementerian Contoh",
+      "tahap": "Tender Sudah Selesai",
+      "hps": "Rp. 2.500.000.000,00",
+      "status_kontrak": "Selesai"
+    },
+    {
+      "kode_tender": "10000000002",
+      "nama_paket": "Pemeliharaan Jaringan dan Monitoring 24 Jam",
+      "instansi": "Provinsi Contoh",
+      "tahap": "Tender Sudah Selesai",
+      "hps": "Rp. 850.000.000,00",
+      "status_kontrak": "Pemutusan Kontrak"
+    },
+    {
+      "kode_tender": "10000000003",
+      "nama_paket": "Sewa Server Pemerintah",
+      "instansi": "Kabupaten Contoh",
+      "tahap": "Tender Sudah Selesai",
+      "hps": "Rp. 300.000.000,00",
+      "status_kontrak": "Penghentian Kontrak"
+    },
+    {
+      "kode_tender": "10000000004",
+      "nama_paket": "Pengembangan Portal Informasi",
+      "instansi": "Universitas Contoh",
+      "tahap": "Tender Sudah Selesai",
+      "hps": "Rp. 600.000.000,00",
+      "status_kontrak": ""
+    }
+  ]
+}

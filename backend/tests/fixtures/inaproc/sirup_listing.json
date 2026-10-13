@@ -1,0 +1,27 @@
+{
+  "draw": 1,
+  "recordsTotal": 2,
+  "recordsFiltered": 2,
+  "data": [
+    {
+      "idPaket": "62222157",
+      "nama_paket": "Langganan Managed Service Server dan Monitoring",
+      "pagu": "Rp 450.000.000,00",
+      "jenis": "Jasa Lainnya",
+      "metode": "Pengadaan Langsung",
+      "klpd": "Kementerian Contoh",
+      "satker": "Pusat Data Contoh",
+      "lokasi": "Jakarta"
+    },
+    {
+      "idPaket": "62222177",
+      "nama_paket": "Pengadaan Alat Tulis Kantor",
+      "pagu": "Rp 15.200.000,00",
+      "jenis": "Barang",
+      "metode": "E-Purchasing",
+      "klpd": "Provinsi Contoh",
+      "satker": "Biro Umum",
+      "lokasi": "Bandung"
+    }
+  ]
+}

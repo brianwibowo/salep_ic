@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import parse_qs
+
 import httpx
 import pytest
 from fastapi.testclient import TestClient
@@ -47,7 +49,7 @@ async def test_spse_adapter_paginates_until_match_limit(monkeypatch):
         if request.method == "GET":
             return httpx.Response(200, text=html)
         requests.append(request)
-        start = int(request.url.params.get("start", "0"))
+        start = int(parse_qs(request.content.decode()).get("start", ["0"])[0])
         if start == 0:
             rows = [[str(i), f"Paket umum {i}", "", "", "", "", "", "", ""] for i in range(100)]
         else:
@@ -75,6 +77,7 @@ async def test_spse_adapter_raises_on_source_error(monkeypatch):
         await SPSESourceAdapter().search(["software"])
 
 
+@pytest.mark.external
 def test_spse_live_search_persists_for_marketing_and_releases_to_sales(tmp_path, monkeypatch):
     repository = LeadRepository(tmp_path / "spse-leads.db")
     monkeypatch.setattr(leads, "lead_repository", repository)
@@ -82,12 +85,18 @@ def test_spse_live_search_persists_for_marketing_and_releases_to_sales(tmp_path,
     async def no_sheet_write(*args, **kwargs):
         return True
     monkeypatch.setattr(leads.sheets_service, "append_lead", no_sheet_write)
-    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "spse-sessions.db")
     monkeypatch.setattr(auth.settings, "app_env", "development")
+    monkeypatch.setattr(auth.settings, "auth_database_url", f"sqlite:///{tmp_path / 'spse-sessions.db'}")
+    monkeypatch.setattr(auth.settings, "database_url", "")
+    from app.services.auth_service import get_auth_store
+    get_auth_store.cache_clear()
+    store = get_auth_store()
+    store.create_user("marketing", "marketing-test-passphrase", "marketing")
+    store.create_user("sales", "sales-test-passphrase", "sales")
 
     marketing, sales = TestClient(app), TestClient(app)
-    assert marketing.post("/api/v1/auth/login", json={"role": "marketing"}).status_code == 200
-    assert sales.post("/api/v1/auth/login", json={"role": "sales"}).status_code == 200
+    assert marketing.post("/api/v1/auth/login", json={"username": "marketing", "password": "marketing-test-passphrase"}).status_code == 200
+    assert sales.post("/api/v1/auth/login", json={"username": "sales", "password": "sales-test-passphrase"}).status_code == 200
 
     result = marketing.post(
         "/api/v1/spse/search",

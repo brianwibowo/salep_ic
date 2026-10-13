@@ -5,16 +5,26 @@ from __future__ import annotations
 from datetime import date, datetime
 from html.parser import HTMLParser
 import re
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
 
 from app.agent.schemas import RawLead
+from app.domain.procurement import ProcurementTrack
+from app.sources.inaproc.adapters import InaprocAdapter
 
 
 SPSE_NATIONAL_URL = "https://spse.inaproc.id/nasional"
 SPSE_SEARCH_URL = "https://spse.inaproc.id/nasional/lelang"
 SPSE_DATATABLE_URL = "https://spse.inaproc.id/nasional/dt/lelang"
+
+
+def _format_rupiah(value: float | None) -> str:
+    if value is None:
+        return ""
+    formatted = f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"Rp. {formatted}"
 
 
 class _TenderParser(HTMLParser):
@@ -78,61 +88,34 @@ class SPSESourceAdapter:
         limit: int = 50,
     ) -> list[RawLead]:
         del start_date, end_date  # SPSE does not expose a reliable publication date here.
-        headers = {
-            "User-Agent": "Mozilla/5.0 (compatible; SALEP public procurement discovery/1.0)",
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-        }
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-            page = await client.get(SPSE_SEARCH_URL, headers=headers)
-            page.raise_for_status()
-            token_match = re.search(r"authenticityToken\s*[:=]\s*'([^']+)'", page.text)
-            if not token_match:
-                raise RuntimeError("Token pencarian publik SPSE tidak ditemukan")
-            token = token_match.group(1)
-            terms = [term.casefold() for term in keywords if term.strip()]
-            results: list[RawLead] = []
-            seen: set[str] = set()
-            start = 0
-            page_size = 100
-            while len(results) < limit:
-                response = await client.post(
-                    f"{SPSE_DATATABLE_URL}?tahun={date.today().year}",
-                    data={"draw": "1", "start": str(start), "length": str(page_size), "authenticityToken": token},
-                    headers={**headers, "X-Requested-With": "XMLHttpRequest", "Referer": SPSE_SEARCH_URL},
-                )
-                response.raise_for_status()
-                payload = response.json()
-                rows = payload.get("data", [])
-                if not rows:
-                    break
-                for item in rows:
-                    if len(item) < 9:
-                        continue
-                    package_id, title = str(item[0]), re.sub(r"<[^>]*>", " ", str(item[1]))
-                    title = " ".join(title.split())
-                    instansi = str(item[2] or "").strip()
-                    current_stage = str(item[3] or "Sedang Berlangsung").strip()
-                    hps = str(item[4] or "").strip()
-                    details = " | ".join(" ".join(str(value or "").split()) for value in item[2:9])
-                    url = urljoin(SPSE_SEARCH_URL, f"{package_id}/pengumumanlelang")
-                    haystack = f"{title} {details}".casefold()
-                    matched = next((term for term in terms if term in haystack), None)
-                    if not matched or url in seen:
-                        continue
-                    seen.add(url)
-                    results.append(
-                        RawLead(
-                            source="spse",
-                            source_url=url,
-                            author_name=f"{instansi or 'SPSE Nasional'}",
-                            content=f"Nama paket: {title}\nTahap tender saat ini: {current_stage}\nInstansi: {instansi}\nNilai HPS: {hps}\nDetail: {details}",
-                            matched_keyword=matched,
-                        )
-                    )
-                    if len(results) >= limit:
-                        break
-                start += len(rows)
-                if len(rows) < page_size:
+        terms = [term.casefold() for term in keywords if term.strip()]
+        results: list[RawLead] = []
+        # Keep the HTTP client owned by this adapter so tests and callers can
+        # inject a transport; the shared Inaproc adapter still owns parsing and
+        # pagination.
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            async for package in InaprocAdapter(client=client).iter_spse(
+                track=ProcurementTrack.TENDER,
+                fiscal_year=date.today().year,
+                # Search is applied after the portal page is parsed. Scan at
+                # least one full page beyond the requested result count so a
+                # keyword match on page two is not silently missed.
+                limit=min(max(limit * 5, limit + 100), 5000),
+                fetch_details=False,
+            ):
+                formatted_hps = _format_rupiah(package.hps_amount)
+                haystack = " ".join(filter(None, (package.package_name, package.organization, package.current_stage_label, formatted_hps))).casefold()
+                matched = next((term for term in terms if term in haystack), None)
+                if not matched:
+                    continue
+                results.append(RawLead(
+                    source="spse",
+                    source_url=package.source_url,
+                    author_name=package.organization or "SPSE Nasional",
+                    content=f"Nama paket: {package.package_name}\nTahap tender saat ini: {package.current_stage_label or 'Sedang Berlangsung'}\nInstansi: {package.organization or ''}\nNilai HPS: {formatted_hps}",
+                    matched_keyword=matched,
+                ))
+                if len(results) >= limit:
                     break
         return results
 

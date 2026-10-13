@@ -9,8 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from app.agent.schemas import LeadRecord, ScoreBreakdown, IntentType
+from app.core.config import settings
 from app.core.logging import logger
 from app.services.scoring_service import calculate_score_breakdown
+from app.services.lead_merge import scraped_lead_changes
 
 DB_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 DB_PATH = DB_DIR / "salep_leads.db"
@@ -19,8 +21,9 @@ DB_PATH = DB_DIR / "salep_leads.db"
 class LeadRepository:
     """Manages SQLite storage for all analyzed leads."""
 
-    def __init__(self, db_path: Path = DB_PATH):
+    def __init__(self, db_path: Path = DB_PATH, *, seed_samples: bool = True):
         self.db_path = db_path
+        self.seed_samples = seed_samples
         self._ensure_db()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -59,6 +62,14 @@ class LeadRepository:
                         marketing_status TEXT NOT NULL DEFAULT 'pending',
                         sales_status TEXT NOT NULL DEFAULT 'Belum Dihubungi',
                         notes TEXT,
+                        canonical_post_id TEXT,
+                        deterministic_relevance_score INTEGER NOT NULL DEFAULT 0,
+                        deterministic_relevance_label TEXT NOT NULL DEFAULT 'unreviewed',
+                        deterministic_relevance_reason TEXT,
+                        spam_label TEXT NOT NULL DEFAULT 'unknown',
+                        spam_score INTEGER NOT NULL DEFAULT 0,
+                        is_spam INTEGER NOT NULL DEFAULT 0,
+                        quality_flags TEXT,
                         created_at TEXT NOT NULL,
                         updated_at TEXT NOT NULL
                     )
@@ -70,7 +81,27 @@ class LeadRepository:
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_leads_score ON leads(lead_score)"
                 )
+                # Existing local databases predate the quality columns. Keep
+                # the adapter backwards compatible while PostgreSQL uses the
+                # Alembic migration.
+                existing_columns = {row[1] for row in conn.execute("PRAGMA table_info(leads)").fetchall()}
+                additions = {
+                    "canonical_post_id": "TEXT",
+                    "deterministic_relevance_score": "INTEGER NOT NULL DEFAULT 0",
+                    "deterministic_relevance_label": "TEXT NOT NULL DEFAULT 'unreviewed'",
+                    "deterministic_relevance_reason": "TEXT",
+                    "spam_label": "TEXT NOT NULL DEFAULT 'unknown'",
+                    "spam_score": "INTEGER NOT NULL DEFAULT 0",
+                    "is_spam": "INTEGER NOT NULL DEFAULT 0",
+                    "quality_flags": "TEXT",
+                }
+                for column, definition in additions.items():
+                    if column not in existing_columns:
+                        conn.execute(f"ALTER TABLE leads ADD COLUMN {column} {definition}")
             
+            if not self.seed_samples:
+                return
+
             # Check if seeding or SPSE seeding is needed
             cur = conn.cursor()
             cur.execute("SELECT COUNT(*) FROM leads WHERE source='spse'")
@@ -336,7 +367,12 @@ class LeadRepository:
         try:
             # Check existing status if already in DB
             cur = conn.cursor()
-            cur.execute("SELECT lead_id, marketing_status, sales_status FROM leads WHERE lead_id = ? OR (source_url != '' AND source_url = ?)", (lead.lead_id, lead.source_url))
+            cur.execute(
+                """SELECT * FROM leads
+                   WHERE lead_id = ? OR (source_url != '' AND source_url = ?)
+                   OR (source = 'threads' AND canonical_post_id IS NOT NULL AND canonical_post_id = ?)""",
+                (lead.lead_id, lead.source_url, lead.canonical_post_id),
+            )
             existing = cur.fetchone()
 
             marketing_status = lead.marketing_status
@@ -344,8 +380,17 @@ class LeadRepository:
 
             if existing:
                 lead.lead_id = existing["lead_id"]
-                marketing_status = existing["marketing_status"]
-                sales_status = existing["sales_status"]
+                changes = scraped_lead_changes(dict(existing), lead.model_dump(mode='json'))
+                if changes:
+                    json_fields = {'needs', 'pain_points', 'recommended_services', 'evidence', 'score_breakdown', 'quality_flags'}
+                    values = {key: json.dumps(value) if key in json_fields and value is not None else value for key, value in changes.items()}
+                    values['updated_at'] = now_str
+                    with conn:
+                        conn.execute(
+                            'UPDATE leads SET ' + ', '.join(f'{key} = ?' for key in values) + ' WHERE lead_id = ?',
+                            [*values.values(), lead.lead_id],
+                        )
+                return self.get_lead(lead.lead_id) or {}
             elif default_status:
                 marketing_status = default_status
             breakdown_dict = None
@@ -360,8 +405,11 @@ class LeadRepository:
                         published_at, matched_keyword, content, is_potential_lead,
                         intent, industry, needs, pain_points, recommended_services,
                         lead_score, confidence, evidence, score_breakdown, analyzed_at,
-                        marketing_status, sales_status, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        marketing_status, sales_status, canonical_post_id,
+                        deterministic_relevance_score, deterministic_relevance_label,
+                        deterministic_relevance_reason, spam_label, spam_score, is_spam,
+                        quality_flags, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(lead_id) DO UPDATE SET
                         content = excluded.content,
                         lead_score = excluded.lead_score,
@@ -369,6 +417,14 @@ class LeadRepository:
                         score_breakdown = excluded.score_breakdown,
                         marketing_status = excluded.marketing_status,
                         sales_status = excluded.sales_status,
+                        canonical_post_id = excluded.canonical_post_id,
+                        deterministic_relevance_score = excluded.deterministic_relevance_score,
+                        deterministic_relevance_label = excluded.deterministic_relevance_label,
+                        deterministic_relevance_reason = excluded.deterministic_relevance_reason,
+                        spam_label = excluded.spam_label,
+                        spam_score = excluded.spam_score,
+                        is_spam = excluded.is_spam,
+                        quality_flags = excluded.quality_flags,
                         updated_at = excluded.updated_at
                     """,
                     (
@@ -393,6 +449,14 @@ class LeadRepository:
                         lead.analyzed_at.isoformat() if lead.analyzed_at else now_str,
                         marketing_status,
                         sales_status,
+                        lead.canonical_post_id,
+                        lead.deterministic_relevance_score,
+                        lead.deterministic_relevance_label,
+                        lead.deterministic_relevance_reason,
+                        lead.spam_label,
+                        lead.spam_score,
+                        1 if lead.is_spam else 0,
+                        json.dumps(lead.quality_flags),
                         now_str,
                         now_str,
                     )
@@ -640,7 +704,7 @@ class LeadRepository:
     def _row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
         """Convert SQLite row to rich dictionary with parsed JSON fields."""
         d = dict(row)
-        for json_col in ("needs", "pain_points", "recommended_services", "evidence"):
+        for json_col in ("needs", "pain_points", "recommended_services", "evidence", "quality_flags"):
             if d.get(json_col):
                 try:
                     d[json_col] = json.loads(d[json_col])
@@ -658,7 +722,26 @@ class LeadRepository:
             d["score_breakdown"] = None
 
         d["is_potential_lead"] = bool(d.get("is_potential_lead", 0))
+        d["is_spam"] = bool(d.get("is_spam", 0))
         return d
 
 
-lead_repository = LeadRepository()
+def build_lead_repository() -> Any:
+    """Select persistence backend without breaking the SQLite test adapter.
+
+    Production enables PostgreSQL by setting DATABASE_URL. The migration is
+    intentionally opt-in so existing local/test SQLite workflows remain
+    deterministic until `alembic upgrade head` has been run.
+    """
+
+    if settings.database_url.strip():
+        from app.db.lead_repository import SqlAlchemyLeadRepository
+
+        return SqlAlchemyLeadRepository(
+            settings.database_url,
+            create_schema=settings.database_auto_create,
+        )
+    return LeadRepository()
+
+
+lead_repository = build_lead_repository()

@@ -31,6 +31,14 @@ export interface Lead {
   marketing_status: "pending" | "valid" | "invalid";
   sales_status: "Belum Dihubungi" | "Sedang Dihubungi" | "Closing" | "Batal";
   notes: string | null;
+  canonical_post_id?: string | null;
+  deterministic_relevance_score?: number;
+  deterministic_relevance_label?: string;
+  deterministic_relevance_reason?: string | null;
+  spam_label?: string;
+  spam_score?: number;
+  is_spam?: boolean;
+  quality_flags?: string[];
 }
 
 export interface LeadStats {
@@ -41,6 +49,77 @@ export interface LeadStats {
   sales_new?: number;
   sales_in_progress?: number;
   sales_closed?: number;
+}
+
+export type FinalReason =
+  | "contract_completed"
+  | "contract_terminated"
+  | "contract_stopped"
+  | "tender_completed_no_contract"
+  | "unknown_final_reason";
+
+export interface FinalReasonSummary {
+  reason: FinalReason;
+  label: string;
+  count: number;
+  percentage: number;
+  budget_amount: number;
+  hps_amount: number;
+}
+
+export interface FinalAnalyticsSummary {
+  fiscal_years: number[];
+  total: number;
+  total_budget_amount: number;
+  total_hps_amount: number;
+  by_reason: FinalReasonSummary[];
+  by_year: Array<{ fiscal_year: number; count: number; budget_amount: number; hps_amount: number }>;
+  by_track: Array<{ track: string; count: number; budget_amount: number; hps_amount: number }>;
+  by_organization: Array<{ organization: string; count: number; budget_amount: number; hps_amount: number; high_priority_count: number }>;
+  by_category: Array<{ category: string; label: string; count: number; budget_amount: number; hps_amount: number; high_priority_count: number; average_managed_service_fit: number }>;
+  by_priority: Array<{ priority: string; count: number; budget_amount: number; hps_amount: number }>;
+  recommendations: Array<{
+    package_id: string;
+    package_name: string;
+    organization: string | null;
+    service_category: string;
+    service_category_label: string;
+    sales_priority: string;
+    sales_priority_score: number;
+    sales_recommendation: string;
+    source_url: string;
+  }>;
+}
+
+export interface FinalPackage {
+  package_id: string;
+  source: "spse";
+  track: string;
+  external_id: string;
+  package_name: string;
+  organization: string | null;
+  satker: string | null;
+  location: string | null;
+  fiscal_year: number;
+  budget_amount: number | null;
+  hps_amount: number | null;
+  procurement_type: string | null;
+  procurement_method: string | null;
+  contract_type: string | null;
+  current_stage_code: string | null;
+  current_stage_label: string | null;
+  contract_status: string | null;
+  reason: FinalReason;
+  reason_label: string;
+  source_url: string;
+  last_seen_at: string;
+  service_category: string;
+  service_category_label: string;
+  category_evidence: string[];
+  managed_service_fit: number;
+  sales_priority: string;
+  sales_priority_score: number;
+  sales_recommendation: string;
 }
 
 export interface SchedulerStatus {

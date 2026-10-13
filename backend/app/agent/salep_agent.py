@@ -17,6 +17,7 @@ from app.agent.schemas import LeadAnalysis
 from app.agent.tools import search_products, get_product
 from app.core.config import settings
 from app.core.logging import logger
+from app.services.llm_cache import PROMPT_VERSION, llm_analysis_cache
 
 _agent_cache: dict[str, Agent] = {}
 
@@ -73,11 +74,15 @@ async def analyze_lead(content: str) -> LeadAnalysis:
     last_error: Exception | None = None
     for model_name in models_to_try:
         try:
+            cached = llm_analysis_cache.get(content, model_name, PROMPT_VERSION)
+            if cached is not None:
+                return cached
             agent = _get_agent(model_name)
             logger.info("Analyzing lead (%d chars) using %s", len(content), model_name)
 
             result = await Runner.run(agent, content)
             analysis: LeadAnalysis = result.final_output
+            llm_analysis_cache.put(content, model_name, analysis, PROMPT_VERSION)
 
             logger.info(
                 "Analysis complete [%s] — is_lead=%s intent=%s score=%d confidence=%.2f",

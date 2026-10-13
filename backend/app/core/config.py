@@ -4,9 +4,24 @@ from __future__ import annotations
 
 from pydantic_settings import BaseSettings
 from pydantic import Field
+from urllib.parse import urlparse
 
 
 class Settings(BaseSettings):
+    # Runtime role. API instances should be stateless; the worker owns the
+    # periodic scheduler in production.
+    process_role: str = Field(default="api", alias="SALEP_PROCESS_ROLE")
+
+    # Persistence. Leave DATABASE_URL empty to keep the local SQLite adapter.
+    # Production should set a PostgreSQL URL and run `alembic upgrade head`.
+    database_url: str = Field(default="", alias="DATABASE_URL")
+    database_auto_create: bool = Field(default=False, alias="DATABASE_AUTO_CREATE")
+    auth_database_url: str = Field(default="", alias="AUTH_DATABASE_URL")
+    auth_session_ttl_seconds: int = Field(default=28800, ge=300, le=86400, alias="AUTH_SESSION_TTL_SECONDS")
+    auth_login_window_seconds: int = Field(default=900, ge=60, le=3600, alias="AUTH_LOGIN_WINDOW_SECONDS")
+    auth_login_account_limit: int = Field(default=10, ge=3, le=100, alias="AUTH_LOGIN_ACCOUNT_LIMIT")
+    auth_login_ip_limit: int = Field(default=100, ge=10, le=1000, alias="AUTH_LOGIN_IP_LIMIT")
+
     # LLM Provider selection: "gemini" | "groq" | "openai" | "openrouter" | "ollama" | "custom"
     llm_provider: str = Field(default="", alias="LLM_PROVIDER")
     llm_api_key: str = Field(default="", alias="LLM_API_KEY")
@@ -48,10 +63,27 @@ class Settings(BaseSettings):
     auto_search_sources: str = Field(default="threads", alias="AUTO_SEARCH_SOURCES")
     auto_search_limit_per_run: int = Field(default=5, alias="AUTO_SEARCH_LIMIT_PER_RUN")
 
+    # Inaproc procurement sync (two-year rolling window, every scheduler cycle)
+    inaproc_auto_sync_enabled: bool = Field(default=True, alias="INAPROC_AUTO_SYNC_ENABLED")
+    inaproc_sync_limit: int = Field(default=500, ge=1, le=5000, alias="INAPROC_SYNC_LIMIT")
+
     # App
     app_env: str = Field(default="development", alias="APP_ENV")
     app_domain: str = Field(default="salep1.duckdns.org", alias="APP_DOMAIN")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    # Operational hardening
+    scheduler_lock_name: str = Field(default="salep-discovery-scheduler", alias="SCHEDULER_LOCK_NAME")
+    scheduler_lock_path: str = Field(default="data/salep-scheduler.lock", alias="SCHEDULER_LOCK_PATH")
+    retry_max_attempts: int = Field(default=3, ge=1, le=8, alias="RETRY_MAX_ATTEMPTS")
+    retry_base_delay_seconds: float = Field(default=1.0, ge=0.1, le=60.0, alias="RETRY_BASE_DELAY_SECONDS")
+    circuit_failure_threshold: int = Field(default=3, ge=1, le=20, alias="CIRCUIT_FAILURE_THRESHOLD")
+    circuit_recovery_seconds: int = Field(default=120, ge=10, le=3600, alias="CIRCUIT_RECOVERY_SECONDS")
+    alert_webhook_url: str = Field(default="", alias="ALERT_WEBHOOK_URL")
+    alert_cooldown_seconds: int = Field(default=900, ge=0, le=86400, alias="ALERT_COOLDOWN_SECONDS")
+    backup_dir: str = Field(default="data/backups", alias="BACKUP_DIR")
+    backup_retention_days: int = Field(default=14, ge=1, le=3650, alias="BACKUP_RETENTION_DAYS")
+    snapshot_retention_days: int = Field(default=90, ge=1, le=3650, alias="SNAPSHOT_RETENTION_DAYS")
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
@@ -63,21 +95,33 @@ class Settings(BaseSettings):
     def app_base_url(self) -> str:
         """Production public URL or localhost in development."""
         if self.is_production:
-            return f"https://{self.app_domain}"
+            domain = self.app_domain.strip().rstrip("/")
+            if not domain.startswith(("http://", "https://")):
+                domain = f"https://{domain}"
+            return domain
         return "http://localhost:8000"
 
     @property
     def cors_origins(self) -> list[str]:
         """CORS allowed origins for production domain and local dev."""
+        configured = self.app_domain.strip().rstrip("/")
+        if configured.startswith(("http://", "https://")):
+            parsed = urlparse(configured)
+            domain = parsed.netloc
+            configured_origin = configured
+        else:
+            domain = configured
+            configured_origin = f"https://{domain}"
+        if self.is_production:
+            return [configured_origin]
         origins = [
-            f"https://{self.app_domain}",
-            f"http://{self.app_domain}",
+            configured_origin,
+            f"http://{domain}",
             "http://localhost:8000",
             "http://127.0.0.1:8000",
             "http://localhost:3000",
+            "http://127.0.0.1:3000",
         ]
-        if not self.is_production:
-            origins.append("*")
         return list(dict.fromkeys(origins))
 
     @property

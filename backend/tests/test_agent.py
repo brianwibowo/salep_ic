@@ -6,10 +6,13 @@ import pytest
 from app.agent.schemas import LeadAnalysis, IntentType
 from app.core.config import settings
 
-pytestmark = pytest.mark.skipif(
-    not settings.active_llm_key,
-    reason="No LLM API key set (GEMINI_API_KEY, GROQ_API_KEY, OPENAI_API_KEY) — skipping agent tests",
-)
+pytestmark = [
+    pytest.mark.external,
+    pytest.mark.skipif(
+        not settings.active_llm_key,
+        reason="No LLM API key set (GEMINI_API_KEY, GROQ_API_KEY, OPENAI_API_KEY) — skipping agent tests",
+    ),
+]
 
 
 
