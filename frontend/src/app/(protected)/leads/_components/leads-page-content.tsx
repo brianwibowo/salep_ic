@@ -14,12 +14,12 @@ import {
   Compass,
   Eye,
   ExternalLink,
-  RefreshCw,
   Search,
   SlidersHorizontal,
   Trash2,
   Calendar,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
@@ -46,9 +46,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SpseScheduleDialog } from "@/components/leads/spse-schedule-dialog";
+import { SocialMediaDiscoveryDialog } from "@/components/leads/social-media-discovery-dialog";
 import { useSession } from "@/hooks/auth/use-auth";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useManualSearch } from "@/hooks/discovery/use-discovery";
 import {
+  useAnalyzeUrl,
   useDeleteLead,
   useLeads,
   useUpdateLeadStatus,
@@ -95,6 +98,9 @@ export function LeadsPageContent({
   const updateMarketing = useUpdateLeadStatus();
   const updateSales = useUpdateSalesStatus();
   const deleteLead = useDeleteLead();
+  const searchMutation = useManualSearch();
+  const analyzeUrlMutation = useAnalyzeUrl();
+  const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
 
   const setFilter = (setter: (value: string) => void) => (value: string) => {
     setter(value);
@@ -316,6 +322,35 @@ export function LeadsPageContent({
         </p>
       )}
 
+      {/* Indikator Discovery Background Process */}
+      {(searchMutation.isPending || analyzeUrlMutation.isPending) && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-[5px] border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
+          <div className="flex items-center gap-2.5">
+            <Loader2 className="size-4 shrink-0 animate-spin text-blue-600 dark:text-blue-400" />
+            <div>
+              <span className="font-semibold">
+                Discovery prospek sedang berjalan di latar belakang...
+              </span>
+              <p className="mt-0.5 text-muted-foreground text-[11px]">
+                {searchMutation.isPending
+                  ? "Sistem sedang scraping Threads & LinkedIn serta evaluasi scoring AI."
+                  : "Sistem sedang menganalisis link postingan langsung."}{" "}
+                Tabel akan diperbarui secara otomatis ketika proses selesai.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsDiscoveryOpen(true)}
+            className="h-7 shrink-0 rounded-[5px] text-xs font-semibold"
+          >
+            Buka Pop-up
+          </Button>
+        </div>
+      )}
+
       <section className="overflow-hidden rounded-[5px] border bg-card">
         <div className="border-b p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -389,7 +424,6 @@ export function LeadsPageContent({
                             <option value="threads">Threads</option>
                             <option value="linkedin">LinkedIn</option>
                             <option value="spse">SPSE</option>
-                            <option value="mock">Mock</option>
                           </>
                         )}
                       </select>
@@ -416,44 +450,37 @@ export function LeadsPageContent({
               </Popover>
             </div>
 
-            {/* Sisi Kanan: Button Discovery & Refresh (Icon Only) */}
+            {/* Sisi Kanan: Button Discovery & Refresh */}
             <div className="flex items-center gap-2 self-end md:self-auto">
-              {(sourcePreset === "spse" || sourcePreset === "social_media") &&
-                isMarketing && (
+              {isMarketing &&
+                (sourcePreset === "spse" ? (
                   <Button
                     asChild
                     variant="outline"
                     className="h-9 shrink-0 rounded-[5px] border-[#9D0A0E] text-[#9D0A0E] shadow-none hover:bg-[#9D0A0E]/5 hover:text-[#9D0A0E]"
                   >
-                    <Link
-                      href={
-                        sourcePreset === "spse"
-                          ? "/discovery/spse"
-                          : "/discovery"
-                      }
-                    >
+                    <Link href="/discovery/spse">
                       <Compass className="size-4" />
                       Discovery
                     </Link>
                   </Button>
-                )}
-
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="rounded-[5px] shadow-none"
-                disabled={leads.isRefetching}
-                onClick={() => void leads.refetch()}
-                title={leads.isRefetching ? "Memuat ulang…" : "Refresh data"}
-                aria-label="Refresh data"
-              >
-                <RefreshCw
-                  className={
-                    leads.isRefetching ? "size-4 animate-spin" : "size-4"
-                  }
-                />
-              </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDiscoveryOpen(true)}
+                    className="h-9 shrink-0 gap-1.5 rounded-[5px] border-[#9D0A0E] text-[#9D0A0E] shadow-none hover:bg-[#9D0A0E]/5 hover:text-[#9D0A0E]"
+                  >
+                    <Compass className="size-4" />
+                    Discovery
+                    {(searchMutation.isPending || analyzeUrlMutation.isPending) && (
+                      <span className="relative flex size-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#9D0A0E] opacity-75"></span>
+                        <span className="relative inline-flex size-2 rounded-full bg-[#9D0A0E]"></span>
+                      </span>
+                    )}
+                  </Button>
+                ))}
             </div>
           </div>
         </div>
@@ -748,6 +775,12 @@ export function LeadsPageContent({
         lead={selectedSpseLead}
         open={Boolean(selectedSpseLead)}
         onOpenChange={(open) => !open && setSelectedSpseLead(null)}
+      />
+      <SocialMediaDiscoveryDialog
+        open={isDiscoveryOpen}
+        onOpenChange={setIsDiscoveryOpen}
+        searchMutation={searchMutation}
+        analyzeUrlMutation={analyzeUrlMutation}
       />
     </div>
   );

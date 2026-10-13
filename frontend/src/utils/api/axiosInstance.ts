@@ -23,7 +23,7 @@ interface ApiError {
 }
 
 const axiosInstance: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || undefined,
   timeout: 120000,
   withCredentials: true,
   headers: {
@@ -60,12 +60,9 @@ axiosInstance.interceptors.response.use(
       (isTimeout ? "Waktu tunggu permintaan habis (timeout). Silakan coba lagi." : error.message) ||
       "Terjadi kesalahan";
 
+    const status = error.response?.status ?? (isTimeout ? 408 : error.code ?? "UNKNOWN");
     if (process.env.NODE_ENV === "development") {
-      console.error("API Error:", {
-        status: error.response?.status ?? (isTimeout ? 408 : error.code),
-        message: errorMessage,
-        url: error.config?.url,
-      });
+      console.error(`[API Error ${status}] ${errorMessage} (URL: ${error.config?.url})`);
     }
 
     return Promise.reject(error);

@@ -22,12 +22,29 @@ async function proxyRequest(
     ? undefined
     : await request.arrayBuffer();
 
-  const response = await fetch(targetUrl.toString(), {
+  let response = await fetch(targetUrl.toString(), {
     method: request.method,
     headers,
     body,
     redirect: "manual",
   });
+
+  // Fallback staging: backend staging versi lama melempar 500 bila query fiscal_years dikirim
+  // karena bug validasi list ge/le di Pydantic. Jika terjadi 500, coba ulang tanpa param fiscal_years.
+  if (
+    response.status === 500 &&
+    targetUrl.pathname.includes("/inaproc/final") &&
+    targetUrl.searchParams.has("fiscal_years")
+  ) {
+    const fallbackUrl = new URL(targetUrl.toString());
+    fallbackUrl.searchParams.delete("fiscal_years");
+    response = await fetch(fallbackUrl.toString(), {
+      method: request.method,
+      headers,
+      body,
+      redirect: "manual",
+    });
+  }
 
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete("content-encoding");

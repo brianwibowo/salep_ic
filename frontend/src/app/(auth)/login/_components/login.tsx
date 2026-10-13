@@ -103,9 +103,9 @@ export default function Login() {
                   variant="outline"
                   disabled={login.isPending}
                   onClick={() => {
-                    setUsername("admin");
-                    setPassword("adminpassword12345");
-                    login.mutate({ username: "admin", password: "adminpassword12345" });
+                    setUsername("marketing");
+                    setPassword("lLn,hn,!RTbRhUEM");
+                    login.mutate({ username: "marketing", password: "lLn,hn,!RTbRhUEM" });
                   }}
                   className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
                 >
@@ -117,8 +117,8 @@ export default function Login() {
                   disabled={login.isPending}
                   onClick={() => {
                     setUsername("sales");
-                    setPassword("salespassword12345");
-                    login.mutate({ username: "sales", password: "salespassword12345" });
+                    setPassword(",MOy]sZ{Li2,H9EN");
+                    login.mutate({ username: "sales", password: ",MOy]sZ{Li2,H9EN" });
                   }}
                   className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
                 >

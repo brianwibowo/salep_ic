@@ -14,7 +14,18 @@ export interface FinalFilters {
 
 function query(filters: FinalFilters) {
   const params = new URLSearchParams();
-  filters.fiscal_years.forEach((year) => params.append("fiscal_years", String(year)));
+  const currentYear = new Date().getFullYear();
+  const isDefaultYears =
+    Array.isArray(filters.fiscal_years) &&
+    filters.fiscal_years.length === 2 &&
+    filters.fiscal_years.includes(currentYear - 1) &&
+    filters.fiscal_years.includes(currentYear);
+
+  // Jika tahun sama dengan default ([current-1, current]), jangan kirim param fiscal_years
+  // agar kompatibel dengan backend staging yang sedang berjalan
+  if (!isDefaultYears && filters.fiscal_years?.length) {
+    filters.fiscal_years.forEach((year) => params.append("fiscal_years", String(year)));
+  }
   filters.reasons?.forEach((reason) => params.append("reasons", reason));
   filters.tracks?.forEach((track) => params.append("tracks", track));
   filters.categories?.forEach((category) => params.append("categories", category));

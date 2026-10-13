@@ -1,4 +1,5 @@
 import {
+  CalendarClock,
   ChartPie,
   ClipboardList,
   Compass,
@@ -32,6 +33,6 @@ export function getNavigation(): NavItem[] {
         { title: "Final", path: "/pengadaan/final" },
       ],
     },
-    { title: "Discovery", icon: Compass, path: "/discovery", role: "marketing" },
+    { title: "Scheduler", icon: CalendarClock, path: "/scheduler", role: "marketing" },
   ];
 }
