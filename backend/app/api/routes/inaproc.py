@@ -25,8 +25,8 @@ class InaprocSyncRequest(BaseModel):
 
 @router.get("/tracks")
 async def tracks(request: Request) -> dict[str, Any]:
-    if request.state.role != "marketing":
-        raise HTTPException(status_code=403, detail="Modul Inaproc hanya untuk Marketing")
+    if request.state.role not in {"marketing", "sales"}:
+        raise HTTPException(status_code=403, detail="Akses khusus user terautentikasi")
     return success_response({
         "sirup": "https://sirup.inaproc.id/sirup/caripaketctr/index",
         "spse": {

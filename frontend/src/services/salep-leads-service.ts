@@ -1,6 +1,6 @@
 import { apiConfig } from "@/configs/api-config";
 import type { PaginatedResponse, PaginationFilter } from "@/types/pagination";
-import { Delete, Get, Patch, unwrapResponse } from "@/utils/api/apiService";
+import { Delete, Get, Patch, Post, unwrapResponse } from "@/utils/api/apiService";
 import type { Lead, LeadStats, TenderScheduleResponse } from "@/types/salep";
 
 export interface LeadFilters extends PaginationFilter {
@@ -64,6 +64,14 @@ export const salepLeadsService = {
     const res = await Get<TenderScheduleResponse>(
       `${BASE_URL}/spse/leads/${encodeURIComponent(leadId)}/jadwal`,
     );
+    return unwrapResponse(res);
+  },
+
+  analyzeUrl: async (url: string, save_to_sheet = true): Promise<Lead> => {
+    const res = await Post<Lead>(`${BASE_URL}/leads/analyze-url`, {
+      url,
+      save_to_sheet,
+    });
     return unwrapResponse(res);
   },
 };

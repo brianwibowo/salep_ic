@@ -73,3 +73,19 @@ export function useSpseSchedule(leadId: string | null) {
   });
 }
 
+export function useAnalyzeUrl() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      url,
+      save_to_sheet = true,
+    }: {
+      url: string;
+      save_to_sheet?: boolean;
+    }) => salepLeadsService.analyzeUrl(url, save_to_sheet),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: leadsQueryKeys.all });
+    },
+  });
+}
+

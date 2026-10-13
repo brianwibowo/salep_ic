@@ -86,6 +86,48 @@ export default function Login() {
               {login.isPending ? "Memeriksa…" : "Masuk"}
             </Button>
           </form>
+
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mt-6 space-y-3">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-dashed border-slate-300" />
+                </div>
+                <span className="relative bg-white px-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+                  Dev Quick Login
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={login.isPending}
+                  onClick={() => {
+                    setUsername("marketing");
+                    setPassword("lLn,hn,!RTbRhUEM");
+                    login.mutate({ username: "marketing", password: "lLn,hn,!RTbRhUEM" });
+                  }}
+                  className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
+                >
+                  Marketing
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={login.isPending}
+                  onClick={() => {
+                    setUsername("sales");
+                    setPassword(",MOy]sZ{Li2,H9EN");
+                    login.mutate({ username: "sales", password: ",MOy]sZ{Li2,H9EN" });
+                  }}
+                  className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
+                >
+                  Sales
+                </Button>
+              </div>
+            </div>
+          )}
+
           <p className="mt-5 text-center text-xs leading-5 text-slate-400">
             Gunakan akun organisasi yang diberikan admin SALEP.
           </p>

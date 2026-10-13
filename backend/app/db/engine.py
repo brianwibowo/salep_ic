@@ -11,6 +11,15 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.config import settings
 
 
+from pathlib import Path
+
+
+def default_procurement_db_url() -> str:
+    path = Path(__file__).resolve().parents[2] / "data" / "salep-procurement.db"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return f"sqlite:///{path}"
+
+
 def normalize_database_url(url: str) -> str:
     """Normalize common platform-provided PostgreSQL URLs."""
 
@@ -23,11 +32,18 @@ def normalize_database_url(url: str) -> str:
 
 
 def build_engine(database_url: str | None = None) -> Engine:
-    url = normalize_database_url(database_url or settings.database_url)
-    if not url:
+    raw_url = database_url or settings.database_url
+    if not raw_url and not settings.is_production:
+        raw_url = default_procurement_db_url()
+    if not raw_url:
         raise ValueError("DATABASE_URL belum dikonfigurasi")
+    url = normalize_database_url(raw_url)
     connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-    return create_engine(url, pool_pre_ping=True, connect_args=connect_args)
+    engine = create_engine(url, pool_pre_ping=True, connect_args=connect_args)
+    if url.startswith("sqlite") and not settings.is_production:
+        from app.db.models import Base
+        Base.metadata.create_all(engine)
+    return engine
 
 
 def session_factory(engine: Engine) -> sessionmaker[Session]:

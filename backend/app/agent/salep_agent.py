@@ -62,12 +62,13 @@ async def analyze_lead(content: str) -> LeadAnalysis:
     Supports automatic fallback across active models (e.g. Gemini 3.6 Flash,
     3.5 Flash Lite, 3.7 Flash) if rate limits or quota boundaries are encountered.
     """
-    primary_model = settings.active_llm_model or "gemini-3.6-flash"
+    primary_model = settings.active_llm_model or "gemini-3.5-flash-lite"
     fallback_pool = [
         primary_model,
-        "gemini-3.6-flash",
         "gemini-3.5-flash-lite",
-        "gemini-3.7-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest",
+        "gemini-3.8-flash",
     ]
     models_to_try = list(dict.fromkeys(fallback_pool))
 
@@ -96,13 +97,20 @@ async def analyze_lead(content: str) -> LeadAnalysis:
 
         except Exception as e:
             err_msg = str(e)
-            if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "Quota exceeded" in err_msg:
+            if (
+                "429" in err_msg
+                or "RESOURCE_EXHAUSTED" in err_msg
+                or "Quota exceeded" in err_msg
+                or "503" in err_msg
+                or "high demand" in err_msg
+                or "overloaded" in err_msg
+            ):
                 logger.warning(
-                    "Model %s hit rate/quota limit. Falling back to next available model...",
+                    "Model %s hit rate limit/overload (503/429). Falling back to next available model...",
                     model_name,
                 )
                 last_error = e
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
                 continue
             logger.error("Non-quota error analyzing lead with %s: %s", model_name, e)
             raise e
