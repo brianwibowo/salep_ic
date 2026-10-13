@@ -207,10 +207,20 @@ class InaprocAdapter:
                 endpoint = urljoin(SIRUP_BASE_URL, "/sirup/caripaketctr/search")
                 response = await self._request(
                     client, "get", endpoint,
-                    params={"tahunAnggaran": str(fiscal_year), "start": str(start), "length": str(self.page_size), "search[value]": keyword},
+                    params={
+                        "tahunAnggaran": str(fiscal_year),
+                        "start": str(start),
+                        "length": str(self.page_size),
+                        "search[value]": keyword,
+                        "order[0][column]": "5",
+                        "order[0][dir]": "desc",
+                        "draw": "1",
+                    },
                     headers=self._headers(listing_url, ajax=True),
                 )
                 response.raise_for_status()
+                if not response.text.strip():
+                    break
                 payload = response.json()
                 rows = parse_sirup_rows(payload, fiscal_year=fiscal_year, base_url=SIRUP_BASE_URL + "/")
                 if not rows:

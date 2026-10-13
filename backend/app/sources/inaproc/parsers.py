@@ -116,8 +116,8 @@ def parse_sirup_rows(
                 "satker": row[9],
                 "location": row[10],
             }
-        package_id = str(row.get("external_id") or row.get("idPaket") or "").strip()
-        name = clean_text(row.get("package_name") or row.get("nama_paket"))
+        package_id = str(row.get("external_id") or row.get("idPaket") or row.get("id") or "").strip()
+        name = clean_text(row.get("package_name") or row.get("nama_paket") or row.get("paket"))
         if not package_id or not name:
             continue
         results.append(
@@ -127,19 +127,19 @@ def parse_sirup_rows(
                 external_id=package_id,
                 rup_id=package_id,
                 package_name=name,
-                organization=row.get("organization") or row.get("klpd"),
-                satker=row.get("satker"),
+                organization=row.get("organization") or row.get("klpd") or row.get("kldi"),
+                satker=row.get("satker") or row.get("satuanKerja"),
                 location=row.get("location") or row.get("lokasi"),
-                procurement_type=row.get("procurement_type") or row.get("jenis"),
+                procurement_type=row.get("procurement_type") or row.get("jenisPengadaan") or row.get("jenis"),
                 fiscal_year=fiscal_year,
                 budget_amount=parse_amount(row.get("budget_amount") or row.get("pagu")),
                 procurement_method=row.get("procurement_method") or row.get("metode"),
                 local_content_flag=parse_flag(
-                    row.get("local_content_flag"),
+                    row.get("local_content_flag") if row.get("local_content_flag") is not None else row.get("isPDN"),
                     positive_markers=("produk dalam negeri", "dalam negeri"),
                 ),
                 small_business_flag=parse_flag(
-                    row.get("small_business_flag"),
+                    row.get("small_business_flag") if row.get("small_business_flag") is not None else row.get("isUMK"),
                     positive_markers=("usaha kecil", "koperasi"),
                 ),
                 source_url=_source_url(base_url, row, f"sirup/rup/detailPaketPenyedia2020?idPaket={package_id}"),
