@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const TARGET_HOST = "https://salep-staging.icdigital.io";
+const TARGET_HOST = (process.env.BACKEND_PROXY_URL || "https://salep-staging.icdigital.io").replace(/\/$/, "");
 
 async function proxyRequest(
   request: NextRequest,
@@ -13,9 +13,10 @@ async function proxyRequest(
   );
 
   const headers = new Headers(request.headers);
-  headers.set("host", "salep-staging.icdigital.io");
-  headers.set("origin", TARGET_HOST);
-  headers.set("referer", `${TARGET_HOST}/`);
+  const targetOrigin = new URL(TARGET_HOST);
+  headers.set("host", targetOrigin.host);
+  headers.set("origin", targetOrigin.origin);
+  headers.set("referer", `${targetOrigin.origin}/`);
   headers.set("sec-fetch-site", "same-origin");
 
   const body = ["GET", "HEAD"].includes(request.method)

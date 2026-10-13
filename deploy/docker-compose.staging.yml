@@ -53,6 +53,8 @@ services:
   postgres:
     image: postgres:16  # Best practice: always pin a specific major version
     container_name: salep-postgres-staging
+    ports:
+      - "127.0.0.1:15432:5432"
     environment:
       POSTGRES_USER: salep
       POSTGRES_PASSWORD: password
