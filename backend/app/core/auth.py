@@ -27,6 +27,7 @@ async def enforce_access(request, call_next):
         if not role:
             return error_response('Silakan login terlebih dahulu', status_code=401)
         request.state.role = role
+        request.state.username = identity.get('username')
         if role == 'sales':
             allowed = (
                 request.method == 'GET' and (

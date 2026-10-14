@@ -46,6 +46,7 @@ class LeadModel(Base):
     analyzed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     marketing_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
     sales_status: Mapped[str] = mapped_column(String(40), nullable=False, default="Belum Dihubungi")
+    sales_status_logs: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

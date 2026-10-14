@@ -185,13 +185,19 @@ async def update_lead_status(
 async def update_sales_status(
     lead_id: str,
     payload: UpdateSalesStatusRequest,
+    request: Request,
 ) -> ApiResponse[dict[str, Any]]:
     """Update sales outreach follow-up status (e.g. Belum Dihubungi, Sedang Dihubungi, Closing, Batal)."""
     lead = lead_repository.get_lead(lead_id)
     if not lead or lead["marketing_status"] != "valid":
         raise HTTPException(status_code=404, detail="Lead not found")
     try:
-        updated = lead_repository.update_sales_status(lead_id, payload.sales_status)
+        updated = lead_repository.update_sales_status(
+            lead_id,
+            payload.sales_status,
+            payload.note,
+            request.state.username,
+        )
         if not updated:
             raise HTTPException(status_code=404, detail="Lead not found")
         return success_response(updated, "Status sales lead berhasil diperbarui")
