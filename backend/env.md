@@ -42,5 +42,5 @@ APIFY_API_TOKEN=apify_api_yourTokenHere
 # 4. Environment, Domain & Logging
 # ------------------------------------------------------------------------------
 APP_ENV=production
-APP_DOMAIN=salep1.duckdns.org
+APP_DOMAIN=salep-staging.icdigital.io
 LOG_LEVEL=INFO

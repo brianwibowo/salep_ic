@@ -72,7 +72,7 @@ def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monk
     # Keep the local SQLite auth store for this contract test while exercising
     # the configured public origin used by production deployments.
     monkeypatch.setattr(auth.settings, 'app_env', 'development')
-    monkeypatch.setattr(auth.settings, 'app_domain', 'salep1.duckdns.org')
+    monkeypatch.setattr(auth.settings, 'app_domain', 'salep-staging.icdigital.io')
     async def discover(*args, **kwargs):
         return {'matched': 0, 'saved': 0}
     monkeypatch.setattr('app.api.routes.spse.discover_spse_tenders', discover)
@@ -80,7 +80,7 @@ def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monk
     allowed = marketing.post(
         '/api/v1/spse/search',
         json={'keywords': ['software'], 'limit': 1},
-        headers={'Origin': 'https://salep1.duckdns.org'},
+        headers={'Origin': 'https://salep-staging.icdigital.io'},
     )
     # The route may fail to fetch live SPSE in a test environment, but must pass
     # the origin check (502 is an upstream fetch failure; 403 is a bad origin).
@@ -96,10 +96,11 @@ def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monk
         assert sales.post('/api/v1'+path,json={}).status_code == 403
     assert sales.put('/api/v1/scheduler/config',json={}).status_code == 403
     assert sales.get('/api/v1/scheduler/status').status_code == 403
-    assert marketing.patch('/api/v1/leads/lead_demo_001/sales-status',json={'sales_status':'Closing'}).status_code == 403
-    assert sales.patch('/api/v1/leads/lead_demo_003/sales-status',json={'sales_status':'Closing'}).status_code == 404
-    assert sales.patch('/api/v1/leads/lead_demo_001/sales-status',json={'sales_status':'garbage'}).status_code == 422
-    assert sales.patch('/api/v1/leads/lead_demo_001/sales-status',json={'sales_status':'Closing'}).status_code == 200
+    assert marketing.patch('/api/v1/leads/lead_demo_001/sales-status',json={'sales_status':'Closing', 'note': 'Test catatan'}).status_code == 403
+    assert sales.patch('/api/v1/leads/lead_demo_003/sales-status',json={'sales_status':'Closing', 'note': 'Test catatan'}).status_code == 404
+    assert sales.patch('/api/v1/leads/lead_demo_001/sales-status',json={'sales_status':'garbage', 'note': 'Test catatan'}).status_code == 422
+    assert sales.patch('/api/v1/leads/lead_demo_001/sales-status',json={'sales_status':'Closing', 'note': '  '}).status_code == 422
+    assert sales.patch('/api/v1/leads/lead_demo_001/sales-status',json={'sales_status':'Closing', 'note': 'Sudah closing deal'}).status_code == 200
 
 
 def test_qualification_and_pagination(clients):
