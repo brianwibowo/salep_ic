@@ -25,8 +25,13 @@ export function useLogin() {
     mutationFn: ({ username, password }: LoginCredentials) => salepAuthService.login(username, password),
     onSuccess: (session) => {
       queryClient.setQueryData(sessionQueryKey, session);
-      toast.success(`Masuk sebagai ${session.role === "marketing" ? "Marketing" : "Sales"}`);
-      router.replace("/dashboard");
+      const roleLabel = {
+        marketing: "Marketing",
+        sales: "Sales",
+        super_admin: "Super Admin",
+      }[session.role];
+      toast.success(`Masuk sebagai ${roleLabel}`);
+      router.replace(session.role === "super_admin" ? "/admin/users" : "/dashboard");
     },
     onError: (error: Error) => toast.error(error.message || "Login gagal"),
   });

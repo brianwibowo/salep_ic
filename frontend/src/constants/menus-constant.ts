@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { SalepRole } from "@/types/salep";
 
 export interface NavItem {
   title: string;
@@ -16,7 +17,7 @@ export interface NavItem {
   path: string;
   children?: { title: string; path: string }[];
   /** When set, only users with this role see the item. */
-  role?: "marketing" | "sales";
+  role?: SalepRole;
 }
 
 export function getNavigation(): NavItem[] {
@@ -34,5 +35,6 @@ export function getNavigation(): NavItem[] {
       ],
     },
     { title: "Scheduler", icon: CalendarClock, path: "/scheduler", role: "marketing" },
+    { title: "Kelola Akun", icon: Users, path: "/admin/users", role: "super_admin" },
   ];
 }

@@ -1,4 +1,4 @@
-export type SalepRole = "marketing" | "sales";
+export type SalepRole = "marketing" | "sales" | "super_admin";
 
 export interface SalepSession {
   role: SalepRole;

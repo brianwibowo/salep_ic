@@ -40,7 +40,12 @@ export function AppSidebar({ role }: { role: SalepRole }) {
   const pathname = usePathname();
   const { state, setOpen } = useSidebar();
   const logout = useLogout();
-  const navigation = getNavigation();
+  const roleLabel = role === "super_admin" ? "Super Admin" : role === "marketing" ? "Marketing" : "Sales";
+  const navigation = getNavigation().filter((item) =>
+    role === "super_admin"
+      ? item.path === "/admin/users"
+      : item.role !== "super_admin",
+  );
 
   return (
     <Sidebar collapsible="icon">
@@ -49,7 +54,7 @@ export function AppSidebar({ role }: { role: SalepRole }) {
           <Image src="/logo.png" alt="SALEP" width={32} height={32} className="size-8 shrink-0 object-contain" />
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="truncate text-base font-semibold text-slate-950 dark:text-white">SALEP</p>
-            <p className="truncate text-xs capitalize text-sidebar-muted">Tim {role}</p>
+            <p className="truncate text-xs text-sidebar-muted">Tim {roleLabel}</p>
           </div>
         </div>
       </SidebarHeader>

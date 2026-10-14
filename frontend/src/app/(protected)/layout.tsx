@@ -35,6 +35,12 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     }
   }, [pathname, router, session.data?.role]);
 
+  useEffect(() => {
+    if (session.data?.role === "super_admin" && pathname !== "/admin/users") {
+      router.replace("/admin/users");
+    }
+  }, [pathname, router, session.data?.role]);
+
   if (
     session.isPending ||
     (session.error instanceof ApiServiceError && session.error.status === 401)
@@ -68,6 +74,14 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  if (session.data.role === "super_admin" && pathname !== "/admin/users") {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Membuka halaman Kelola Akun…
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider
       defaultOpen={false}
@@ -80,7 +94,13 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
             <SidebarTrigger className="size-8 [&>svg]:size-6" />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium capitalize">{session.data.role}</span>
+            <span className="text-sm font-medium">
+              {session.data.role === "super_admin"
+                ? "Super Admin"
+                : session.data.role === "marketing"
+                  ? "Marketing"
+                  : "Sales"}
+            </span>
             <Avatar className="size-8 border-2 border-amber-400 bg-amber-400">
               <AvatarFallback className="bg-amber-400 text-slate-900">
                 <UserRound className="size-5" />

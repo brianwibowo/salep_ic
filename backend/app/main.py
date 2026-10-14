@@ -9,12 +9,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, search, leads, scheduler, web, spse, inaproc, final, metrics
+from app.api.routes import admin, health, search, leads, scheduler, web, spse, inaproc, final, metrics
 from app.core.auth import router as auth_router, enforce_access
 from app.core.config import settings
 from app.core.logging import logger
 from app.core.responses import detail_message, error_response
 from app.services.scheduler import lead_scheduler
+from app.api.routes import health, search, leads, scheduler, web, spse, inaproc, final, metrics, admin
 
 
 @asynccontextmanager
@@ -107,5 +108,6 @@ app.include_router(spse.router)
 app.include_router(inaproc.router)
 app.include_router(final.router)
 app.include_router(metrics.router)
+app.include_router(admin.router)
 app.include_router(auth_router)
 app.middleware('http')(enforce_access)

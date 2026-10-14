@@ -16,7 +16,7 @@ class AuthUser(AuthBase):
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[float] = mapped_column(Float, nullable=False)
-    __table_args__ = (CheckConstraint("role IN ('marketing', 'sales')", name='ck_auth_user_role'),)
+    __table_args__ = (CheckConstraint("role IN ('marketing', 'sales', 'super_admin')", name='ck_auth_user_role'),)
 
 
 class AuthSession(AuthBase):

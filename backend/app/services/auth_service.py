@@ -135,7 +135,7 @@ class AuthStore:
 
     def create_user(self, username: str, password: str, role: str) -> dict:
         username = normalize_username(username)
-        if role not in {'marketing', 'sales'}:
+        if role not in {'marketing', 'sales', 'super_admin'}:
             raise ValueError('Role tidak valid')
         hashed = password_hash(password)
         with Session(self.engine) as session:
@@ -146,6 +146,51 @@ class AuthStore:
             session.add(user)
             session.commit()
             return self._identity(user)
+
+    def list_users(self) -> list[dict]:
+        with Session(self.engine) as session:
+            users = session.scalars(
+                select(AuthUser).order_by(AuthUser.created_at.desc(), AuthUser.username.asc())
+            ).all()
+            return [
+                {
+                    'user_id': user.id,
+                    'username': user.username,
+                    'role': user.role,
+                    'active': user.active,
+                    'created_at': user.created_at,
+                }
+                for user in users
+            ]
+
+    def deactivate_user(self, username: str, *, requested_by: str) -> dict:
+        username = normalize_username(username)
+        requested_by = normalize_username(requested_by)
+        if username == requested_by:
+            raise ValueError('Akun yang sedang digunakan tidak dapat dinonaktifkan')
+
+        with Session(self.engine) as session:
+            user = session.scalar(
+                select(AuthUser).where(AuthUser.username == username).with_for_update()
+            )
+            if not user:
+                raise ValueError('User tidak ditemukan')
+            if user.role == 'super_admin':
+                raise ValueError('Akun Super Admin tidak dapat dinonaktifkan dari halaman ini')
+
+            if user.active:
+                user.active = False
+                user.version += 1
+                # Revoke existing sessions so the account loses access immediately.
+                session.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+                session.commit()
+
+            return {
+                'user_id': user.id,
+                'username': user.username,
+                'role': user.role,
+                'active': user.active,
+            }
 
     def update_user(self, username: str, *, password: str | None = None, active: bool | None = None, role: str | None = None) -> None:
         hashed = password_hash(password) if password is not None else None
@@ -158,7 +203,7 @@ class AuthStore:
             if active is not None:
                 user.active = active
             if role is not None:
-                if role not in {'marketing', 'sales'}:
+                if role not in {'marketing', 'sales', 'super_admin'}:
                     raise ValueError('Role tidak valid')
                 user.role = role
             user.version += 1
