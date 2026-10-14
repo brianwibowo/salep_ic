@@ -9,8 +9,14 @@ import {
   useSirupPackages,
   useSirupSync,
 } from "@/hooks/use-sirup";
-import type { InaprocSyncStats, SirupFilters, SirupSort } from "@/types/salep";
+import type {
+  InaprocSyncStats,
+  SirupFilters,
+  SirupPackage,
+  SirupSort,
+} from "@/types/salep";
 import { SirupHeader } from "./sirup-header";
+import { SirupPackageDetailsDialog } from "./sirup-package-details-dialog";
 import { SirupStatsCards } from "./sirup-stats-cards";
 import { SirupSyncCard } from "./sirup-sync-card";
 import { SirupTable } from "./sirup-table";
@@ -23,6 +29,9 @@ export function SirupPageContent() {
   const isMarketing = session?.role === "marketing";
 
   // Filter & Search states
+  const [selectedPackage, setSelectedPackage] = useState<SirupPackage | null>(
+    null,
+  );
   const [selectedYear, setSelectedYear] = useState<number | undefined>();
   const [search, setSearch] = useState("");
   const [procurementType, setProcurementType] = useState("");
@@ -130,7 +139,9 @@ export function SirupPageContent() {
   }, []);
 
   // API Query parameters: only include active filters if present
-  const filters = useMemo<SirupFilters & { page: number; limit: number }>(() => {
+  const filters = useMemo<
+    SirupFilters & { page: number; limit: number }
+  >(() => {
     const activeFilters: SirupFilters & { page: number; limit: number } = {
       page: pagination.pageIndex + 1,
       limit: pagination.pageSize,
@@ -262,7 +273,7 @@ export function SirupPageContent() {
           onRefresh={handleRefresh}
         />
 
-        <div className="p-4 pt-0">
+        <div className="p-5">
           <SirupTable
             data={packageData}
             total={totalRecords}
@@ -271,9 +282,17 @@ export function SirupPageContent() {
             isError={packagesQuery.isError}
             errorMessage={packagesQuery.error?.message}
             onPaginationChange={setPagination}
+            onViewPackage={setSelectedPackage}
           />
         </div>
       </section>
+
+      <SirupPackageDetailsDialog
+        packageData={selectedPackage}
+        onOpenChange={(open) => {
+          if (!open) setSelectedPackage(null);
+        }}
+      />
     </div>
   );
 }

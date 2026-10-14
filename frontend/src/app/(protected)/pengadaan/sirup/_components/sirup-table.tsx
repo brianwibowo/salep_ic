@@ -10,7 +10,7 @@ import {
   type OnChangeFn,
   type PaginationState,
 } from "@tanstack/react-table";
-import { Database, ExternalLink, Loader2 } from "lucide-react";
+import { Database, ExternalLink, Eye, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
@@ -33,6 +33,7 @@ interface SirupTableProps {
   isError: boolean;
   errorMessage?: string;
   onPaginationChange: OnChangeFn<PaginationState>;
+  onViewPackage?: (item: SirupPackage) => void;
 }
 
 export function SirupTable({
@@ -43,6 +44,7 @@ export function SirupTable({
   isError,
   errorMessage,
   onPaginationChange,
+  onViewPackage,
 }: SirupTableProps) {
   const columns = useMemo<ColumnDef<SirupPackage>[]>(
     () => [
@@ -54,8 +56,9 @@ export function SirupTable({
           return (
             <div className="max-w-[280px]">
               <p
-                className="truncate font-semibold text-slate-900 dark:text-white"
+                className="cursor-pointer truncate block font-semibold text-left text-slate-900 transition-colors hover:text-[#9D0A0E] hover:underline dark:text-white dark:hover:text-red-400"
                 title={item.package_name}
+                onClick={() => onViewPackage?.(item)}
               >
                 {item.package_name}
               </p>
@@ -145,27 +148,38 @@ export function SirupTable({
         cell: ({ row }) => {
           const item = row.original;
           return (
-            <div className="text-right">
+            <div className="flex items-center justify-end gap-1.5 text-right">
               <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800"
+                onClick={() => onViewPackage?.(item)}
+              >
+                <Eye className="size-3.5 text-slate-500" />
+                Detail
+              </Button>
+              {/* <Button
                 asChild
                 variant="ghost"
                 size="sm"
-                className="h-8 gap-1 text-xs"
+                className="h-8 gap-1 px-2 text-xs text-muted-foreground hover:text-[#9D0A0E]"
+                title="Buka langsung di SiRUP INAPROC"
               >
                 <Link
                   href={item.source_url}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Detail <ExternalLink className="size-3" />
+                  <ExternalLink className="size-3.5" />
                 </Link>
-              </Button>
+              </Button> */}
             </div>
           );
         },
       },
     ],
-    [],
+    [onViewPackage],
   );
 
   const pageCount = Math.max(1, Math.ceil(total / pagination.pageSize));
@@ -188,7 +202,10 @@ export function SirupTable({
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-muted/40 hover:bg-muted/40">
+              <TableRow
+                key={headerGroup.id}
+                className="bg-muted/40 hover:bg-muted/40"
+              >
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
@@ -229,10 +246,7 @@ export function SirupTable({
               </TableRow>
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="transition hover:bg-muted/30"
-                >
+                <TableRow key={row.id} className="transition hover:bg-muted/30">
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="py-3 text-xs">
                       {flexRender(
