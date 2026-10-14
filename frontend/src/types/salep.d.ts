@@ -4,6 +4,15 @@ export interface SalepSession {
   role: SalepRole;
 }
 
+export interface SalesStatusLog {
+  id: string;
+  from_status: string;
+  to_status: string;
+  note: string;
+  changed_by: string | null;
+  changed_at: string;
+}
+
 export interface Lead {
   lead_id: string;
   source: string;
@@ -30,6 +39,7 @@ export interface Lead {
   analyzed_at: string;
   marketing_status: "pending" | "valid" | "invalid";
   sales_status: "Belum Dihubungi" | "Sedang Dihubungi" | "Closing" | "Batal";
+  sales_status_logs?: SalesStatusLog[];
   notes: string | null;
   canonical_post_id?: string | null;
   deterministic_relevance_score?: number;

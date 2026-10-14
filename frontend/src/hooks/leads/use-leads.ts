@@ -54,10 +54,12 @@ export function useUpdateSalesStatus() {
     mutationFn: ({
       leadId,
       status,
+      note,
     }: {
       leadId: string;
       status: "Belum Dihubungi" | "Sedang Dihubungi" | "Closing" | "Batal";
-    }) => salepLeadsService.updateSalesStatus(leadId, status),
+      note: string;
+    }) => salepLeadsService.updateSalesStatus(leadId, status, note),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: leadsQueryKeys.all });
     },
