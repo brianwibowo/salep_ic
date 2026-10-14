@@ -8,7 +8,7 @@ import {
 } from "@/types/transaction";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/utils/formatting/string";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   DropdownMenu,

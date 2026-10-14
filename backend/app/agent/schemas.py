@@ -106,6 +106,15 @@ class LeadStatus(str, Enum):
     CONTACTED = "contacted"
 
 
+class SalesStatusLog(BaseModel):
+    id: str
+    from_status: str
+    to_status: str
+    note: str
+    changed_by: str | None = None
+    changed_at: datetime
+
+
 class LeadRecord(BaseModel):
     lead_id: str
     source: str
@@ -128,6 +137,7 @@ class LeadRecord(BaseModel):
     status: LeadStatus = LeadStatus.NEW
     marketing_status: str = Field(default="pending", description="Status kualifikasi marketing: 'pending', 'valid', 'invalid'")
     sales_status: str = Field(default="Belum Dihubungi", description="Status follow-up sales: 'Belum Dihubungi', 'Sedang Dihubungi', 'Closing', 'Batal'")
+    sales_status_logs: list["SalesStatusLog"] = Field(default_factory=list)
     score_breakdown: ScoreBreakdown | None = None
     canonical_post_id: str | None = None
     deterministic_relevance_score: int = Field(default=0, ge=0, le=100)
@@ -145,6 +155,15 @@ class UpdateStatusRequest(BaseModel):
 
 class UpdateSalesStatusRequest(BaseModel):
     sales_status: Literal["Belum Dihubungi", "Sedang Dihubungi", "Closing", "Batal"]
+    note: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("note")
+    @classmethod
+    def clean_note(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Catatan tindak lanjut wajib diisi")
+        return cleaned
 
 
 # --- API Request / Response ---

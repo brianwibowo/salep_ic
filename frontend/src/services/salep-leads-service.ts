@@ -52,10 +52,11 @@ export const salepLeadsService = {
   updateSalesStatus: async (
     leadId: string,
     sales_status: Lead["sales_status"],
+    note: string,
   ): Promise<Lead> => {
     const res = await Patch<Lead>(
       `${BASE_URL}/leads/${encodeURIComponent(leadId)}/sales-status`,
-      { sales_status },
+      { sales_status, note },
     );
     return unwrapResponse(res);
   },

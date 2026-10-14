@@ -9,7 +9,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['create', 'reset-password', 'disable', 'enable', 'revoke', 'set-role', 'cleanup'])
     parser.add_argument('--username')
-    parser.add_argument('--role', choices=['marketing', 'sales'])
+    parser.add_argument('--role', choices=['marketing', 'sales', 'super_admin'])
     args = parser.parse_args()
     store = get_auth_store()
     if args.action == 'cleanup':

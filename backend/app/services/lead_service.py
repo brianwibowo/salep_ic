@@ -67,6 +67,46 @@ def build_lead_record(raw: RawLead, analysis: LeadAnalysis) -> LeadRecord:
     )
 
 
+def build_raw_only_lead_record(raw: RawLead) -> LeadRecord:
+    """Build a reviewable lead when AI analysis is unavailable.
+
+    Keep the scraped evidence and provenance, but do not invent an intent,
+    score, or qualification decision. The quality flag lets the UI distinguish
+    this record from one that received an AI analysis.
+    """
+    return LeadRecord(
+        lead_id=f"lead_{uuid.uuid4().hex[:12]}",
+        source=raw.source,
+        source_url=raw.source_url,
+        author_name=raw.author_name,
+        author_profile_url=raw.author_profile_url,
+        published_at=raw.published_at,
+        matched_keyword=raw.matched_keyword,
+        content=raw.content,
+        is_potential_lead=False,
+        intent=IntentType.UNKNOWN,
+        needs=[],
+        pain_points=[],
+        recommended_services=[],
+        lead_score=0,
+        confidence=0.0,
+        evidence=[],
+        analyzed_at=datetime.now(timezone.utc),
+        status=LeadStatus.NEW,
+        marketing_status="pending",
+        sales_status="Belum Dihubungi",
+        score_breakdown=None,
+        canonical_post_id=raw.canonical_post_id,
+        deterministic_relevance_score=raw.deterministic_relevance_score,
+        deterministic_relevance_label=raw.deterministic_relevance_label,
+        deterministic_relevance_reason=raw.deterministic_relevance_reason,
+        spam_label=raw.spam_label,
+        spam_score=raw.spam_score,
+        is_spam=raw.is_spam,
+        quality_flags=list(dict.fromkeys([*raw.quality_flags, "llm_analysis_failed"])),
+    )
+
+
 async def run_search(request: SearchRequest) -> SearchResponse:
     """Execute the full SALEP pipeline:
     Keywords → Search Sources → Deduplicate → AI Analysis → Score → Save → Response.
@@ -95,6 +135,7 @@ async def run_search(request: SearchRequest) -> SearchResponse:
     # Step 4: Analyze each lead with SALEP Agent
     leads: list[LeadRecord] = []
     errors = 0
+    analyzed = 0
 
     for i, raw_lead in enumerate(unique_results):
         try:
@@ -102,15 +143,18 @@ async def run_search(request: SearchRequest) -> SearchResponse:
                 await asyncio.sleep(2)
             logger.info("Analyzing lead %d/%d", i + 1, len(unique_results))
             analysis = await analyze_lead(raw_lead.content)
-            lead_record = build_lead_record(raw_lead, analysis)
-            leads.append(lead_record)
-
         except Exception as e:
             errors += 1
-            logger.error("Failed to analyze lead %d: %s", i + 1, e)
-
-    if errors and not leads:
-        raise RuntimeError("Analisis AI gagal. Periksa konfigurasi provider dan coba lagi.")
+            logger.warning(
+                "AI analysis unavailable for lead %d/%d; preserving raw lead for review: %s",
+                i + 1,
+                len(unique_results),
+                e,
+            )
+            leads.append(build_raw_only_lead_record(raw_lead))
+            continue
+        analyzed += 1
+        leads.append(build_lead_record(raw_lead, analysis))
 
     # Step 5: Save all leads to local SQLite repository and sync valid leads to Google Sheets
     for l in leads:
@@ -126,13 +170,13 @@ async def run_search(request: SearchRequest) -> SearchResponse:
     saved = await sheets_service.append_leads(qualified_leads_for_sales)
     logger.info(
         "Search %s complete — analyzed=%d qualified=%d saved_for_sales=%d errors=%d",
-        query_id, len(leads), len(qualified_leads_for_sales), saved, errors,
+        query_id, analyzed, len(qualified_leads_for_sales), saved, errors,
     )
 
     return SearchResponse(
         query_id=query_id,
         total_found=total_found,
-        total_analyzed=len(leads),
+        total_analyzed=analyzed,
         qualified=sum(l.is_potential_lead for l in leads),
         leads=leads,
     )
@@ -219,8 +263,13 @@ async def analyze_and_save_url(url: str, save_to_sheet: bool = True) -> LeadReco
             "deterministic_relevance_label": "manual_review",
             "deterministic_relevance_reason": "direct_url_not_accepted_by_gate",
         })
-    analysis = await analyze_lead(raw_lead.content)
-    lead_record = build_lead_record(raw_lead, analysis)
+    try:
+        analysis = await analyze_lead(raw_lead.content)
+    except Exception as e:
+        logger.warning("AI analysis unavailable for direct URL; preserving raw lead for review: %s", e)
+        lead_record = build_raw_only_lead_record(raw_lead)
+    else:
+        lead_record = build_lead_record(raw_lead, analysis)
 
     try:
         lead_repository.save_lead(lead_record)

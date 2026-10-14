@@ -7,6 +7,12 @@ import { useLogin } from "@/hooks/auth/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+const DEV_USERS = {
+  admin: { username: "admin", password: "[PASSWORD]" },
+  marketing: { username: "marketing", password: "lLn,hn,!RTbRhUEM" },
+  sales: { username: "sales", password: ",MOy]sZ{Li2,H9EN" },
+};
+
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -21,8 +27,17 @@ export default function Login() {
   return (
     <div className="relative mx-auto grid min-h-svh w-full max-w-[1440px] grid-cols-1 lg:grid-cols-2">
       <header className="absolute left-6 top-5 z-10 flex items-center gap-2 sm:left-10 sm:top-7 lg:left-12">
-        <Image src="/logo.png" alt="SALEP" width={42} height={42} className="size-10 object-contain" priority />
-        <span className="text-lg font-bold tracking-tight text-[#9D0A0E]">SALEP</span>
+        <Image
+          src="/logo.png"
+          alt="SALEP"
+          width={42}
+          height={42}
+          className="size-10 object-contain"
+          priority
+        />
+        <span className="text-lg font-bold tracking-tight text-[#9D0A0E]">
+          SALEP
+        </span>
       </header>
 
       <section className="hidden items-center justify-center px-12 pb-10 pt-20 lg:flex">
@@ -39,7 +54,9 @@ export default function Login() {
       <section className="flex min-h-svh items-center justify-center px-6 pb-10 pt-24 sm:px-12 lg:px-16">
         <div className="w-full max-w-[420px]">
           <div className="mb-9 text-center">
-            <h1 className="text-3xl font-semibold tracking-tight text-[#164E48] sm:text-4xl">Welcome Back!</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#164E48] sm:text-4xl">
+              Welcome Back!
+            </h1>
             <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500">
               Sign in to continue managing your leads and team activities
             </p>
@@ -47,7 +64,12 @@ export default function Login() {
 
           <form className="space-y-4" onSubmit={handleAccountLogin}>
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium text-slate-700">Username</label>
+              <label
+                htmlFor="username"
+                className="text-sm font-medium text-slate-700"
+              >
+                Username
+              </label>
               <Input
                 id="username"
                 name="username"
@@ -59,7 +81,12 @@ export default function Login() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-slate-700">Password</label>
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-slate-700"
+              >
+                Password
+              </label>
               <div className="relative">
                 <Input
                   id="password"
@@ -73,16 +100,26 @@ export default function Login() {
                 />
                 <button
                   type="button"
-                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  aria-label={
+                    showPassword ? "Sembunyikan password" : "Tampilkan password"
+                  }
                   onClick={() => setShowPassword((visible) => !visible)}
                   className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-400 transition-colors hover:text-slate-700"
                 >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" disabled={login.isPending || !username.trim() || !password} className="h-12 w-full rounded-[5px] bg-[#9D0A0E] text-sm font-medium text-white shadow-none hover:bg-[#83080C]">
+            <Button
+              type="submit"
+              disabled={login.isPending || !username.trim() || !password}
+              className="h-12 w-full rounded-[5px] bg-[#9D0A0E] text-sm font-medium text-white shadow-none hover:bg-[#83080C]"
+            >
               {login.isPending ? "Memeriksa…" : "Masuk"}
             </Button>
           </form>
@@ -103,9 +140,12 @@ export default function Login() {
                   variant="outline"
                   disabled={login.isPending}
                   onClick={() => {
-                    setUsername("marketing");
-                    setPassword("lLn,hn,!RTbRhUEM");
-                    login.mutate({ username: "marketing", password: "lLn,hn,!RTbRhUEM" });
+                    setUsername(DEV_USERS.marketing.username);
+                    setPassword(DEV_USERS.marketing.password);
+                    login.mutate({
+                      username: DEV_USERS.marketing.username,
+                      password: DEV_USERS.marketing.password,
+                    });
                   }}
                   className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
                 >
@@ -116,9 +156,12 @@ export default function Login() {
                   variant="outline"
                   disabled={login.isPending}
                   onClick={() => {
-                    setUsername("sales");
-                    setPassword(",MOy]sZ{Li2,H9EN");
-                    login.mutate({ username: "sales", password: ",MOy]sZ{Li2,H9EN" });
+                    setUsername(DEV_USERS.sales.username);
+                    setPassword(DEV_USERS.sales.password);
+                    login.mutate({
+                      username: DEV_USERS.sales.username,
+                      password: DEV_USERS.sales.password,
+                    });
                   }}
                   className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
                 >

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,7 @@ class LeadRepository:
                         analyzed_at TEXT NOT NULL,
                         marketing_status TEXT NOT NULL DEFAULT 'pending',
                         sales_status TEXT NOT NULL DEFAULT 'Belum Dihubungi',
+                        sales_status_logs TEXT NOT NULL DEFAULT '[]',
                         notes TEXT,
                         canonical_post_id TEXT,
                         deterministic_relevance_score INTEGER NOT NULL DEFAULT 0,
@@ -94,6 +96,7 @@ class LeadRepository:
                     "spam_score": "INTEGER NOT NULL DEFAULT 0",
                     "is_spam": "INTEGER NOT NULL DEFAULT 0",
                     "quality_flags": "TEXT",
+                    "sales_status_logs": "TEXT NOT NULL DEFAULT '[]'",
                 }
                 for column, definition in additions.items():
                     if column not in existing_columns:
@@ -643,19 +646,44 @@ class LeadRepository:
         finally:
             conn.close()
 
-    def update_sales_status(self, lead_id: str, new_status: str) -> dict[str, Any] | None:
-        """Update sales follow-up status (e.g. Belum Dihubungi, Sedang Dihubungi, Closing, Batal)."""
+    def update_sales_status(
+        self,
+        lead_id: str,
+        new_status: str,
+        note: str,
+        changed_by: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Update sales follow-up status and append a timestamped note."""
         conn = self._get_connection()
         try:
-            now_str = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(timezone.utc)
+            now_str = now.isoformat()
+            row = conn.execute(
+                "SELECT sales_status, marketing_status, sales_status_logs FROM leads WHERE lead_id = ?",
+                (lead_id,),
+            ).fetchone()
+            if not row or row["marketing_status"] != "valid":
+                return None
+            try:
+                logs = json.loads(row["sales_status_logs"] or "[]")
+            except (TypeError, json.JSONDecodeError):
+                logs = []
+            logs.append({
+                "id": uuid.uuid4().hex,
+                "from_status": row["sales_status"],
+                "to_status": new_status.strip(),
+                "note": note.strip(),
+                "changed_by": changed_by,
+                "changed_at": now_str,
+            })
             with conn:
                 result = conn.execute(
                     """
                     UPDATE leads
-                    SET sales_status = ?, updated_at = ?
+                    SET sales_status = ?, sales_status_logs = ?, updated_at = ?
                     WHERE lead_id = ? AND marketing_status = 'valid'
                     """,
-                    (new_status.strip(), now_str, lead_id),
+                    (new_status.strip(), json.dumps(logs), now_str, lead_id),
                 )
             if result.rowcount == 0:
                 return None
@@ -704,7 +732,7 @@ class LeadRepository:
     def _row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
         """Convert SQLite row to rich dictionary with parsed JSON fields."""
         d = dict(row)
-        for json_col in ("needs", "pain_points", "recommended_services", "evidence", "quality_flags"):
+        for json_col in ("needs", "pain_points", "recommended_services", "evidence", "quality_flags", "sales_status_logs"):
             if d.get(json_col):
                 try:
                     d[json_col] = json.loads(d[json_col])

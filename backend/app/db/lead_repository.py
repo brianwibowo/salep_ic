@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+import uuid
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.agent.schemas import LeadRecord
+from app.agent.schemas import LeadRecord, SalesStatusLog
 from app.db.models import Base, LeadModel
 from app.db.engine import build_engine, session_factory
 from app.services.lead_merge import scraped_lead_changes
@@ -73,6 +74,7 @@ class SqlAlchemyLeadRepository:
             "analyzed_at": row.analyzed_at.isoformat() if row.analyzed_at else None,
             "marketing_status": row.marketing_status,
             "sales_status": row.sales_status,
+            "sales_status_logs": row.sales_status_logs or [],
             "notes": row.notes,
             "created_at": row.created_at.isoformat() if row.created_at else None,
             "updated_at": row.updated_at.isoformat() if row.updated_at else None,
@@ -111,6 +113,7 @@ class SqlAlchemyLeadRepository:
             "analyzed_at": analyzed_at,
             "marketing_status": marketing_status,
             "sales_status": sales_status,
+            "sales_status_logs": [log.model_dump(mode="json") for log in lead.sales_status_logs],
             "created_at": now,
             "updated_at": now,
         }
@@ -269,8 +272,39 @@ class SqlAlchemyLeadRepository:
             raise ValueError(f"Invalid marketing status: {clean_status}")
         return self._update_status(lead_id, marketing_status=clean_status)
 
-    def update_sales_status(self, lead_id: str, new_status: str) -> dict[str, Any] | None:
-        return self._update_status(lead_id, sales_status=new_status.strip(), require_valid=True)
+    def update_sales_status(
+        self,
+        lead_id: str,
+        new_status: str,
+        note: str,
+        changed_by: str | None = None,
+    ) -> dict[str, Any] | None:
+        session = self._session()
+        try:
+            row = session.get(LeadModel, lead_id)
+            if not row or row.marketing_status != "valid":
+                return None
+            now = self._now()
+            next_status = new_status.strip()
+            logs = list(row.sales_status_logs or [])
+            logs.append(SalesStatusLog(
+                id=uuid.uuid4().hex,
+                from_status=row.sales_status,
+                to_status=next_status,
+                note=note.strip(),
+                changed_by=changed_by,
+                changed_at=now,
+            ).model_dump(mode="json"))
+            row.sales_status = next_status
+            row.sales_status_logs = logs
+            row.updated_at = now
+            session.commit()
+            return self._to_dict(row)
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def _update_status(
         self,

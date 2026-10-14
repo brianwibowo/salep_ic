@@ -69,7 +69,7 @@ class Settings(BaseSettings):
 
     # App
     app_env: str = Field(default="development", alias="APP_ENV")
-    app_domain: str = Field(default="salep1.duckdns.org", alias="APP_DOMAIN")
+    app_domain: str = Field(default="salep-staging.icdigital.io", alias="APP_DOMAIN")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     # Operational hardening

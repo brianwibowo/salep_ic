@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -79,6 +80,8 @@ export function LeadsPageContent({
   const [source, setSource] = useState<string>(sourcePreset);
   const [salesStatus, setSalesStatus] = useState("all");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [salesStatusDraft, setSalesStatusDraft] = useState<Lead["sales_status"]>("Belum Dihubungi");
+  const [salesNote, setSalesNote] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Lead | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -156,7 +159,9 @@ export function LeadsPageContent({
         header: "Skor",
         cell: ({ row }) => (
           <span className="rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
-            {row.original.lead_score}
+            {row.original.quality_flags?.includes("llm_analysis_failed")
+              ? "Belum dianalisis"
+              : row.original.lead_score}
           </span>
         ),
       },
@@ -200,12 +205,11 @@ export function LeadsPageContent({
               className="h-9 rounded-md border bg-background px-2"
               value={lead.sales_status}
               disabled={updateSales.isPending}
-              onChange={(event) =>
-                updateSales.mutate({
-                  leadId: lead.lead_id,
-                  status: event.target.value as Lead["sales_status"],
-                })
-              }
+              onChange={(event) => {
+                setSalesStatusDraft(event.target.value as Lead["sales_status"]);
+                setSalesNote("");
+                setSelectedLead(lead);
+              }}
             >
               {salesStatuses.map((item) => (
                 <option key={item}>{item}</option>
@@ -258,7 +262,11 @@ export function LeadsPageContent({
                 aria-label="Lihat detail lead"
                 title="Detail"
                 className="text-slate-700 hover:text-slate-950"
-                onClick={() => setSelectedLead(lead)}
+                onClick={() => {
+                  setSelectedLead(lead);
+                  setSalesStatusDraft(lead.sales_status);
+                  setSalesNote("");
+                }}
               >
                 <Eye className="size-4" />
               </Button>
@@ -560,12 +568,24 @@ export function LeadsPageContent({
                   {selectedLead.source}
                 </DialogDescription>
               </DialogHeader>
+              {selectedLead.quality_flags?.includes("llm_analysis_failed") && (
+                <div
+                  role="status"
+                  className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200"
+                >
+                  Analisis AI belum tersedia. Konten sumber disimpan sebagai data
+                  mentah; periksa posting ini secara manual sebelum mengubahnya
+                  menjadi lead valid.
+                </div>
+              )}
               <div className="space-y-5">
                 <dl className="grid gap-4 rounded-[5px] border p-4 sm:grid-cols-2">
                   <div>
                     <dt className="text-xs text-muted-foreground">Skor lead</dt>
                     <dd className="mt-1 font-semibold">
-                      {selectedLead.lead_score}/100
+                      {selectedLead.quality_flags?.includes("llm_analysis_failed")
+                        ? "Belum dianalisis"
+                        : `${selectedLead.lead_score}/100`}
                     </dd>
                   </div>
                   <div>
@@ -573,7 +593,9 @@ export function LeadsPageContent({
                       Keyakinan analisis
                     </dt>
                     <dd className="mt-1 font-semibold">
-                      {Math.round(selectedLead.confidence * 100)}%
+                      {selectedLead.quality_flags?.includes("llm_analysis_failed")
+                        ? "Belum dianalisis"
+                        : `${Math.round(selectedLead.confidence * 100)}%`}
                     </dd>
                   </div>
                   <div>
@@ -611,54 +633,107 @@ export function LeadsPageContent({
                     </div>
                   )}
                 </dl>
-                {sourcePreset !== "all" && (
+                {isMarketing && sourcePreset !== "all" && (
                   <label className="block max-w-sm space-y-2 text-sm font-medium">
-                    {isMarketing
-                      ? "Ubah status marketing"
-                      : "Ubah status tindak lanjut"}
-                    {isMarketing ? (
+                    Ubah status marketing
+                    <select
+                      className="h-10 w-full rounded-[5px] border bg-background px-3"
+                      value={selectedLead.marketing_status}
+                      disabled={updateMarketing.isPending}
+                      onChange={(event) =>
+                        updateMarketing.mutate(
+                          {
+                            leadId: selectedLead.lead_id,
+                            status: event.target.value as Lead["marketing_status"],
+                          },
+                          { onSuccess: setSelectedLead },
+                        )
+                      }
+                    >
+                      <option value="pending">Menunggu review</option>
+                      <option value="valid">Valid</option>
+                      <option value="invalid">Tidak valid</option>
+                    </select>
+                  </label>
+                )}
+                {!isMarketing && (
+                  <section className="space-y-3 rounded-[5px] border p-4">
+                    <div>
+                      <h3 className="text-sm font-semibold">Catatan tindak lanjut</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Setiap pembaruan status harus disertai catatan. Catatan akan tersimpan sebagai riwayat.
+                      </p>
+                    </div>
+                    <label className="block space-y-2 text-sm font-medium">
+                      Status tindak lanjut
                       <select
                         className="h-10 w-full rounded-[5px] border bg-background px-3"
-                        value={selectedLead.marketing_status}
-                        disabled={updateMarketing.isPending}
-                        onChange={(event) =>
-                          updateMarketing.mutate(
-                            {
-                              leadId: selectedLead.lead_id,
-                              status: event.target
-                                .value as Lead["marketing_status"],
-                            },
-                            { onSuccess: setSelectedLead },
-                          )
-                        }
-                      >
-                        <option value="pending">Menunggu review</option>
-                        <option value="valid">Valid</option>
-                        <option value="invalid">Tidak valid</option>
-                      </select>
-                    ) : (
-                      <select
-                        className="h-10 w-full rounded-[5px] border bg-background px-3"
-                        value={selectedLead.sales_status}
+                        value={salesStatusDraft}
                         disabled={updateSales.isPending}
-                        onChange={(event) =>
-                          updateSales.mutate(
-                            {
-                              leadId: selectedLead.lead_id,
-                              status: event.target
-                                .value as Lead["sales_status"],
-                            },
-                            { onSuccess: setSelectedLead },
-                          )
-                        }
+                        onChange={(event) => setSalesStatusDraft(event.target.value as Lead["sales_status"])}
                       >
                         {salesStatuses.map((item) => (
                           <option key={item}>{item}</option>
                         ))}
                       </select>
-                    )}
-                  </label>
+                    </label>
+                    <label className="block space-y-2 text-sm font-medium">
+                      Catatan
+                      <Textarea
+                        value={salesNote}
+                        onChange={(event) => setSalesNote(event.target.value)}
+                        placeholder="Contoh: sudah menghubungi via WhatsApp, menunggu jadwal demo."
+                        maxLength={2000}
+                        disabled={updateSales.isPending}
+                      />
+                    </label>
+                    <Button
+                      type="button"
+                      disabled={!salesNote.trim() || updateSales.isPending}
+                      onClick={() => updateSales.mutate(
+                        {
+                          leadId: selectedLead.lead_id,
+                          status: salesStatusDraft,
+                          note: salesNote.trim(),
+                        },
+                        {
+                          onSuccess: (updated) => {
+                            setSelectedLead(updated);
+                            setSalesStatusDraft(updated.sales_status);
+                            setSalesNote("");
+                          },
+                        },
+                      )}
+                    >
+                      {updateSales.isPending ? "Menyimpan..." : "Simpan catatan & status"}
+                    </Button>
+                  </section>
                 )}
+                <section className="space-y-3">
+                  <h3 className="text-sm font-semibold">Log catatan</h3>
+                  {selectedLead.sales_status_logs?.length ? (
+                    <ol className="space-y-3">
+                      {[...selectedLead.sales_status_logs].reverse().map((log) => (
+                        <li key={log.id} className="rounded-[5px] border p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                            <span>{log.from_status} → {log.to_status}</span>
+                            <time dateTime={log.changed_at}>
+                              {new Date(log.changed_at).toLocaleString("id-ID")}
+                            </time>
+                          </div>
+                          <p className="mt-2 whitespace-pre-wrap text-sm">{log.note}</p>
+                          {log.changed_by && (
+                            <p className="mt-2 text-xs text-muted-foreground">Oleh {log.changed_by}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="rounded-[5px] border border-dashed p-3 text-sm text-muted-foreground">
+                      Belum ada catatan tindak lanjut.
+                    </p>
+                  )}
+                </section>
                 <div>
                   <h3 className="mb-2 text-sm font-semibold">Konten</h3>
                   <p className="whitespace-pre-wrap rounded-[5px] bg-muted/50 p-4 text-sm leading-6">
