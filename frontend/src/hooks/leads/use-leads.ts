@@ -58,8 +58,13 @@ export function useUpdateSalesStatus() {
     }: {
       leadId: string;
       status: "Belum Dihubungi" | "Sedang Dihubungi" | "Closing" | "Batal";
-      note: string;
-    }) => salepLeadsService.updateSalesStatus(leadId, status, note),
+      note?: string;
+    }) =>
+      salepLeadsService.updateSalesStatus(
+        leadId,
+        status,
+        note?.trim() || "Pembaruan status tindak lanjut",
+      ),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: leadsQueryKeys.all });
     },

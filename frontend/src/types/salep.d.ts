@@ -203,3 +203,46 @@ export interface InaprocTracksResponse {
   spse: Record<string, string>;
 }
 
+export type SirupSort = "newest" | "oldest" | "budget_desc" | "budget_asc";
+
+export interface SirupPackage {
+  package_id: string;
+  external_id: string;
+  rup_id: string | null;
+  package_name: string;
+  description: string | null;
+  organization: string | null;
+  satker: string | null;
+  location: string | null;
+  procurement_type: string | null;
+  procurement_method: string | null;
+  fiscal_year: number;
+  budget_amount: number | null;
+  local_content_flag: boolean | null;
+  small_business_flag: boolean | null;
+  source_url: string;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+}
+
+export interface SirupFilters {
+  fiscal_year?: number;
+  search?: string;
+  procurement_type?: string;
+  procurement_method?: string;
+  date_from?: string;
+  date_to?: string;
+  sort?: SirupSort;
+}
+
+export interface SirupListResponse {
+  items: SirupPackage[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+  summary: { total: number; total_budget_amount: number };
+  facets: {
+    fiscal_years: number[];
+    procurement_types: string[];
+    procurement_methods: string[];
+  };
+  filters: SirupFilters;
+}
