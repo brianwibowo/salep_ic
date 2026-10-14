@@ -124,52 +124,52 @@ export default function Login() {
             </Button>
           </form>
 
-          {process.env.NODE_ENV !== "production" && (
-            <div className="mt-6 space-y-3">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-dashed border-slate-300" />
-                </div>
-                <span className="relative bg-white px-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Dev Quick Login
-                </span>
+          {/* {process.env.NODE_ENV !== "production" && ( */}
+          <div className="mt-6 space-y-3">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-dashed border-slate-300" />
               </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={login.isPending}
-                  onClick={() => {
-                    setUsername(DEV_USERS.marketing.username);
-                    setPassword(DEV_USERS.marketing.password);
-                    login.mutate({
-                      username: DEV_USERS.marketing.username,
-                      password: DEV_USERS.marketing.password,
-                    });
-                  }}
-                  className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
-                >
-                  Marketing
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={login.isPending}
-                  onClick={() => {
-                    setUsername(DEV_USERS.sales.username);
-                    setPassword(DEV_USERS.sales.password);
-                    login.mutate({
-                      username: DEV_USERS.sales.username,
-                      password: DEV_USERS.sales.password,
-                    });
-                  }}
-                  className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
-                >
-                  Sales
-                </Button>
-              </div>
+              <span className="relative bg-white px-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+                Dev Quick Login
+              </span>
             </div>
-          )}
+            <div className="grid grid-cols-2 gap-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={login.isPending}
+                onClick={() => {
+                  setUsername(DEV_USERS.marketing.username);
+                  setPassword(DEV_USERS.marketing.password);
+                  login.mutate({
+                    username: DEV_USERS.marketing.username,
+                    password: DEV_USERS.marketing.password,
+                  });
+                }}
+                className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
+              >
+                Marketing
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={login.isPending}
+                onClick={() => {
+                  setUsername(DEV_USERS.sales.username);
+                  setPassword(DEV_USERS.sales.password);
+                  login.mutate({
+                    username: DEV_USERS.sales.username,
+                    password: DEV_USERS.sales.password,
+                  });
+                }}
+                className="h-10 rounded-[5px] border-slate-300 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
+              >
+                Sales
+              </Button>
+            </div>
+          </div>
+          {/* )} */}
 
           <p className="mt-5 text-center text-xs leading-5 text-slate-400">
             Gunakan akun organisasi yang diberikan admin SALEP.
