@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { parseSpseLeadContent } from "@/lib/spse-parser";
 import type { Lead } from "@/types/salep";
+import { formatDate } from "@/utils/formatting/string";
 
 interface SpseLeadsTableProps {
   data: Lead[];
@@ -178,6 +179,12 @@ export function SpseLeadsTable({
           }
           return <MarketingStatusBadge value={lead.marketing_status} />;
         },
+      },
+      {
+        accessorKey: "created_at",
+        header: "Dibuat",
+        cell: ({ row }) =>
+          row.original.created_at ? formatDate(row.original.created_at) : "—",
       },
       {
         accessorKey: "sales_status",

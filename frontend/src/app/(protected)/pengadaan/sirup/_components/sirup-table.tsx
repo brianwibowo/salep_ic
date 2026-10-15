@@ -143,6 +143,19 @@ export function SirupTable({
         },
       },
       {
+        accessorKey: "created_at",
+        header: "Dibuat",
+        cell: ({ row }) => {
+          // SIRUP currently exposes first_seen_at as its record creation date.
+          const date = row.original.created_at ?? row.original.first_seen_at;
+          return (
+            <span className="whitespace-nowrap text-muted-foreground">
+              {date ? formatDate(date) : "—"}
+            </span>
+          );
+        },
+      },
+      {
         id: "actions",
         header: () => <div className="text-right">Aksi</div>,
         cell: ({ row }) => {

@@ -40,6 +40,7 @@ export interface Lead {
   marketing_status: "pending" | "valid" | "invalid";
   sales_status: "Belum Dihubungi" | "Sedang Dihubungi" | "Closing" | "Batal";
   sales_status_logs?: SalesStatusLog[];
+  created_at: string | null;
   notes: string | null;
   canonical_post_id?: string | null;
   deterministic_relevance_score?: number;
@@ -221,6 +222,7 @@ export interface SirupPackage {
   local_content_flag: boolean | null;
   small_business_flag: boolean | null;
   source_url: string;
+  created_at?: string | null;
   first_seen_at: string | null;
   last_seen_at: string | null;
 }
