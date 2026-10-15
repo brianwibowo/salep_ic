@@ -46,7 +46,7 @@ export function SpseLeadsToolbar({
   onSearchChange,
   onStatusChange,
   onSalesStatusChange,
-  onRefresh: _onRefresh,
+  onRefresh,
   onOpenSync,
 }: SpseLeadsToolbarProps) {
   const hasActiveFilter = isMarketing ? status !== "all" : salesStatus !== "all";
@@ -159,6 +159,20 @@ export function SpseLeadsToolbar({
               )}
             </PopoverContent>
           </Popover>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 gap-2 rounded-[5px] text-xs"
+            onClick={onRefresh}
+            disabled={_isRefreshing}
+            title="Muat ulang data SPSE"
+            aria-label="Muat ulang data SPSE"
+          >
+            <RefreshCw
+              className={`size-3.5 ${_isRefreshing ? "animate-spin" : ""}`}
+            />
+          </Button>
         </div>
 
         {/* Right Side: Sinkronisasi Manual Button */}

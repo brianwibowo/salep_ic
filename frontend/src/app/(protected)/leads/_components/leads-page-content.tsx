@@ -15,6 +15,7 @@ import {
   Eye,
   ExternalLink,
   Search,
+  RefreshCw,
   SlidersHorizontal,
   Trash2,
   Calendar,
@@ -59,6 +60,7 @@ import {
   useUpdateSalesStatus,
 } from "@/hooks/leads/use-leads";
 import { Lead } from "@/types/salep";
+import { formatDate } from "@/utils/formatting/string";
 
 const salesStatuses: Lead["sales_status"][] = [
   "Belum Dihubungi",
@@ -153,6 +155,12 @@ export function LeadsPageContent({
         cell: ({ row }) => (
           <span className="capitalize">{row.original.source}</span>
         ),
+      },
+      {
+        accessorKey: "created_at",
+        header: "Dibuat",
+        cell: ({ row }) =>
+          row.original.created_at ? formatDate(row.original.created_at) : "—",
       },
       {
         accessorKey: "lead_score",
@@ -456,6 +464,20 @@ export function LeadsPageContent({
                   )}
                 </PopoverContent>
               </Popover>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 gap-2 text-xs"
+                onClick={() => void leads.refetch()}
+                disabled={leads.isRefetching}
+                title="Muat ulang data leads"
+                aria-label="Muat ulang data leads"
+              >
+                <RefreshCw
+                  className={`size-3.5 ${leads.isRefetching ? "animate-spin" : ""}`}
+                />
+              </Button>
             </div>
 
             {/* Sisi Kanan: Button Discovery & Refresh */}
