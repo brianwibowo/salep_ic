@@ -86,7 +86,20 @@ ALTER TABLE leads
     ADD COLUMN IF NOT EXISTS marketing_reviewed_by_user_id VARCHAR(40),
     ADD COLUMN IF NOT EXISTS marketing_reviewed_by_username VARCHAR(120),
     ADD COLUMN IF NOT EXISTS marketing_reviewed_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS marketing_review_note TEXT;
+    ADD COLUMN IF NOT EXISTS marketing_review_note TEXT,
+    ADD COLUMN IF NOT EXISTS review_version INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS deleted_by_user_id VARCHAR(40),
+    ADD COLUMN IF NOT EXISTS deleted_by_username VARCHAR(120);
+
+CREATE INDEX IF NOT EXISTS ix_leads_active_created_at ON leads (created_at) WHERE deleted_at IS NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_leads_deleted_by' AND conrelid = 'leads'::regclass) THEN
+        ALTER TABLE leads ADD CONSTRAINT fk_leads_deleted_by FOREIGN KEY (deleted_by_user_id) REFERENCES auth_users (id) ON DELETE SET NULL;
+    END IF;
+END $$;
 
 DO $$
 BEGIN
@@ -124,6 +137,7 @@ CREATE TABLE IF NOT EXISTS lead_assignments (
     assignment_id          VARCHAR(80) PRIMARY KEY,
     lead_id                VARCHAR(80) NOT NULL REFERENCES leads (lead_id) ON DELETE CASCADE,
     sales_user_id          VARCHAR(40) NOT NULL REFERENCES auth_users (id) ON DELETE RESTRICT,
+    sales_username         VARCHAR(120),
     assigned_by_user_id    VARCHAR(40) NOT NULL REFERENCES auth_users (id) ON DELETE RESTRICT,
     assigned_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
     unassigned_at          TIMESTAMPTZ,
@@ -131,6 +145,10 @@ CREATE TABLE IF NOT EXISTS lead_assignments (
     unassign_reason        TEXT,
     CONSTRAINT ck_assignment_dates CHECK (unassigned_at IS NULL OR unassigned_at >= assigned_at)
 );
+
+ALTER TABLE lead_assignments ADD COLUMN IF NOT EXISTS sales_username VARCHAR(120);
+UPDATE lead_assignments AS a SET sales_username = u.username
+FROM auth_users AS u WHERE a.sales_user_id = u.id AND a.sales_username IS NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_lead_active_assignment
     ON lead_assignments (lead_id)

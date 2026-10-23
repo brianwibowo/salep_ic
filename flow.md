@@ -66,11 +66,13 @@ Promotion creates or links a record in `leads`. The raw record remains the evide
 
 Marketing makes the final qualification decision. This decision is separate from the LLM decision.
 
-When Marketing changes the status, the backend resolves the logged-in account from the HttpOnly session and stores `marketing_reviewed_by_user_id`, `marketing_reviewed_at`, and the optional review note on the lead. The same transition is written to `activity_logs` with the old status, new status, endpoint, and request ID. The frontend only sends the new status and note; it never sends the reviewer identity.
+Marketing selects a review result and, for valid leads, an active Sales recipient. One save sends `marketing_status`, `sales_user_id`, optional `review_note`, and `expected_version` to `PATCH /api/v1/leads/{lead_id}/status`. The backend derives the reviewer from the HttpOnly session and saves reviewer, timestamp, assignment history, and the audit transition in a single PostgreSQL transaction.
+
+The backend locks the lead and verifies its `review_version` before updating. When two Marketing accounts submit the same version, only one succeeds. The other receives HTTP 409, sees an explicit conflict message, and must reload and review the latest state before submitting again. There is no automatic resubmission.
 
 ### Assignment and Sales
 
-Only valid leads can be assigned. Assignment history is append-only; only one assignment can be active at a time. Sales updates follow-up status and notes without changing the original raw or LLM data.
+Valid leads require an active Sales recipient. The same form is used on social leads and SPSE. Only one assignment can be active; reassignment closes the previous record and creates another. Pending/invalid closes the active assignment. Sales can only list, view, count, and update valid leads assigned to that account. Sales follow-up requires a real note; Marketing review notes remain optional. Legacy valid leads without an owner remain in Marketing's queue until explicitly assigned.
 
 ## 3. State model
 
@@ -124,3 +126,19 @@ Procurement packages are not forced into the social `raw_leads` table. They reta
 ## 6. Audit boundaries
 
 `activity_logs` records user/API actions. `scrape_run_logs` records worker and pipeline events. Neither table should contain passwords, session cookies, or complete sensitive API responses.
+
+## 7. Marketing progress monitoring and filters
+
+1. Assigned Sales saves a status and follow-up message (for example Closing with a PO/onboarding note). The authenticated username and timestamp are saved with the transition.
+2. Marketing sees the latest status/message in the social or SPSE table. Opening detail or refreshing progress loads the latest data; older notes remain expandable, including notes from previous Sales owners.
+3. Marketing combines validation, source, progress, Sales owner/assigned/unassigned, and arrival-time filters, then applies them together. Applying or resetting filters returns pagination to page one.
+4. Unassigned automatically selects valid leads without an active assignment. Selecting a named Sales user matches only current ownership; closed assignment history does not count.
+5. Arrival time uses `created_at` with inclusive WIB boundaries. Month and year inputs expand into date ranges. The same conditions determine both table rows and pagination totals.
+
+## 8. Soft-delete flow
+
+1. Marketing confirms removal. The backend resolves the actor from the login session and locks the lead row.
+2. The same transaction records deletion time/account and appends `SOFT_DELETE_LEAD`. Lead data, Sales messages, assignments, and previous audit history remain intact.
+3. Active lists, totals, stats, detail, schedules and write endpoints no longer expose the deleted lead. A repeated delete returns 404; any audit failure rolls back the deletion.
+4. Scraper rediscovery matches the retained identity and skips the tombstone. It cannot restore or overwrite deleted evidence. Historical external exports are not physically removed, but deleted references are filtered from the recent-leads API.
+5. This release does not add a trash screen, restore button, or permanent purge. Apply `0008_lead_soft_delete` before using the updated API.

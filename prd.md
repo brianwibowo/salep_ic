@@ -107,16 +107,19 @@ SiRUP/SPSE/Inaproc → procurement_packages
 Implementation contract:
 
 - Authentication middleware exposes the authenticated `user_id` on request state alongside the role and username.
-- `PATCH /api/v1/leads/{lead_id}/status` accepts the new status and an optional review note; it does not accept a reviewer ID.
-- The repository updates the lead reviewer fields and the activity log in one PostgreSQL transaction.
-- The lead detail API resolves the reviewer username from `auth_users` for display.
+- `PATCH /api/v1/leads/{lead_id}/status` accepts `marketing_status`, mandatory `expected_version`, optional `review_note`, and `sales_user_id` (required when valid; otherwise null). It does not accept a reviewer ID.
+- The repository locks the lead, compares `expected_version` with `review_version`, validates the active recipient, and saves review, assignment history, and audit in one PostgreSQL transaction. A stale version returns HTTP 409 with no changes committed.
+- Reviewer ID and username are derived from the authenticated account; the username is stored as a review-time snapshot.
+- `GET /api/v1/leads/sales-users` exposes only active Sales account IDs and usernames to Marketing.
 
 ### FR-ASSIGNMENT — Sales ownership
 
 1. Marketing can assign a valid lead to a Sales user.
 2. A lead has at most one active assignment, but keeps historical assignments.
 3. Assign, unassign, and reassign actions are auditable.
-4. The final visibility rule for valid-but-unassigned leads must be agreed before implementation.
+4. Sales can list, view, count, and follow up only valid leads actively assigned to that account. Legacy valid-but-unassigned leads remain visible to Marketing for explicit assignment.
+5. Returning a lead to pending/invalid closes its active assignment. Reassignment retains previous ownership and follow-up history.
+6. Social media, SPSE, and `/leads` use the same explicit review-and-assign form with optional Marketing notes.
 
 ### FR-SALES — Follow-up
 
@@ -167,3 +170,31 @@ Implementation contract:
 ## 9. Rollout principle
 
 Implement this incrementally behind PostgreSQL migrations. Backfill existing `leads` as legacy-promoted raw records first, then switch new discovery writes to the raw-first flow. Do not delete or rewrite existing business history.
+
+### Review and assignment rollout
+
+- Run `alembic upgrade head` from `backend/` before deploying the updated API and frontend; the latest revision is `0008_lead_soft_delete` (after `0007_review_assignment`).
+- This increment implements review and Sales ownership, not the entire future raw-lead pipeline described above.
+- Existing valid leads without an active assignment remain visible to Marketing, but not Sales, until Marketing selects a responsible Sales user and saves the review.
+- Review requires `expected_version` from the latest lead response. Do not automatically retry a `409` response; reload the latest reviewer/assignment and ask the user to review it again.
+- Both reassignment and changing a lead back to pending/invalid retain assignment history and Sales follow-up history. Downgrade intentionally preserves assignment data and version tokens.
+
+### Marketing progress tracking and filters
+
+- Marketing can read current Sales progress and the latest note in social/SPSE tables. Detail views show the latest note, author, timestamp (WIB), and expandable older notes. Marketing cannot edit Sales progress; Sales updates remain owner-only.
+- Detail reloads when opened and has an explicit refresh-progress action. It does not automatically submit or overwrite an unfinished review in the background.
+- The shared filter panel supports validation status, source, Sales progress (including Closing), active Sales owner, assigned/unassigned, and arrival time. Filter drafts apply together and pagination resets to the first page.
+- `unassigned` means a valid lead without an assignment whose `unassigned_at` is null. Pending/invalid records are excluded.
+- Owner filters use account IDs and current assignments, not historical ownership. Inactive Sales accounts remain available for filtering, but cannot receive new assignments.
+- Time filters use `leads.created_at`, not publication/review/follow-up time. Both boundary dates are inclusive in Asia/Jakarta. Month/year selections expand into calendar date ranges.
+- `GET /api/v1/leads` additionally accepts `sales_user_id`, `assignment_status` (`all`, `assigned`, `unassigned`), `date_from`, and `date_to`. Invalid dates, reversed ranges, and contradictory unassigned filters return 422. Item lists and totals share identical filter conditions.
+- Filters never expand Sales access beyond their own currently assigned valid leads. These additions need no schema migration beyond `0007_review_assignment`.
+
+### Lead soft deletion
+
+- Marketing's existing DELETE endpoint now sets `deleted_at`, `deleted_by_user_id`, and a `deleted_by_username` snapshot from the authenticated account. No lead, Sales notes, assignment rows, or past audit records are physically removed.
+- Deletion and the `SOFT_DELETE_LEAD` audit event commit in one transaction. Deletion takes the same parent-row lock as review, assignment, scraper refresh, and Sales updates. Repeated deletion returns 404 without changing the original actor/time or writing another event.
+- Deleted leads are excluded from active lists, pagination totals, stats, direct detail, lead-specific SPSE schedules, and status updates. Historical Google Sheet responses suppress matching deleted source URLs without modifying the external sheet.
+- Rediscovery retains the tombstone and original evidence rather than inserting a replacement or restoring the lead. Search/SPSE discovery omit these records; manual URL analysis reports that the lead was already deleted.
+- `0008_lead_soft_delete` adds nullable metadata without changing existing business records. Its downgrade is blocked because removing tombstones could silently make deleted leads visible again.
+- Trash/restore UI and permanent purge are not part of this increment. Recovery requires a separate controlled workflow; no automatic restore or hard-delete endpoint is introduced. Previously hard-deleted records cannot be recovered by this migration.
