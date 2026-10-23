@@ -6,12 +6,25 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.types import JSON
+from sqlalchemy.types import JSON, TypeDecorator
 
 
 class Base(DeclarativeBase):
     pass
+
+
+class IPAddressType(TypeDecorator[str]):
+    """Use PostgreSQL INET in production and a portable string for SQLite tests."""
+
+    impl = String(64)
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(INET())
+        return dialect.type_descriptor(String(64))
 
 
 class LeadModel(Base):
@@ -48,12 +61,44 @@ class LeadModel(Base):
     sales_status: Mapped[str] = mapped_column(String(40), nullable=False, default="Belum Dihubungi")
     sales_status_logs: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
     notes: Mapped[str | None] = mapped_column(Text)
+    marketing_reviewed_by_user_id: Mapped[str | None] = mapped_column(String(40))
+    marketing_reviewed_by_username: Mapped[str | None] = mapped_column(String(120))
+    marketing_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    marketing_review_note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (
         Index("ix_leads_source_status", "source", "marketing_status"),
         Index("ix_leads_score_time", "lead_score", "analyzed_at"),
+    )
+
+
+class ActivityLogModel(Base):
+    """Audit trail for authenticated user and API actions."""
+
+    __tablename__ = "activity_logs"
+
+    activity_id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String(40), index=True)
+    action: Mapped[str] = mapped_column(String(40), nullable=False)
+    entity_type: Mapped[str | None] = mapped_column(String(80))
+    entity_id: Mapped[str | None] = mapped_column(String(120))
+    api: Mapped[str | None] = mapped_column(Text)
+    http_method: Mapped[str | None] = mapped_column(String(10))
+    http_status: Mapped[int | None] = mapped_column(Integer)
+    request_id: Mapped[str | None] = mapped_column(String(100))
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    ip_address: Mapped[str | None] = mapped_column(IPAddressType())
+    user_agent: Mapped[str | None] = mapped_column(Text)
+    old_value: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    new_value: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_activity_logs_entity", "entity_type", "entity_id", "created_at"),
+        Index("ix_activity_logs_api_created", "api", "created_at"),
     )
 
 

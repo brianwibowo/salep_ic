@@ -73,10 +73,6 @@ BEGIN
     END IF;
 END $$;
 
-ALTER TABLE raw_leads
-    ADD CONSTRAINT fk_raw_leads_promoted_by
-    FOREIGN KEY (promoted_by_user_id) REFERENCES auth_users (id) ON DELETE SET NULL;
-
 CREATE INDEX IF NOT EXISTS ix_raw_leads_processing_status ON raw_leads (processing_status);
 CREATE INDEX IF NOT EXISTS ix_raw_leads_quality_status ON raw_leads (quality_status);
 CREATE INDEX IF NOT EXISTS ix_raw_leads_llm_decision ON raw_leads (llm_decision);
@@ -88,6 +84,7 @@ ALTER TABLE leads
     ADD COLUMN IF NOT EXISTS raw_lead_id VARCHAR(80),
     ADD COLUMN IF NOT EXISTS promotion_source VARCHAR(20) NOT NULL DEFAULT 'legacy',
     ADD COLUMN IF NOT EXISTS marketing_reviewed_by_user_id VARCHAR(40),
+    ADD COLUMN IF NOT EXISTS marketing_reviewed_by_username VARCHAR(120),
     ADD COLUMN IF NOT EXISTS marketing_reviewed_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS marketing_review_note TEXT;
 

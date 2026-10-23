@@ -11,7 +11,7 @@ from app.db.lead_repository import SqlAlchemyLeadRepository
 from app.db.procurement_repository import ProcurementRepository
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.db.models import ProcurementPackageModel
+from app.db.models import ActivityLogModel, ProcurementPackageModel
 from app.domain.procurement import ProcurementPackage, ProcurementTrack
 
 
@@ -49,7 +49,20 @@ def test_sqlalchemy_repository_is_idempotent_and_preserves_review_status(tmp_pat
     assert first["lead_id"] == "lead_pg_fixture"
     assert repository.count_leads(role="marketing") == 1
 
-    assert repository.update_marketing_status("lead_pg_fixture", "valid") is not None
+    updated = repository.update_marketing_status(
+        "lead_pg_fixture",
+        "valid",
+        reviewed_by_user_id="marketing-user",
+        reviewed_by_username="marketing",
+        review_note="Dicek dan relevan.",
+    )
+    assert updated is not None
+    assert updated["marketing_reviewed_by_username"] == "marketing"
+    assert updated["marketing_review_note"] == "Dicek dan relevan."
+    with Session(repository.engine) as session:
+        audit = session.query(ActivityLogModel).one()
+        assert audit.action == "VALIDATE_LEAD"
+        assert audit.user_id == "marketing-user"
     lead.content = "Updated managed service package"
     second = repository.save_lead(lead)
     assert second["content"] == "Updated managed service package"

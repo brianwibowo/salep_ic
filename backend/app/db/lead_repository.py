@@ -10,7 +10,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.schemas import LeadRecord, SalesStatusLog
-from app.db.models import Base, LeadModel
+from app.db.models import ActivityLogModel, Base, LeadModel
 from app.db.engine import build_engine, session_factory
 from app.services.lead_merge import scraped_lead_changes
 
@@ -76,6 +76,10 @@ class SqlAlchemyLeadRepository:
             "sales_status": row.sales_status,
             "sales_status_logs": row.sales_status_logs or [],
             "notes": row.notes,
+            "marketing_reviewed_by_user_id": row.marketing_reviewed_by_user_id,
+            "marketing_reviewed_by_username": row.marketing_reviewed_by_username,
+            "marketing_reviewed_at": row.marketing_reviewed_at.isoformat() if row.marketing_reviewed_at else None,
+            "marketing_review_note": row.marketing_review_note,
             "created_at": row.created_at.isoformat() if row.created_at else None,
             "updated_at": row.updated_at.isoformat() if row.updated_at else None,
         }
@@ -114,6 +118,10 @@ class SqlAlchemyLeadRepository:
             "marketing_status": marketing_status,
             "sales_status": sales_status,
             "sales_status_logs": [log.model_dump(mode="json") for log in lead.sales_status_logs],
+            "marketing_reviewed_by_user_id": lead.marketing_reviewed_by_user_id,
+            "marketing_reviewed_by_username": lead.marketing_reviewed_by_username,
+            "marketing_reviewed_at": lead.marketing_reviewed_at,
+            "marketing_review_note": lead.marketing_review_note,
             "created_at": now,
             "updated_at": now,
         }
@@ -266,11 +274,56 @@ class SqlAlchemyLeadRepository:
         finally:
             session.close()
 
-    def update_marketing_status(self, lead_id: str, new_status: str) -> dict[str, Any] | None:
+    def update_marketing_status(
+        self,
+        lead_id: str,
+        new_status: str,
+        *,
+        reviewed_by_user_id: str | None = None,
+        reviewed_by_username: str | None = None,
+        review_note: str | None = None,
+        api: str = "/api/v1/leads/{lead_id}/status",
+        request_id: str | None = None,
+    ) -> dict[str, Any] | None:
         clean_status = new_status.strip().lower()
         if clean_status not in {"valid", "invalid", "pending"}:
             raise ValueError(f"Invalid marketing status: {clean_status}")
-        return self._update_status(lead_id, marketing_status=clean_status)
+        session = self._session()
+        try:
+            row = session.get(LeadModel, lead_id)
+            if not row:
+                return None
+            previous_status = row.marketing_status
+            now = self._now()
+            if reviewed_by_user_id:
+                row.marketing_reviewed_by_user_id = reviewed_by_user_id
+                row.marketing_reviewed_by_username = reviewed_by_username
+                row.marketing_reviewed_at = now
+                row.marketing_review_note = review_note
+            row.marketing_status = clean_status
+            row.updated_at = now
+            session.add(ActivityLogModel(
+                activity_id=uuid.uuid4().hex,
+                user_id=reviewed_by_user_id,
+                action="VALIDATE_LEAD",
+                entity_type="lead",
+                entity_id=lead_id,
+                api=api,
+                http_method="PATCH",
+                http_status=200,
+                request_id=request_id,
+                old_value={"marketing_status": previous_status},
+                new_value={"marketing_status": clean_status, "review_note": review_note},
+                metadata_json={"reviewer_username": reviewed_by_username} if reviewed_by_username else {},
+                created_at=now,
+            ))
+            session.commit()
+            return self._to_dict(row)
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def update_sales_status(
         self,

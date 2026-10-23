@@ -120,13 +120,22 @@ async def delete_lead_endpoint(lead_id: str, request: Request) -> ApiResponse[di
 async def update_lead_status(
     lead_id: str,
     payload: UpdateStatusRequest,
+    request: Request,
 ) -> ApiResponse[dict[str, Any]]:
     """Update qualification status (valid / invalid / pending).
 
     When marked 'valid', automatically triggers sync to Google Sheets if configured.
     """
     try:
-        updated = lead_repository.update_marketing_status(lead_id, payload.marketing_status)
+        updated = lead_repository.update_marketing_status(
+            lead_id,
+            payload.marketing_status,
+            reviewed_by_user_id=getattr(request.state, "user_id", None),
+            reviewed_by_username=getattr(request.state, "username", None),
+            review_note=payload.review_note,
+            api=str(request.url.path),
+            request_id=request.headers.get("x-request-id"),
+        )
         if not updated:
             raise HTTPException(status_code=404, detail="Lead not found")
 

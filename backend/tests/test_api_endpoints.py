@@ -105,7 +105,16 @@ def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monk
 
 def test_qualification_and_pagination(clients):
     marketing, sales, _ = clients
-    assert marketing.patch('/api/v1/leads/lead_demo_003/status',json={'marketing_status':'valid'}).status_code == 200
+    approved = marketing.patch(
+        '/api/v1/leads/lead_demo_003/status',
+        json={'marketing_status':'valid', 'review_note': 'Relevan dengan kebutuhan aplikasi.'},
+    )
+    assert approved.status_code == 200
+    approved_data = data(approved)
+    assert approved_data['marketing_reviewed_by_username'] == 'marketing'
+    assert approved_data['marketing_reviewed_by_user_id']
+    assert approved_data['marketing_review_note'] == 'Relevan dengan kebutuhan aplikasi.'
+    assert approved_data['marketing_reviewed_at']
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 200
     marketing.patch('/api/v1/leads/lead_demo_003/status',json={'marketing_status':'invalid'})
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
