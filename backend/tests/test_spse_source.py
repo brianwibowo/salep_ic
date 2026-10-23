@@ -11,7 +11,7 @@ from app.sources.spse_source import SPSESourceAdapter
 from app.main import app
 from app.core import auth
 from app.api.routes import leads
-from app.services.lead_repository import LeadRepository
+from app.db.lead_repository import SqlAlchemyLeadRepository
 
 
 @pytest.mark.asyncio
@@ -79,20 +79,21 @@ async def test_spse_adapter_raises_on_source_error(monkeypatch):
 
 @pytest.mark.external
 def test_spse_live_search_persists_for_marketing_and_releases_to_sales(tmp_path, monkeypatch):
-    repository = LeadRepository(tmp_path / "spse-leads.db")
+    db_url = f"sqlite:///{tmp_path / 'spse-leads.db'}"
+    repository = SqlAlchemyLeadRepository(db_url, create_schema=True)
     monkeypatch.setattr(leads, "lead_repository", repository)
     monkeypatch.setattr("app.services.spse_service.lead_repository", repository)
     async def no_sheet_write(*args, **kwargs):
         return True
     monkeypatch.setattr(leads.sheets_service, "append_lead", no_sheet_write)
     monkeypatch.setattr(auth.settings, "app_env", "development")
-    monkeypatch.setattr(auth.settings, "auth_database_url", f"sqlite:///{tmp_path / 'spse-sessions.db'}")
+    monkeypatch.setattr(auth.settings, "auth_database_url", db_url)
     monkeypatch.setattr(auth.settings, "database_url", "")
     from app.services.auth_service import get_auth_store
     get_auth_store.cache_clear()
     store = get_auth_store()
     store.create_user("marketing", "marketing-test-passphrase", "marketing")
-    store.create_user("sales", "sales-test-passphrase", "sales")
+    recipient = store.create_user("sales", "sales-test-passphrase", "sales")
 
     marketing, sales = TestClient(app), TestClient(app)
     assert marketing.post("/api/v1/auth/login", json={"username": "marketing", "password": "marketing-test-passphrase"}).status_code == 200
@@ -113,7 +114,8 @@ def test_spse_live_search_persists_for_marketing_and_releases_to_sales(tmp_path,
 
     approved = marketing.patch(
         f"/api/v1/leads/{tender['lead_id']}/status",
-        json={"marketing_status": "valid"},
+        json={"marketing_status": "valid", "expected_version": tender['review_version'],
+              "sales_user_id": recipient['user_id']},
     )
     assert approved.status_code == 200
     assert any(x["lead_id"] == tender["lead_id"] for x in sales.get("/api/v1/leads?source=spse").json()["data"]["items"])

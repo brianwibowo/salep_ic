@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
+from zoneinfo import ZoneInfo
 from typing import Any
 import uuid
 
@@ -10,9 +11,14 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.schemas import LeadRecord, SalesStatusLog
-from app.db.models import ActivityLogModel, Base, LeadModel
+from app.db.auth_models import AuthUser
+from app.db.models import ActivityLogModel, Base, LeadAssignmentModel, LeadModel
 from app.db.engine import build_engine, session_factory
 from app.services.lead_merge import scraped_lead_changes
+
+
+class ReviewConflict(Exception):
+    """The form was opened before another Marketing review was saved."""
 
 
 class SqlAlchemyLeadRepository:
@@ -44,6 +50,7 @@ class SqlAlchemyLeadRepository:
 
     @staticmethod
     def _to_dict(row: LeadModel) -> dict[str, Any]:
+        assignment = row.current_assignment
         return {
             "lead_id": row.lead_id,
             "source": row.source,
@@ -80,6 +87,17 @@ class SqlAlchemyLeadRepository:
             "marketing_reviewed_by_username": row.marketing_reviewed_by_username,
             "marketing_reviewed_at": row.marketing_reviewed_at.isoformat() if row.marketing_reviewed_at else None,
             "marketing_review_note": row.marketing_review_note,
+            "review_version": row.review_version,
+            "deleted_at": row.deleted_at.isoformat() if row.deleted_at else None,
+            "deleted_by_user_id": row.deleted_by_user_id,
+            "deleted_by_username": row.deleted_by_username,
+            "assignment": {
+                "assignment_id": assignment.assignment_id,
+                "sales_user_id": assignment.sales_user_id,
+                "sales_username": assignment.sales_username,
+                "assigned_by_user_id": assignment.assigned_by_user_id,
+                "assigned_at": assignment.assigned_at.isoformat(),
+            } if assignment else None,
             "created_at": row.created_at.isoformat() if row.created_at else None,
             "updated_at": row.updated_at.isoformat() if row.updated_at else None,
         }
@@ -141,9 +159,14 @@ class SqlAlchemyLeadRepository:
                             & (LeadModel.canonical_post_id == lead.canonical_post_id)
                         ),
                     )
-                )
+                ).with_for_update()
             )
             if existing:
+                # Keep the tombstone and evidence unchanged on scraper replay.
+                # Never create a replacement row or implicitly restore this lead.
+                if existing.deleted_at is not None:
+                    lead.lead_id = existing.lead_id
+                    return self._to_dict(existing)
                 values = self._model_values(
                     lead,
                     marketing_status=existing.marketing_status,
@@ -186,14 +209,41 @@ class SqlAlchemyLeadRepository:
         search: str = "",
         sales_status: str = "all",
         source: str = "all",
+        user_id: str | None = None,
+        sales_user_id: str | None = None,
+        assignment_status: str = "all",
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> list[Any]:
         if role not in {"marketing", "sales"}:
             raise ValueError("Unknown role")
-        conditions: list[Any] = []
+        conditions: list[Any] = [LeadModel.deleted_at.is_(None)]
         if role == "sales":
             conditions.append(LeadModel.marketing_status == "valid")
+            conditions.append(select(LeadAssignmentModel.assignment_id).where(
+                LeadAssignmentModel.lead_id == LeadModel.lead_id,
+                LeadAssignmentModel.sales_user_id == user_id,
+                LeadAssignmentModel.unassigned_at.is_(None),
+            ).exists())
         elif status and status.casefold() != "all":
             conditions.append(LeadModel.marketing_status == status.casefold())
+        active_assignment = select(LeadAssignmentModel.assignment_id).where(
+            LeadAssignmentModel.lead_id == LeadModel.lead_id,
+            LeadAssignmentModel.unassigned_at.is_(None),
+        )
+        if assignment_status == "unassigned":
+            conditions.extend([LeadModel.marketing_status == "valid", ~active_assignment.exists()])
+        elif assignment_status == "assigned":
+            conditions.append(active_assignment.exists())
+        if sales_user_id:
+            conditions.append(active_assignment.where(LeadAssignmentModel.sales_user_id == sales_user_id).exists())
+        # Filter by lead arrival time, not publication/review time. Calendar dates
+        # are interpreted in WIB so end-of-day records are included consistently.
+        wib = ZoneInfo("Asia/Jakarta")
+        if date_from:
+            conditions.append(LeadModel.created_at >= datetime.combine(date_from, time.min, wib).astimezone(timezone.utc))
+        if date_to:
+            conditions.append(LeadModel.created_at <= datetime.combine(date_to, time.max, wib).astimezone(timezone.utc))
         if sales_status != "all":
             conditions.append(LeadModel.sales_status == sales_status)
         if source == "social_media":
@@ -220,12 +270,19 @@ class SqlAlchemyLeadRepository:
         offset: int = 0,
         sales_status: str = "all",
         source: str = "all",
+        user_id: str | None = None,
+        sales_user_id: str | None = None,
+        assignment_status: str = "all",
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> list[dict[str, Any]]:
         session = self._session()
         try:
             statement = (
                 select(LeadModel)
-                .where(*self._conditions(role=role, status=status, search=search, sales_status=sales_status, source=source))
+                .where(*self._conditions(role=role, status=status, search=search, sales_status=sales_status, source=source,
+                                        user_id=user_id, sales_user_id=sales_user_id, assignment_status=assignment_status,
+                                        date_from=date_from, date_to=date_to))
                 .order_by(LeadModel.analyzed_at.desc(), LeadModel.lead_score.desc(), LeadModel.lead_id)
                 .offset(offset)
                 .limit(limit)
@@ -241,11 +298,18 @@ class SqlAlchemyLeadRepository:
         search: str = "",
         sales_status: str = "all",
         source: str = "all",
+        user_id: str | None = None,
+        sales_user_id: str | None = None,
+        assignment_status: str = "all",
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> int:
         session = self._session()
         try:
             statement = select(func.count()).select_from(LeadModel).where(
-                *self._conditions(role=role, status=status, search=search, sales_status=sales_status, source=source)
+                *self._conditions(role=role, status=status, search=search, sales_status=sales_status, source=source,
+                                  user_id=user_id, sales_user_id=sales_user_id, assignment_status=assignment_status,
+                                  date_from=date_from, date_to=date_to)
             )
             return int(session.scalar(statement) or 0)
         finally:
@@ -255,17 +319,43 @@ class SqlAlchemyLeadRepository:
         session = self._session()
         try:
             row = session.get(LeadModel, lead_id)
-            return self._to_dict(row) if row else None
+            return self._to_dict(row) if row and row.deleted_at is None else None
         finally:
             session.close()
 
-    def delete_lead(self, lead_id: str) -> bool:
+    def get_deleted_source_urls(self, source_urls: list[str]) -> set[str]:
+        """Suppress deleted leads in historical external exports without editing them."""
+        if not source_urls:
+            return set()
+        with self._session() as session:
+            return set(session.scalars(select(LeadModel.source_url).where(
+                LeadModel.source_url.in_(source_urls), LeadModel.deleted_at.is_not(None),
+            )))
+
+    def delete_lead(self, lead_id: str, *, deleted_by_user_id: str,
+                    api: str = "/api/v1/leads/{lead_id}", request_id: str | None = None) -> bool:
         session = self._session()
         try:
-            row = session.get(LeadModel, lead_id)
-            if not row:
+            row = session.scalar(select(LeadModel).where(LeadModel.lead_id == lead_id).with_for_update())
+            if not row or row.deleted_at is not None:
                 return False
-            session.delete(row)
+            actor = session.scalar(select(AuthUser).where(
+                AuthUser.id == deleted_by_user_id, AuthUser.role == "marketing", AuthUser.active.is_(True),
+            ).with_for_update(read=True))
+            if actor is None:
+                raise ValueError("Akun Marketing tidak aktif atau tidak valid")
+            now = self._now()
+            row.deleted_at = now
+            row.deleted_by_user_id = actor.id
+            row.deleted_by_username = actor.username
+            row.updated_at = now
+            session.add(ActivityLogModel(
+                activity_id=uuid.uuid4().hex, user_id=actor.id, action="SOFT_DELETE_LEAD",
+                entity_type="lead", entity_id=lead_id, api=api, http_method="DELETE", http_status=200,
+                request_id=request_id, old_value={"deleted_at": None},
+                new_value={"deleted_at": now.isoformat(), "deleted_by_user_id": actor.id},
+                metadata_json={"deleted_by_username": actor.username}, created_at=now,
+            ))
             session.commit()
             return True
         except Exception:
@@ -279,8 +369,9 @@ class SqlAlchemyLeadRepository:
         lead_id: str,
         new_status: str,
         *,
-        reviewed_by_user_id: str | None = None,
-        reviewed_by_username: str | None = None,
+        reviewed_by_user_id: str,
+        expected_version: int,
+        sales_user_id: str | None = None,
         review_note: str | None = None,
         api: str = "/api/v1/leads/{lead_id}/status",
         request_id: str | None = None,
@@ -290,34 +381,70 @@ class SqlAlchemyLeadRepository:
             raise ValueError(f"Invalid marketing status: {clean_status}")
         session = self._session()
         try:
-            row = session.get(LeadModel, lead_id)
-            if not row:
+            # Serializes reviewers AND Sales updates on this same parent row.
+            row = session.scalar(select(LeadModel).where(LeadModel.lead_id == lead_id).with_for_update())
+            if not row or row.deleted_at is not None:
                 return None
-            previous_status = row.marketing_status
+            if row.review_version != expected_version:
+                raise ReviewConflict("Lead sudah direview Marketing lain. Muat data terbaru sebelum menyimpan kembali.")
+            reviewer = session.scalar(select(AuthUser).where(
+                AuthUser.id == reviewed_by_user_id, AuthUser.role == "marketing", AuthUser.active.is_(True),
+            ).with_for_update(read=True))
+            if reviewer is None:
+                raise ValueError("Akun Marketing tidak aktif atau tidak valid")
+            if clean_status != "valid" and sales_user_id is not None:
+                raise ValueError("Assignment hanya tersedia untuk lead valid")
+            recipient = None
+            if clean_status == "valid":
+                recipient = session.scalar(select(AuthUser).where(
+                    AuthUser.id == sales_user_id, AuthUser.role == "sales", AuthUser.active.is_(True),
+                ).with_for_update(read=True))
+                if recipient is None:
+                    raise ValueError("Pilih akun Sales yang aktif")
+            active = session.scalar(select(LeadAssignmentModel).where(
+                LeadAssignmentModel.lead_id == lead_id, LeadAssignmentModel.unassigned_at.is_(None),
+            ))
+            before = {"marketing_status": row.marketing_status, "review_version": row.review_version,
+                      "review_note": row.marketing_review_note,
+                      "sales_user_id": active.sales_user_id if active else None}
             now = self._now()
-            if reviewed_by_user_id:
-                row.marketing_reviewed_by_user_id = reviewed_by_user_id
-                row.marketing_reviewed_by_username = reviewed_by_username
-                row.marketing_reviewed_at = now
-                row.marketing_review_note = review_note
+            if active and (recipient is None or active.sales_user_id != recipient.id):
+                active.unassigned_at = now
+                active.unassigned_by_user_id = reviewer.id
+                active.unassign_reason = "Dialihkan ke Sales lain" if recipient else f"Status review menjadi {clean_status}"
+                session.flush()  # Close the old assignment before inserting the new one.
+                active = None
+            if recipient and active is None:
+                session.add(LeadAssignmentModel(
+                    assignment_id=uuid.uuid4().hex, lead_id=lead_id,
+                    sales_user_id=recipient.id, sales_username=recipient.username,
+                    assigned_by_user_id=reviewer.id, assigned_at=now,
+                ))
+            row.marketing_reviewed_by_user_id = reviewer.id
+            row.marketing_reviewed_by_username = reviewer.username
+            row.marketing_reviewed_at = now
+            row.marketing_review_note = (review_note.strip() or None) if review_note else None
             row.marketing_status = clean_status
+            row.review_version += 1
             row.updated_at = now
             session.add(ActivityLogModel(
                 activity_id=uuid.uuid4().hex,
                 user_id=reviewed_by_user_id,
-                action="VALIDATE_LEAD",
+                action="REVIEW_AND_ASSIGN_LEAD",
                 entity_type="lead",
                 entity_id=lead_id,
                 api=api,
                 http_method="PATCH",
                 http_status=200,
                 request_id=request_id,
-                old_value={"marketing_status": previous_status},
-                new_value={"marketing_status": clean_status, "review_note": review_note},
-                metadata_json={"reviewer_username": reviewed_by_username} if reviewed_by_username else {},
+                old_value=before,
+                new_value={"marketing_status": clean_status, "review_note": row.marketing_review_note,
+                           "review_version": row.review_version, "sales_user_id": recipient.id if recipient else None},
+                metadata_json={"reviewer_username": reviewer.username},
                 created_at=now,
             ))
             session.commit()
+            session.expire(row, ["current_assignment"])
             return self._to_dict(row)
         except Exception:
             session.rollback()
@@ -331,11 +458,20 @@ class SqlAlchemyLeadRepository:
         new_status: str,
         note: str,
         changed_by: str | None = None,
+        *,
+        user_id: str | None = None,
     ) -> dict[str, Any] | None:
         session = self._session()
         try:
-            row = session.get(LeadModel, lead_id)
-            if not row or row.marketing_status != "valid":
+            row = session.scalar(select(LeadModel).where(LeadModel.lead_id == lead_id).with_for_update())
+            if not row or row.deleted_at is not None or row.marketing_status != "valid":
+                return None
+            assigned = session.scalar(select(LeadAssignmentModel.assignment_id).where(
+                LeadAssignmentModel.lead_id == lead_id,
+                LeadAssignmentModel.sales_user_id == user_id,
+                LeadAssignmentModel.unassigned_at.is_(None),
+            ))
+            if assigned is None:
                 return None
             now = self._now()
             next_status = new_status.strip()
@@ -369,8 +505,8 @@ class SqlAlchemyLeadRepository:
     ) -> dict[str, Any] | None:
         session = self._session()
         try:
-            row = session.get(LeadModel, lead_id)
-            if not row or (require_valid and row.marketing_status != "valid"):
+            row = session.scalar(select(LeadModel).where(LeadModel.lead_id == lead_id).with_for_update())
+            if not row or row.deleted_at is not None or (require_valid and row.marketing_status != "valid"):
                 return None
             if marketing_status is not None:
                 row.marketing_status = marketing_status
@@ -385,11 +521,20 @@ class SqlAlchemyLeadRepository:
         finally:
             session.close()
 
-    def get_stats(self) -> dict[str, int]:
+    def list_sales_users(self, include_inactive: bool = False) -> list[dict[str, Any]]:
+        with self._session() as session:
+            statement = select(AuthUser).where(AuthUser.role == "sales")
+            if not include_inactive:
+                statement = statement.where(AuthUser.active.is_(True))
+            users = session.scalars(statement.order_by(AuthUser.username)).all()
+            return [{"user_id": user.id, "username": user.username, "active": user.active} for user in users]
+
+    def get_stats(self, role: str = "marketing", user_id: str | None = None) -> dict[str, int]:
         session = self._session()
         try:
             def count(*conditions: Any) -> int:
-                return int(session.scalar(select(func.count()).select_from(LeadModel).where(*conditions)) or 0)
+                scope = self._conditions(role=role, user_id=user_id)
+                return int(session.scalar(select(func.count()).select_from(LeadModel).where(*scope, *conditions)) or 0)
 
             valid = count(LeadModel.marketing_status == "valid")
             return {

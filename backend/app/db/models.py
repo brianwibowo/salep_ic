@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import INET
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON, TypeDecorator
 
 
@@ -65,12 +65,43 @@ class LeadModel(Base):
     marketing_reviewed_by_username: Mapped[str | None] = mapped_column(String(120))
     marketing_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     marketing_review_note: Mapped[str | None] = mapped_column(Text)
+    review_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deleted_by_user_id: Mapped[str | None] = mapped_column(String(40))
+    deleted_by_username: Mapped[str | None] = mapped_column(String(120))
+    current_assignment: Mapped[LeadAssignmentModel | None] = relationship(
+        "LeadAssignmentModel", lazy="selectin", uselist=False, viewonly=True,
+        primaryjoin="and_(LeadModel.lead_id == LeadAssignmentModel.lead_id, LeadAssignmentModel.unassigned_at.is_(None))",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (
         Index("ix_leads_source_status", "source", "marketing_status"),
         Index("ix_leads_score_time", "lead_score", "analyzed_at"),
+        Index("ix_leads_active_created_at", "created_at",
+              postgresql_where=text("deleted_at IS NULL"), sqlite_where=text("deleted_at IS NULL")),
+    )
+
+
+class LeadAssignmentModel(Base):
+    __tablename__ = "lead_assignments"
+
+    assignment_id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    lead_id: Mapped[str] = mapped_column(ForeignKey("leads.lead_id", ondelete="CASCADE"), nullable=False)
+    sales_user_id: Mapped[str] = mapped_column(String(40), nullable=False)
+    sales_username: Mapped[str | None] = mapped_column(String(120))
+    assigned_by_user_id: Mapped[str] = mapped_column(String(40), nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    unassigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    unassigned_by_user_id: Mapped[str | None] = mapped_column(String(40))
+    unassign_reason: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        Index("uq_lead_active_assignment", "lead_id", unique=True,
+              postgresql_where=text("unassigned_at IS NULL"), sqlite_where=text("unassigned_at IS NULL")),
+        Index("ix_lead_assignments_sales_user", "sales_user_id", "unassigned_at"),
+        CheckConstraint("unassigned_at IS NULL OR unassigned_at >= assigned_at", name="ck_assignment_dates"),
     )
 
 

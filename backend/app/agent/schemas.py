@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from typing import Literal
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # --- Intent Taxonomy ---
@@ -154,7 +154,10 @@ class LeadRecord(BaseModel):
 
 
 class UpdateStatusRequest(BaseModel):
-    marketing_status: str = Field(description="Status kualifikasi marketing: 'valid', 'invalid', 'pending'")
+    model_config = ConfigDict(extra="forbid")
+    marketing_status: Literal["pending", "valid", "invalid"]
+    expected_version: int = Field(ge=0, description="Versi review terakhir yang ditampilkan kepada Marketing")
+    sales_user_id: str | None = Field(default=None, min_length=1, max_length=40)
     review_note: str | None = Field(default=None, max_length=2000, description="Catatan review Marketing (opsional)")
 
     @field_validator("review_note")
@@ -164,6 +167,14 @@ class UpdateStatusRequest(BaseModel):
             return None
         cleaned = value.strip()
         return cleaned or None
+
+    @model_validator(mode="after")
+    def validate_assignment(self):
+        if self.marketing_status == "valid" and not self.sales_user_id:
+            raise ValueError("Pilih Sales penanggung jawab untuk lead valid")
+        if self.marketing_status != "valid" and self.sales_user_id is not None:
+            raise ValueError("Assignment hanya tersedia untuk lead valid")
+        return self
 
 
 class UpdateSalesStatusRequest(BaseModel):

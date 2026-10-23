@@ -156,12 +156,17 @@ async def run_search(request: SearchRequest) -> SearchResponse:
         analyzed += 1
         leads.append(build_lead_record(raw_lead, analysis))
 
-    # Step 5: Save all leads to local SQLite repository and sync valid leads to Google Sheets
+    # Step 5: Persist to the source-of-truth repository, suppressing tombstones.
+    visible_leads = []
     for l in leads:
         try:
-            lead_repository.save_lead(l)
+            stored = lead_repository.save_lead(l)
+            if stored.get("deleted_at"):
+                continue
         except Exception as e:
             logger.error("Failed to save lead %s to repository: %s", l.lead_id, e)
+        visible_leads.append(l)
+    leads = visible_leads
 
     qualified_leads_for_sales = [
         l for l in leads
@@ -272,9 +277,12 @@ async def analyze_and_save_url(url: str, save_to_sheet: bool = True) -> LeadReco
         lead_record = build_lead_record(raw_lead, analysis)
 
     try:
-        lead_repository.save_lead(lead_record)
+        stored = lead_repository.save_lead(lead_record)
     except Exception as e:
         logger.error("Failed to save lead from URL to repository: %s", e)
+    else:
+        if stored.get("deleted_at"):
+            raise ValueError("Lead ini sudah dihapus dari daftar aktif dan tidak dipulihkan otomatis")
 
     if save_to_sheet and lead_record.marketing_status == "valid":
         await sheets_service.append_lead(lead_record)

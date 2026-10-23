@@ -22,6 +22,7 @@ async def discover_spse_tenders(keywords: list[str], limit: int = 50) -> dict[st
     """Fetch keyword-matched homepage tenders and persist them as pending raw leads."""
     matches = await SPSESourceAdapter().search(keywords, limit=limit)
     saved = 0
+    visible_matches = []
     for raw in matches:
         lead_id = "spse_" + hashlib.sha256(raw.source_url.encode()).hexdigest()[:16]
         analysis = LeadAnalysis(
@@ -55,9 +56,12 @@ async def discover_spse_tenders(keywords: list[str], limit: int = 50) -> dict[st
             "sales_status": "Belum Dihubungi",
             "score_breakdown": None,
         }
-        lead_repository.save_lead(LeadRecord.model_validate(record))
+        stored = lead_repository.save_lead(LeadRecord.model_validate(record))
+        if stored.get("deleted_at"):
+            continue
         saved += 1
-    return {"matched": len(matches), "saved": saved, "leads": [m.model_dump() for m in matches]}
+        visible_matches.append(raw)
+    return {"matched": len(matches), "saved": saved, "leads": [m.model_dump() for m in visible_matches]}
 
 
 async def get_tender_schedule(tender_id: str) -> dict[str, Any]:

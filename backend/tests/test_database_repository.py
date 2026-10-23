@@ -12,6 +12,7 @@ from app.db.procurement_repository import ProcurementRepository
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.db.models import ActivityLogModel, ProcurementPackageModel
+from app.db.auth_models import AuthBase, AuthUser
 from app.domain.procurement import ProcurementPackage, ProcurementTrack
 
 
@@ -49,11 +50,18 @@ def test_sqlalchemy_repository_is_idempotent_and_preserves_review_status(tmp_pat
     assert first["lead_id"] == "lead_pg_fixture"
     assert repository.count_leads(role="marketing") == 1
 
+    AuthBase.metadata.create_all(repository.engine)
+    with Session(repository.engine) as session:
+        for user_id, role in [('marketing-user', 'marketing'), ('sales-user', 'sales')]:
+            session.add(AuthUser(id=user_id, username=role, role=role, active=True,
+                                 password_hash='unused', version=1, created_at=0))
+        session.commit()
     updated = repository.update_marketing_status(
         "lead_pg_fixture",
         "valid",
         reviewed_by_user_id="marketing-user",
-        reviewed_by_username="marketing",
+        expected_version=0,
+        sales_user_id="sales-user",
         review_note="Dicek dan relevan.",
     )
     assert updated is not None
@@ -61,13 +69,13 @@ def test_sqlalchemy_repository_is_idempotent_and_preserves_review_status(tmp_pat
     assert updated["marketing_review_note"] == "Dicek dan relevan."
     with Session(repository.engine) as session:
         audit = session.query(ActivityLogModel).one()
-        assert audit.action == "VALIDATE_LEAD"
+        assert audit.action == "REVIEW_AND_ASSIGN_LEAD"
         assert audit.user_id == "marketing-user"
     lead.content = "Updated managed service package"
     second = repository.save_lead(lead)
     assert second["content"] == "Updated managed service package"
     assert second["marketing_status"] == "valid"
-    assert repository.count_leads(role="sales") == 1
+    assert repository.count_leads(role="sales", user_id="sales-user") == 1
 
 
 def test_procurement_repository_emits_status_transition(tmp_path) -> None:

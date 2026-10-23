@@ -75,13 +75,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
-    if "activity_logs" in inspect(bind).get_table_names():
-        indexes = {index["name"] for index in inspect(bind).get_indexes("activity_logs")}
-        if "ix_activity_logs_api_created" in indexes:
-            op.drop_index("ix_activity_logs_api_created", table_name="activity_logs")
-        if "ix_activity_logs_entity" in indexes:
-            op.drop_index("ix_activity_logs_entity", table_name="activity_logs")
-        op.drop_table("activity_logs")
+    # Preserve audit records, including tables created by standalone SQL before
+    # this revision. Audit history must survive an application rollback.
 
     indexes = {index["name"] for index in inspect(bind).get_indexes("leads")}
     if "ix_leads_marketing_reviewer" in indexes:
