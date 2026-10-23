@@ -228,7 +228,7 @@ export function SirupPageContent() {
   const totalRecords = packagesQuery.data?.pagination.total ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       <SirupHeader portalUrl={sirupPortalUrl} />
 
       <SirupSyncCard
@@ -250,7 +250,7 @@ export function SirupPageContent() {
 
       <SirupStatsCards stats={aggregateStats} />
 
-      <section className="rounded-lg border bg-card shadow-sm">
+      <section className="w-full min-w-0 max-w-full overflow-hidden rounded-lg border bg-card shadow-sm">
         <SirupToolbar
           summary={packagesQuery.data?.summary}
           facets={packagesQuery.data?.facets}
@@ -273,7 +273,7 @@ export function SirupPageContent() {
           onRefresh={handleRefresh}
         />
 
-        <div className="p-5">
+        <div className="w-full min-w-0 max-w-full p-5">
           <SirupTable
             data={packageData}
             total={totalRecords}

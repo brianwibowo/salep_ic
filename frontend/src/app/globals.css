@@ -188,4 +188,30 @@
   .status-dot-warning {
     background-color: var(--warning);
   }
+
+  /* Table horizontal scrollbar styling */
+  [data-slot="table-container"] {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-slot="table-container"]::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+
+  [data-slot="table-container"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  [data-slot="table-container"]::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+  }
+
+  [data-slot="table-container"]::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
 }
+
