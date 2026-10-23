@@ -25,7 +25,9 @@ export function SpseLeadDeleteDialog({
   onOpenChange,
   onConfirm,
 }: SpseLeadDeleteDialogProps) {
-  const parsed = lead ? parseSpseLeadContent(lead.content, lead.author_name) : null;
+  const parsed = lead
+    ? parseSpseLeadContent(lead.content, lead.author_name)
+    : null;
   const displayName = parsed?.title || lead?.author_name || "tanpa nama";
 
   return (
@@ -34,7 +36,11 @@ export function SpseLeadDeleteDialog({
         <DialogHeader>
           <DialogTitle>Hapus paket SPSE?</DialogTitle>
           <DialogDescription>
-            Paket <span className="font-semibold text-foreground">“{displayName}”</span> akan dihapus permanen dari daftar prospek SPSE.
+            Apakah Anda yakin ingin menghapus paket{" "}
+            <span className="font-semibold text-foreground">
+              “{displayName}”
+            </span>{" "}
+            ini?
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-0">
