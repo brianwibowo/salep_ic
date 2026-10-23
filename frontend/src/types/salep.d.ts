@@ -40,6 +40,10 @@ export interface Lead {
   marketing_status: "pending" | "valid" | "invalid";
   sales_status: "Belum Dihubungi" | "Sedang Dihubungi" | "Closing" | "Batal";
   sales_status_logs?: SalesStatusLog[];
+  marketing_reviewed_by_user_id?: string | null;
+  marketing_reviewed_by_username?: string | null;
+  marketing_reviewed_at?: string | null;
+  marketing_review_note?: string | null;
   created_at: string | null;
   notes: string | null;
   canonical_post_id?: string | null;

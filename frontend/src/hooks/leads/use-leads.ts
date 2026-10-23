@@ -39,8 +39,15 @@ export function useDeleteLead() {
 export function useUpdateLeadStatus() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ leadId, status }: { leadId: string; status: "pending" | "valid" | "invalid" }) =>
-      salepLeadsService.updateMarketingStatus(leadId, status),
+    mutationFn: ({
+      leadId,
+      status,
+      reviewNote,
+    }: {
+      leadId: string;
+      status: "pending" | "valid" | "invalid";
+      reviewNote?: string;
+    }) => salepLeadsService.updateMarketingStatus(leadId, status, reviewNote),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: leadsQueryKeys.all });
     },

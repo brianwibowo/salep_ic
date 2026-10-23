@@ -84,6 +84,8 @@ export function LeadsPageContent({
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [salesStatusDraft, setSalesStatusDraft] = useState<Lead["sales_status"]>("Belum Dihubungi");
   const [salesNote, setSalesNote] = useState("");
+  const [marketingStatusDraft, setMarketingStatusDraft] = useState<Lead["marketing_status"]>("pending");
+  const [marketingReviewNote, setMarketingReviewNote] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Lead | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -274,6 +276,8 @@ export function LeadsPageContent({
                   setSelectedLead(lead);
                   setSalesStatusDraft(lead.sales_status);
                   setSalesNote("");
+                  setMarketingStatusDraft(lead.marketing_status);
+                  setMarketingReviewNote("");
                 }}
               >
                 <Eye className="size-4" />
@@ -628,6 +632,21 @@ export function LeadsPageContent({
                       {selectedLead.marketing_status}
                     </dd>
                   </div>
+                  {(selectedLead.marketing_reviewed_by_username || selectedLead.marketing_reviewed_by_user_id) && (
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Direview oleh
+                      </dt>
+                      <dd className="mt-1 font-medium">
+                        {selectedLead.marketing_reviewed_by_username || selectedLead.marketing_reviewed_by_user_id}
+                        {selectedLead.marketing_reviewed_at && (
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {new Date(selectedLead.marketing_reviewed_at).toLocaleString("id-ID")}
+                          </span>
+                        )}
+                      </dd>
+                    </div>
+                  )}
                   <div>
                     <dt className="text-xs text-muted-foreground">
                       Tindak lanjut
@@ -656,27 +675,56 @@ export function LeadsPageContent({
                   )}
                 </dl>
                 {isMarketing && sourcePreset !== "all" && (
-                  <label className="block max-w-sm space-y-2 text-sm font-medium">
-                    Ubah status marketing
-                    <select
-                      className="h-10 w-full rounded-[5px] border bg-background px-3"
-                      value={selectedLead.marketing_status}
+                  <section className="max-w-sm space-y-3 rounded-[5px] border p-4">
+                    <label className="block space-y-2 text-sm font-medium">
+                      Ubah status marketing
+                      <select
+                        className="h-10 w-full rounded-[5px] border bg-background px-3"
+                        value={marketingStatusDraft}
+                        disabled={updateMarketing.isPending}
+                        onChange={(event) => setMarketingStatusDraft(event.target.value as Lead["marketing_status"])}
+                      >
+                        <option value="pending">Menunggu review</option>
+                        <option value="valid">Valid</option>
+                        <option value="invalid">Tidak valid</option>
+                      </select>
+                    </label>
+                    <label className="block space-y-2 text-sm font-medium">
+                      Catatan review <span className="font-normal text-muted-foreground">(opsional)</span>
+                      <Textarea
+                        value={marketingReviewNote}
+                        onChange={(event) => setMarketingReviewNote(event.target.value)}
+                        placeholder="Tambahkan alasan review jika diperlukan."
+                        maxLength={2000}
+                        disabled={updateMarketing.isPending}
+                      />
+                    </label>
+                    <Button
+                      type="button"
                       disabled={updateMarketing.isPending}
-                      onChange={(event) =>
-                        updateMarketing.mutate(
-                          {
-                            leadId: selectedLead.lead_id,
-                            status: event.target.value as Lead["marketing_status"],
+                      onClick={() => updateMarketing.mutate(
+                        {
+                          leadId: selectedLead.lead_id,
+                          status: marketingStatusDraft,
+                          reviewNote: marketingReviewNote,
+                        },
+                        {
+                          onSuccess: (updated) => {
+                            setSelectedLead(updated);
+                            setMarketingStatusDraft(updated.marketing_status);
+                            setMarketingReviewNote("");
                           },
-                          { onSuccess: setSelectedLead },
-                        )
-                      }
+                        },
+                      )}
                     >
-                      <option value="pending">Menunggu review</option>
-                      <option value="valid">Valid</option>
-                      <option value="invalid">Tidak valid</option>
-                    </select>
-                  </label>
+                      {updateMarketing.isPending ? "Menyimpan..." : "Simpan review"}
+                    </Button>
+                  </section>
+                )}
+                {selectedLead.marketing_review_note && (
+                  <p className="text-sm text-muted-foreground">
+                    Catatan review: {selectedLead.marketing_review_note}
+                  </p>
                 )}
                 {!isMarketing && (
                   <section className="space-y-3 rounded-[5px] border p-4">

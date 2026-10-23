@@ -41,10 +41,15 @@ export const salepLeadsService = {
   updateMarketingStatus: async (
     leadId: string,
     marketing_status: Lead["marketing_status"],
+    review_note?: string,
   ): Promise<Lead> => {
+    const payload: { marketing_status: Lead["marketing_status"]; review_note?: string } = {
+      marketing_status,
+    };
+    if (review_note?.trim()) payload.review_note = review_note.trim();
     const res = await Patch<Lead>(
       `${BASE_URL}/leads/${encodeURIComponent(leadId)}/status`,
-      { marketing_status },
+      payload,
     );
     return unwrapResponse(res);
   },
