@@ -252,7 +252,17 @@ export function LeadQrCodeDialog({
                     size="sm"
                     className="h-8 text-xs gap-1.5"
                   >
-                    <a href={url} target="_blank" rel="noreferrer">
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener"
+                      {...(isSpse
+                        ? {
+                            referer: "https://spse.inaproc.id/",
+                            referrer: "https://spse.inaproc.id/",
+                          }
+                        : {})}
+                    >
                       <span>Buka di Tab Baru</span>
                       <ExternalLink className="size-3.5" />
                     </a>

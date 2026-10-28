@@ -232,7 +232,9 @@ export function SpseScheduleDialog({
                 <a
                   href={data.source_url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener"
+                  referer="https://spse.inaproc.id/"
+                  referrer="https://spse.inaproc.id/"
                   className="inline-flex items-center gap-1.5 rounded-md border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
                 >
                   Buka Portal Resmi SPSE <ExternalLink className="size-3.5" />

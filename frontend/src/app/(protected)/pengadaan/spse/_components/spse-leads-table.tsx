@@ -173,14 +173,18 @@ export function SpseLeadsTable({
           const lead = row.original;
           return (
             <div className="flex flex-col gap-1.5 whitespace-nowrap">
-              {/* <a
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9D0A0E] hover:text-[#7A080B] hover:underline dark:text-red-400"
-                href={lead.source_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Pengumuman <ExternalLink className="size-3.5" />
-              </a>
+              {/* {lead.source_url && (
+                <a
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9D0A0E] hover:text-[#7A080B] hover:underline dark:text-red-400"
+                  href={lead.source_url}
+                  target="_blank"
+                  rel="noopener"
+                  referer="https://spse.inaproc.id/"
+                  referrer="https://spse.inaproc.id/"
+                >
+                  Pengumuman <ExternalLink className="size-3.5" />
+                </a>
+              )}
               {lead.source_url && onGenerateQr && (
                 <button
                   type="button"
