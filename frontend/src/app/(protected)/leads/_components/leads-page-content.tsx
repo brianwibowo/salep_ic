@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Sparkles,
   Tag,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
@@ -50,6 +51,8 @@ import {
 } from "@/components/ui/table";
 import { SpseScheduleDialog } from "@/components/leads/spse-schedule-dialog";
 import { SocialMediaDiscoveryDialog } from "@/components/leads/social-media-discovery-dialog";
+import { LeadQrCodeDialog } from "@/components/leads/lead-qrcode-dialog";
+import { SpseScheduleCard } from "@/components/leads/spse-schedule-card";
 import { useSession } from "@/hooks/auth/use-auth";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useManualSearch } from "@/hooks/discovery/use-discovery";
@@ -74,6 +77,7 @@ export function LeadsPageContent({
     createLeadFilters(sourcePreset),
   );
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedQrLead, setSelectedQrLead] = useState<Lead | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Lead | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -184,36 +188,49 @@ export function LeadsPageContent({
           </span>
         ),
       },
-      {
-        id: "post",
-        header: "Tautan & Jadwal",
-        cell: ({ row }) => {
-          const lead = row.original;
-          const isSpse = lead.source === "spse";
-          return (
-            <div className="flex flex-col gap-1.5 whitespace-nowrap">
-              <a
-                className="inline-flex items-center gap-1 text-primary hover:underline"
-                href={lead.source_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {isSpse ? "Pengumuman" : "Buka"}{" "}
-                <ExternalLink className="size-3.5" />
-              </a>
-              {isSpse && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedSpseLead(lead)}
-                  className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  <Clock className="size-3" /> Jadwal Lelang
-                </button>
-              )}
-            </div>
-          );
-        },
-      },
+      // {
+      //   id: "post",
+      //   header: "Tautan & Jadwal",
+      //   cell: ({ row }) => {
+      //     const lead = row.original;
+      //     const isSpse = lead.source === "spse";
+      //     return (
+      //       <div className="flex flex-col gap-1.5 whitespace-nowrap">
+      //         <div className="flex items-center gap-1.5">
+      //           <a
+      //             className="inline-flex items-center gap-1 text-primary hover:underline"
+      //             href={lead.source_url}
+      //             target="_blank"
+      //             rel="noreferrer"
+      //           >
+      //             {isSpse ? "Pengumuman" : "Buka"}{" "}
+      //             <ExternalLink className="size-3.5" />
+      //           </a>
+      //         </div>
+      //         {lead.source_url && (
+      //           <button
+      //             type="button"
+      //             onClick={() => setSelectedQrLead(lead)}
+      //             className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-600 hover:text-[#9D0A0E] hover:underline dark:text-slate-400 dark:hover:text-red-400"
+      //             title="Generate QR code untuk buka di HP"
+      //           >
+      //             <QrCode className="size-3.5 text-[#9D0A0E]" />
+      //             <span>Generate QR</span>
+      //           </button>
+      //         )}
+      //         {isSpse && (
+      //           <button
+      //             type="button"
+      //             onClick={() => setSelectedSpseLead(lead)}
+      //             className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+      //           >
+      //             <Clock className="size-3" /> Jadwal Lelang
+      //           </button>
+      //         )}
+      //       </div>
+      //     );
+      //   },
+      // },
       {
         id: "actions",
         header: "Aksi",
@@ -221,6 +238,19 @@ export function LeadsPageContent({
           const lead = row.original;
           return (
             <div className="flex items-center gap-1 whitespace-nowrap">
+              {/* {lead.source_url && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Generate QR Code"
+                  title="Generate QR Code"
+                  className="text-slate-600 hover:text-[#9D0A0E] hover:bg-[#9D0A0E]/10"
+                  onClick={() => setSelectedQrLead(lead)}
+                >
+                  <QrCode className="size-4" />
+                </Button>
+              )} */}
               <Button
                 type="button"
                 variant={isMarketing ? "outline" : "ghost"}
@@ -494,6 +524,18 @@ export function LeadsPageContent({
                   </DialogDescription>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  {selectedLead.source_url && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1.5 rounded-md border-border/80 text-xs font-medium hover:bg-muted"
+                      onClick={() => setSelectedQrLead(selectedLead)}
+                    >
+                      <QrCode className="size-3.5 text-[#9D0A0E]" />
+                      <span>Generate QR</span>
+                    </Button>
+                  )}
                   <Button
                     asChild
                     variant="outline"
@@ -574,6 +616,11 @@ export function LeadsPageContent({
                         </span>
                       </div>
                     </div>
+
+                    {/* Pantau Jadwal & Progres Lelang SPSE jika source spse */}
+                    {selectedLead.source === "spse" && (
+                      <SpseScheduleCard lead={selectedLead} />
+                    )}
 
                     {/* Isi Konten */}
                     <div className="rounded-lg border border-border/80 bg-card p-4 space-y-2 shadow-xs">
@@ -733,6 +780,11 @@ export function LeadsPageContent({
         onOpenChange={setIsDiscoveryOpen}
         searchMutation={searchMutation}
         analyzeUrlMutation={analyzeUrlMutation}
+      />
+      <LeadQrCodeDialog
+        lead={selectedQrLead}
+        open={selectedQrLead !== null}
+        onOpenChange={(open) => !open && setSelectedQrLead(null)}
       />
     </div>
   );

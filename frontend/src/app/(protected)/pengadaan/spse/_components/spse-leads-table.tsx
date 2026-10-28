@@ -19,6 +19,7 @@ import {
   FileText,
   Loader2,
   Trash2,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
@@ -45,7 +46,7 @@ interface SpseLeadsTableProps {
   onViewLead: (lead: Lead) => void;
   onViewSchedule: (lead: Lead) => void;
   onDeleteLead: (lead: Lead) => void;
-
+  onGenerateQr?: (lead: Lead) => void;
 }
 
 export function SpseLeadsTable({
@@ -58,6 +59,7 @@ export function SpseLeadsTable({
   onViewLead,
   onViewSchedule,
   onDeleteLead,
+  onGenerateQr,
 }: SpseLeadsTableProps) {
   const columns = useMemo<ColumnDef<Lead>[]>(
     () => [
@@ -171,7 +173,7 @@ export function SpseLeadsTable({
           const lead = row.original;
           return (
             <div className="flex flex-col gap-1.5 whitespace-nowrap">
-              <a
+              {/* <a
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9D0A0E] hover:text-[#7A080B] hover:underline dark:text-red-400"
                 href={lead.source_url}
                 target="_blank"
@@ -179,6 +181,16 @@ export function SpseLeadsTable({
               >
                 Pengumuman <ExternalLink className="size-3.5" />
               </a>
+              {lead.source_url && onGenerateQr && (
+                <button
+                  type="button"
+                  onClick={() => onGenerateQr(lead)}
+                  className="inline-flex cursor-pointer items-center gap-1.5 text-left text-xs font-medium text-slate-600 hover:text-[#9D0A0E] hover:underline dark:text-slate-400 dark:hover:text-red-400"
+                  title="Generate QR code untuk buka di HP"
+                >
+                  <QrCode className="size-3.5 text-[#9D0A0E]" /> Generate QR
+                </button>
+              )} */}
               <button
                 type="button"
                 onClick={() => onViewSchedule(lead)}
@@ -197,6 +209,19 @@ export function SpseLeadsTable({
           const lead = row.original;
           return (
             <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+              {/* {lead.source_url && onGenerateQr && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Generate QR Code ${lead.author_name || lead.lead_id}`}
+                  title="Generate QR Code"
+                  className="rounded-[5px] text-slate-600 hover:text-[#9D0A0E] hover:bg-[#9D0A0E]/10"
+                  onClick={() => onGenerateQr(lead)}
+                >
+                  <QrCode className="size-4" />
+                </Button>
+              )} */}
               <Button
                 type="button"
                 variant={isMarketing ? "outline" : "ghost"}
@@ -230,6 +255,7 @@ export function SpseLeadsTable({
     [
       isMarketing,
       onDeleteLead,
+      onGenerateQr,
       onViewLead,
       onViewSchedule,
     ],

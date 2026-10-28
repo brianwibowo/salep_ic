@@ -1,22 +1,23 @@
 "use client";
 
-import { Building2, Clock, Coins, ExternalLink, Tag } from "lucide-react";
+import { Building2, Clock, Coins, ExternalLink, QrCode, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { parseSpseLeadContent } from "@/lib/spse-parser";
 import type { Lead } from "@/types/salep";
 import { LeadWorkflowPanel } from "@/components/leads/lead-workflow-panel";
+import { SpseScheduleCard } from "@/components/leads/spse-schedule-card";
 
 interface SpseLeadDetailsDialogProps {
   lead: Lead | null;
   isMarketing: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdated: (lead: Lead) => void;
+  onGenerateQr?: (lead: Lead) => void;
 }
 
 export function SpseLeadDetailsDialog({
@@ -24,6 +25,7 @@ export function SpseLeadDetailsDialog({
   isMarketing,
   onOpenChange,
   onUpdated,
+  onGenerateQr,
 }: SpseLeadDetailsDialogProps) {
   const parsed = lead
     ? parseSpseLeadContent(lead.content, lead.author_name)
@@ -66,6 +68,18 @@ export function SpseLeadDetailsDialog({
               </div>
 
               <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                {lead.source_url && onGenerateQr && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-md border-border/80 text-xs font-medium hover:bg-muted"
+                    onClick={() => onGenerateQr(lead)}
+                  >
+                    <QrCode className="size-3.5 text-[#9D0A0E]" />
+                    <span>Generate QR</span>
+                  </Button>
+                )}
                 <Button
                   asChild
                   variant="outline"
@@ -119,6 +133,9 @@ export function SpseLeadDetailsDialog({
                       />
                     )}
                   </dl>
+
+                  {/* Pantau Jadwal & Progres Lelang SPSE */}
+                  <SpseScheduleCard lead={lead} />
 
                   {/* Kebutuhan Teridentifikasi */}
                   <LeadList title="Kebutuhan Teridentifikasi" items={lead.needs} />

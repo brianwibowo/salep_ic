@@ -17,6 +17,7 @@ import { SpseLeadDetailsDialog } from "./spse-lead-details-dialog";
 import { SpseLeadsTable } from "./spse-leads-table";
 import { SpseLeadsToolbar } from "./spse-leads-toolbar";
 import { SpseSyncDialog } from "./spse-sync-dialog";
+import { LeadQrCodeDialog } from "@/components/leads/lead-qrcode-dialog";
 
 export function SpseLeadsPageContent() {
   const { data: session } = useSession();
@@ -25,6 +26,7 @@ export function SpseLeadsPageContent() {
   const [filterValues, setFilterValues] = useState(() => createLeadFilters("spse"));
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedScheduleLead, setSelectedScheduleLead] = useState<Lead | null>(null);
+  const [selectedQrLead, setSelectedQrLead] = useState<Lead | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Lead | null>(null);
   const [isSyncOpen, setIsSyncOpen] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -134,6 +136,7 @@ export function SpseLeadsPageContent() {
           onViewLead={setSelectedLead}
           onViewSchedule={setSelectedScheduleLead}
           onDeleteLead={setPendingDelete}
+          onGenerateQr={setSelectedQrLead}
         />
       </section>
 
@@ -142,6 +145,7 @@ export function SpseLeadsPageContent() {
         isMarketing={isMarketing}
         onOpenChange={(open) => !open && setSelectedLead(null)}
         onUpdated={setSelectedLead}
+        onGenerateQr={setSelectedQrLead}
       />
 
       <SpseLeadDeleteDialog
@@ -163,6 +167,12 @@ export function SpseLeadsPageContent() {
         open={isSyncOpen}
         onOpenChange={setIsSyncOpen}
         onSuccess={() => void leads.refetch()}
+      />
+
+      <LeadQrCodeDialog
+        lead={selectedQrLead}
+        open={selectedQrLead !== null}
+        onOpenChange={(open) => !open && setSelectedQrLead(null)}
       />
     </div>
   );
