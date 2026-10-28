@@ -1,42 +1,31 @@
 "use client";
 
-import { Building2, Clock, Coins, ExternalLink, Tag } from "lucide-react";
+import { Building2, Clock, Coins, ExternalLink, QrCode, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { parseSpseLeadContent } from "@/lib/spse-parser";
 import type { Lead } from "@/types/salep";
-
-const salesStatuses: Lead["sales_status"][] = [
-  "Belum Dihubungi",
-  "Sedang Dihubungi",
-  "Closing",
-  "Batal",
-];
+import { LeadWorkflowPanel } from "@/components/leads/lead-workflow-panel";
+import { SpseScheduleCard } from "@/components/leads/spse-schedule-card";
 
 interface SpseLeadDetailsDialogProps {
   lead: Lead | null;
   isMarketing: boolean;
-  isUpdatingMarketing: boolean;
-  isUpdatingSales: boolean;
   onOpenChange: (open: boolean) => void;
-  onMarketingStatusChange: (status: Lead["marketing_status"]) => void;
-  onSalesStatusChange: (status: Lead["sales_status"]) => void;
+  onUpdated: (lead: Lead) => void;
+  onGenerateQr?: (lead: Lead) => void;
 }
 
 export function SpseLeadDetailsDialog({
   lead,
   isMarketing,
-  isUpdatingMarketing,
-  isUpdatingSales,
   onOpenChange,
-  onMarketingStatusChange,
-  onSalesStatusChange,
+  onUpdated,
+  onGenerateQr,
 }: SpseLeadDetailsDialogProps) {
   const parsed = lead
     ? parseSpseLeadContent(lead.content, lead.author_name)
@@ -44,152 +33,139 @@ export function SpseLeadDetailsDialog({
 
   return (
     <Dialog open={lead !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto rounded-[5px] sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] w-full max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl overflow-hidden p-0 rounded-lg flex flex-col gap-0 shadow-xl border border-border/80">
         {lead && parsed && (
           <>
-            <DialogHeader className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Building2 className="size-3.5 text-slate-400" />
-                <span>{parsed.agency || lead.author_name || "Instansi Pemerintah"}</span>
-                <span>•</span>
-                <span className="text-[#9D0A0E]">SPSE LKPP</span>
-              </div>
-              <DialogTitle className="text-lg font-bold leading-snug">
-                {parsed.title}
-              </DialogTitle>
-              {parsed.badge && (
-                <div>
-                  <span
-                    className={`inline-flex items-center rounded-[4px] px-2.5 py-0.5 text-xs font-semibold ${
-                      parsed.badge.variant === "destructive"
-                        ? "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
-                        : parsed.badge.variant === "warning"
-                          ? "border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                          : "border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-                    }`}
-                  >
-                    {parsed.badge.text}
-                  </span>
-                </div>
-              )}
-            </DialogHeader>
-
-            <div className="space-y-5 pt-2">
-              {/* Primary Info Cards */}
-              <dl className="grid gap-3 rounded-[5px] border bg-muted/20 p-4 sm:grid-cols-2 text-xs">
-                <DetailItem
-                  label="Status Validasi Marketing"
-                  value={
-                    lead.marketing_status === "valid"
-                      ? "Valid"
-                      : lead.marketing_status === "invalid"
-                        ? "Tidak Valid"
-                        : "Review (Pending)"
-                  }
-                />
-                <DetailItem label="Status Tindak Lanjut" value={lead.sales_status} />
-
-                {parsed.stage && (
-                  <DetailItem
-                    label="Tahap Tender Saat Ini"
-                    value={parsed.stage}
-                    icon={<Clock className="size-3 text-slate-400" />}
-                  />
-                )}
-
-                {parsed.hps && parsed.hps !== "Rp 0" && (
-                  <DetailItem
-                    label="Nilai HPS"
-                    value={parsed.hps}
-                    icon={<Coins className="size-3 text-slate-400" />}
-                  />
-                )}
-
-                {lead.matched_keyword && (
-                  <DetailItem
-                    label="Keyword Terkait"
-                    value={lead.matched_keyword}
-                    icon={<Tag className="size-3 text-slate-400" />}
-                  />
-                )}
-
-                {lead.industry && (
-                  <DetailItem
-                    label="Industri"
-                    value={lead.industry.replace(/_/g, " ")}
-                    capitalize
-                  />
-                )}
-              </dl>
-
-              {/* Status Updater */}
-              <div className="rounded-[5px] border p-4">
-                <label className="block max-w-sm space-y-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {isMarketing
-                    ? "Perbarui Status Validasi Marketing"
-                    : "Perbarui Status Tindak Lanjut Sales"}
-                  {isMarketing ? (
-                    <select
-                      className="h-9 w-full rounded-[5px] border bg-background px-3 text-xs font-normal text-foreground focus:outline-none focus:ring-1 focus:ring-[#9D0A0E]"
-                      value={lead.marketing_status}
-                      disabled={isUpdatingMarketing}
-                      onChange={(event) =>
-                        onMarketingStatusChange(
-                          event.target.value as Lead["marketing_status"],
-                        )
-                      }
+            {/* Header Popup Dialog */}
+            <div className="border-b border-border/80 bg-muted/20 px-6 py-4 pr-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Building2 className="size-3.5 text-slate-400" />
+                    <span className="truncate max-w-[240px]">
+                      {parsed.agency || lead.author_name || "Instansi Pemerintah"}
+                    </span>
+                    <span>•</span>
+                    <span className="text-[#9D0A0E]">SPSE LKPP</span>
+                  </div>
+                  {parsed.badge && (
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                        parsed.badge.variant === "destructive"
+                          ? "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
+                          : parsed.badge.variant === "warning"
+                            ? "border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                            : "border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+                      }`}
                     >
-                      <option value="pending">Review (Pending)</option>
-                      <option value="valid">Valid</option>
-                      <option value="invalid">Tidak Valid</option>
-                    </select>
-                  ) : (
-                    <select
-                      className="h-9 w-full rounded-[5px] border bg-background px-3 text-xs font-normal text-foreground focus:outline-none focus:ring-1 focus:ring-[#9D0A0E]"
-                      value={lead.sales_status}
-                      disabled={isUpdatingSales}
-                      onChange={(event) =>
-                        onSalesStatusChange(
-                          event.target.value as Lead["sales_status"],
-                        )
-                      }
-                    >
-                      {salesStatuses.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
+                      {parsed.badge.text}
+                    </span>
                   )}
-                </label>
-              </div>
-
-              {/* Tags & Lists */}
-              <LeadList title="Kebutuhan Teridentifikasi" items={lead.needs} />
-              <LeadList title="Kendala / Catatan" items={lead.pain_points} />
-
-              {/* Ringkasan Parsed Clean Text */}
-              <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Informasi Mentah Paket
-                </h3>
-                <div className="whitespace-pre-wrap rounded-[5px] bg-muted/40 p-3.5 text-xs font-mono leading-relaxed text-slate-700 dark:text-slate-300 border">
-                  {lead.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()}
                 </div>
+                <DialogTitle className="text-xl font-bold tracking-tight text-foreground leading-snug">
+                  {parsed.title}
+                </DialogTitle>
               </div>
 
-              {/* Links */}
-              <div className="pt-1">
+              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                {lead.source_url && onGenerateQr && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-md border-border/80 text-xs font-medium hover:bg-muted"
+                    onClick={() => onGenerateQr(lead)}
+                  >
+                    <QrCode className="size-3.5 text-[#9D0A0E]" />
+                    <span>Generate QR</span>
+                  </Button>
+                )}
                 <Button
                   asChild
                   variant="outline"
-                  className="rounded-[5px] border-[#9D0A0E] text-xs font-medium text-[#9D0A0E] hover:bg-[#9D0A0E]/5 hover:text-[#9D0A0E]"
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-md border-border/80 text-xs font-medium hover:bg-muted"
                 >
                   <a href={lead.source_url} target="_blank" rel="noreferrer">
-                    Buka Pengumuman di Portal SPSE
-                    <ExternalLink className="size-3.5 ml-1.5" />
+                    <span>Portal SPSE</span>
+                    <ExternalLink className="size-3.5 text-muted-foreground" />
                   </a>
                 </Button>
+              </div>
+            </div>
+
+            {/* Body Popup Dialog */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 min-h-0">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Kolom Kiri: Detail Paket Tender & Informasi (7 cols) */}
+                <div className="lg:col-span-7 space-y-5">
+                  {/* Primary Info Cards */}
+                  <dl className="grid gap-2.5 rounded-lg border border-border/70 bg-muted/20 p-3.5 sm:grid-cols-2 text-xs">
+                    {parsed.stage && (
+                      <DetailItem
+                        label="Tahap Tender Saat Ini"
+                        value={parsed.stage}
+                        icon={<Clock className="size-3.5 text-slate-400" />}
+                      />
+                    )}
+
+                    {parsed.hps && parsed.hps !== "Rp 0" && (
+                      <DetailItem
+                        label="Nilai Pagu / HPS"
+                        value={parsed.hps}
+                        icon={<Coins className="size-3.5 text-[#9D0A0E]" />}
+                      />
+                    )}
+
+                    {lead.matched_keyword && (
+                      <DetailItem
+                        label="Keyword Relevansi"
+                        value={lead.matched_keyword}
+                        icon={<Tag className="size-3.5 text-slate-400" />}
+                      />
+                    )}
+
+                    {lead.industry && (
+                      <DetailItem
+                        label="Industri / Sektor"
+                        value={lead.industry.replace(/_/g, " ")}
+                        capitalize
+                      />
+                    )}
+                  </dl>
+
+                  {/* Pantau Jadwal & Progres Lelang SPSE */}
+                  <SpseScheduleCard lead={lead} />
+
+                  {/* Kebutuhan Teridentifikasi */}
+                  <LeadList title="Kebutuhan Teridentifikasi" items={lead.needs} />
+
+                  {/* Kendala / Catatan */}
+                  <LeadList title="Kendala / Catatan" items={lead.pain_points} />
+
+                  {/* Informasi Mentah Paket */}
+                  <div className="rounded-lg border border-border/80 bg-card p-4 space-y-2 shadow-xs">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Ringkasan Konten Pengumuman Tender
+                    </h3>
+                    <div className="whitespace-pre-wrap rounded-md bg-muted/30 p-3.5 text-xs font-mono leading-relaxed text-slate-800 dark:text-slate-200 border border-border/50 select-text">
+                      {lead.content
+                        .replace(/<[^>]+>/g, " ")
+                        .replace(/\s+/g, " ")
+                        .trim()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kolom Kanan: Review & Penugasan Sales (5 cols) */}
+                <div className="lg:col-span-5 space-y-4">
+                  <LeadWorkflowPanel
+                    key={lead.lead_id}
+                    lead={lead}
+                    isMarketing={isMarketing}
+                    onUpdated={onUpdated}
+                  />
+                </div>
               </div>
             </div>
           </>

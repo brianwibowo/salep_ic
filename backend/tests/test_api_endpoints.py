@@ -5,6 +5,8 @@ from app.main import app
 from app.core import auth
 from app.api.routes import leads
 from app.services.lead_repository import LeadRepository
+from app.db.lead_repository import SqlAlchemyLeadRepository
+from app.agent.schemas import LeadRecord
 
 
 def data(response):
@@ -13,16 +15,24 @@ def data(response):
 
 @pytest.fixture
 def clients(tmp_path, monkeypatch):
-    repository = LeadRepository(tmp_path / 'leads.db')
+    samples = LeadRepository(tmp_path / 'samples.db').get_leads(limit=100)
+    db_url = f'sqlite:///{tmp_path / "sessions.db"}'
+    repository = SqlAlchemyLeadRepository(db_url, create_schema=True)
     monkeypatch.setattr(leads, 'lead_repository', repository)
     monkeypatch.setattr(auth.settings, 'app_env', 'development')
-    monkeypatch.setattr(auth.settings, 'auth_database_url', f'sqlite:///{tmp_path / "sessions.db"}')
+    monkeypatch.setattr(auth.settings, 'auth_database_url', db_url)
     monkeypatch.setattr(auth.settings, 'database_url', '')
     from app.services.auth_service import get_auth_store
     get_auth_store.cache_clear()
     store = get_auth_store()
-    store.create_user('marketing', 'marketing-test-passphrase', 'marketing')
-    store.create_user('sales', 'sales-test-passphrase', 'sales')
+    reviewer = store.create_user('marketing', 'marketing-test-passphrase', 'marketing')
+    recipient = store.create_user('sales', 'sales-test-passphrase', 'sales')
+    for sample in samples:
+        repository.save_lead(LeadRecord.model_validate(sample))
+        if sample['marketing_status'] == 'valid':
+            repository.update_marketing_status(sample['lead_id'], 'valid',
+                reviewed_by_user_id=reviewer['user_id'], expected_version=0,
+                sales_user_id=recipient['user_id'])
     async def no_sheet(*args, **kwargs):
         return True
     monkeypatch.setattr(leads.sheets_service, 'append_lead', no_sheet)
@@ -105,9 +115,20 @@ def test_write_origin_allows_configured_public_origin_behind_proxy(clients, monk
 
 def test_qualification_and_pagination(clients):
     marketing, sales, _ = clients
-    assert marketing.patch('/api/v1/leads/lead_demo_003/status',json={'marketing_status':'valid'}).status_code == 200
+    approved = marketing.patch(
+        '/api/v1/leads/lead_demo_003/status',
+        json={'marketing_status':'valid', 'expected_version': 0,
+              'sales_user_id': data(sales.get('/api/v1/auth/me'))['user_id'],
+              'review_note': 'Relevan dengan kebutuhan aplikasi.'},
+    )
+    assert approved.status_code == 200
+    approved_data = data(approved)
+    assert approved_data['marketing_reviewed_by_username'] == 'marketing'
+    assert approved_data['marketing_reviewed_by_user_id']
+    assert approved_data['marketing_review_note'] == 'Relevan dengan kebutuhan aplikasi.'
+    assert approved_data['marketing_reviewed_at']
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 200
-    marketing.patch('/api/v1/leads/lead_demo_003/status',json={'marketing_status':'invalid'})
+    marketing.patch('/api/v1/leads/lead_demo_003/status',json={'marketing_status':'invalid', 'expected_version': 1})
     assert sales.get('/api/v1/leads/lead_demo_003').status_code == 404
     first_page = data(marketing.get('/api/v1/leads?limit=2&page=1'))
     second_page = data(marketing.get('/api/v1/leads?limit=2&page=2'))

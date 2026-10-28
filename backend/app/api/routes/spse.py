@@ -43,8 +43,10 @@ async def get_tender_jadwal_endpoint(tender_id: str) -> dict[str, Any]:
 
 
 @router.get("/leads/{lead_id}/jadwal")
-async def get_lead_jadwal_endpoint(lead_id: str) -> dict[str, Any]:
+async def get_lead_jadwal_endpoint(lead_id: str, request: Request) -> dict[str, Any]:
     """Retrieve SPSE tender schedule for a specific lead."""
+    from app.api.routes.leads import lead_repository, require_lead_access
+    require_lead_access(lead_repository.get_lead(lead_id), request)
     try:
         schedule = await get_lead_spse_schedule(lead_id)
         return success_response(schedule, "Jadwal lelang lead SPSE berhasil diambil")

@@ -19,6 +19,7 @@ import {
   FileText,
   Loader2,
   Trash2,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
@@ -33,6 +34,7 @@ import {
 import { parseSpseLeadContent } from "@/lib/spse-parser";
 import type { Lead } from "@/types/salep";
 import { formatDate } from "@/utils/formatting/string";
+import { SalesProgressCell } from "@/components/leads/lead-sales-progress";
 
 interface SpseLeadsTableProps {
   data: Lead[];
@@ -44,13 +46,7 @@ interface SpseLeadsTableProps {
   onViewLead: (lead: Lead) => void;
   onViewSchedule: (lead: Lead) => void;
   onDeleteLead: (lead: Lead) => void;
-  onMarketingStatusChange?: (
-    leadId: string,
-    status: Lead["marketing_status"],
-  ) => void;
-  onSalesStatusChange?: (leadId: string, status: Lead["sales_status"]) => void;
-  isUpdatingMarketing?: boolean;
-  isUpdatingSales?: boolean;
+  onGenerateQr?: (lead: Lead) => void;
 }
 
 export function SpseLeadsTable({
@@ -63,10 +59,7 @@ export function SpseLeadsTable({
   onViewLead,
   onViewSchedule,
   onDeleteLead,
-  onMarketingStatusChange,
-  onSalesStatusChange,
-  isUpdatingMarketing,
-  isUpdatingSales,
+  onGenerateQr,
 }: SpseLeadsTableProps) {
   const columns = useMemo<ColumnDef<Lead>[]>(
     () => [
@@ -151,34 +144,13 @@ export function SpseLeadsTable({
         header: "Status",
         cell: ({ row }) => {
           const lead = row.original;
-          if (isMarketing && onMarketingStatusChange) {
-            return (
-              <select
-                aria-label={`Status marketing ${lead.author_name || lead.lead_id}`}
-                value={lead.marketing_status}
-                disabled={isUpdatingMarketing}
-                onChange={(event) =>
-                  onMarketingStatusChange(
-                    lead.lead_id,
-                    event.target.value as Lead["marketing_status"],
-                  )
-                }
-                className={`h-8 rounded-[5px] border px-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#9D0A0E] cursor-pointer shadow-2xs transition-colors ${
-                  lead.marketing_status === "valid"
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                    : lead.marketing_status === "invalid"
-                      ? "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                      : "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                }`}
-              >
-                <option value="pending">Review (Pending)</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Tidak Valid</option>
-              </select>
-            );
-          }
           return <MarketingStatusBadge value={lead.marketing_status} />;
         },
+      },
+      {
+        id: "assigned-sales",
+        header: "Sales PIC",
+        cell: ({ row }) => <span className="text-xs">{row.original.assignment?.sales_username || "Belum ditugaskan"}</span>,
       },
       {
         accessorKey: "created_at",
@@ -191,28 +163,7 @@ export function SpseLeadsTable({
         header: "Tindak Lanjut",
         cell: ({ row }) => {
           const lead = row.original;
-          if (!isMarketing && onSalesStatusChange) {
-            return (
-              <select
-                aria-label={`Status tindak lanjut ${lead.author_name || lead.lead_id}`}
-                value={lead.sales_status}
-                disabled={isUpdatingSales}
-                onChange={(event) =>
-                  onSalesStatusChange(
-                    lead.lead_id,
-                    event.target.value as Lead["sales_status"],
-                  )
-                }
-                className="h-8 rounded-[5px] border bg-background px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-[#9D0A0E] cursor-pointer shadow-2xs"
-              >
-                <option value="Belum Dihubungi">Belum Dihubungi</option>
-                <option value="Sedang Dihubungi">Sedang Dihubungi</option>
-                <option value="Closing">Closing</option>
-                <option value="Batal">Batal</option>
-              </select>
-            );
-          }
-          return <SalesStatusBadge value={lead.sales_status} />;
+          return <SalesProgressCell lead={lead} />;
         },
       },
       {
@@ -222,7 +173,7 @@ export function SpseLeadsTable({
           const lead = row.original;
           return (
             <div className="flex flex-col gap-1.5 whitespace-nowrap">
-              <a
+              {/* <a
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9D0A0E] hover:text-[#7A080B] hover:underline dark:text-red-400"
                 href={lead.source_url}
                 target="_blank"
@@ -230,6 +181,16 @@ export function SpseLeadsTable({
               >
                 Pengumuman <ExternalLink className="size-3.5" />
               </a>
+              {lead.source_url && onGenerateQr && (
+                <button
+                  type="button"
+                  onClick={() => onGenerateQr(lead)}
+                  className="inline-flex cursor-pointer items-center gap-1.5 text-left text-xs font-medium text-slate-600 hover:text-[#9D0A0E] hover:underline dark:text-slate-400 dark:hover:text-red-400"
+                  title="Generate QR code untuk buka di HP"
+                >
+                  <QrCode className="size-3.5 text-[#9D0A0E]" /> Generate QR
+                </button>
+              )} */}
               <button
                 type="button"
                 onClick={() => onViewSchedule(lead)}
@@ -248,16 +209,30 @@ export function SpseLeadsTable({
           const lead = row.original;
           return (
             <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+              {/* {lead.source_url && onGenerateQr && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Generate QR Code ${lead.author_name || lead.lead_id}`}
+                  title="Generate QR Code"
+                  className="rounded-[5px] text-slate-600 hover:text-[#9D0A0E] hover:bg-[#9D0A0E]/10"
+                  onClick={() => onGenerateQr(lead)}
+                >
+                  <QrCode className="size-4" />
+                </Button>
+              )} */}
               <Button
                 type="button"
-                variant="ghost"
-                size="icon-sm"
+                variant={isMarketing ? "outline" : "ghost"}
+                size={isMarketing ? "sm" : "icon-sm"}
                 aria-label={`Lihat detail ${lead.author_name || lead.lead_id}`}
                 title="Detail Paket"
                 className="rounded-[5px] text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
                 onClick={() => onViewLead(lead)}
               >
                 <Eye className="size-4" />
+                {isMarketing && <span>Review & assign</span>}
               </Button>
               {isMarketing && (
                 <Button
@@ -279,11 +254,8 @@ export function SpseLeadsTable({
     ],
     [
       isMarketing,
-      isUpdatingMarketing,
-      isUpdatingSales,
       onDeleteLead,
-      onMarketingStatusChange,
-      onSalesStatusChange,
+      onGenerateQr,
       onViewLead,
       onViewSchedule,
     ],
@@ -301,7 +273,7 @@ export function SpseLeadsTable({
 
   return (
     <>
-      <div className="overflow-x-auto">
+      <div className="w-full min-w-0 max-w-full">
         <Table>
           <TableHeader className="bg-muted/40">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -401,38 +373,4 @@ function MarketingStatusBadge({ value }: { value: string }) {
       Review
     </span>
   );
-}
-
-function SalesStatusBadge({ value }: { value: string }) {
-  switch (value) {
-    case "Closing":
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-[5px] border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
-          Closing
-        </span>
-      );
-    case "Sedang Dihubungi":
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-[5px] border border-blue-200/80 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
-          <span className="size-1.5 rounded-full bg-blue-500" />
-          Sedang Dihubungi
-        </span>
-      );
-    case "Batal":
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-[5px] border border-rose-200/80 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300">
-          <span className="size-1.5 rounded-full bg-rose-400" />
-          Batal
-        </span>
-      );
-    case "Belum Dihubungi":
-    default:
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-[5px] border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">
-          <span className="size-1.5 rounded-full bg-slate-400" />
-          {value || "Belum Dihubungi"}
-        </span>
-      );
-  }
 }

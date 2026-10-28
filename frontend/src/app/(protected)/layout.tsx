@@ -88,8 +88,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
       style={{ "--sidebar-width-icon": "4.5rem" } as CSSProperties}
     >
       <AppSidebar role={session.data.role} />
-      <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-5">
+      <SidebarInset className="min-w-0 max-w-full">
+        <header className="sticky top-0 z-30 flex h-16 w-full shrink-0 items-center justify-between border-b border-border bg-card px-5">
           <div className="flex items-center">
             <SidebarTrigger className="size-8 [&>svg]:size-6" />
           </div>
@@ -109,7 +109,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
             <ThemeToggle />
           </div>
         </header>
-        <div className="p-6">{children}</div>
+        <div className="w-full min-w-0 max-w-full flex-1 p-4 md:p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

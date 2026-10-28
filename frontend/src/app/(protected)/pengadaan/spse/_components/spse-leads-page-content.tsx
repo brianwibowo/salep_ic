@@ -7,26 +7,26 @@ import { useSession } from "@/hooks/auth/use-auth";
 import {
   useDeleteLead,
   useLeads,
-  useUpdateLeadStatus,
-  useUpdateSalesStatus,
 } from "@/hooks/leads/use-leads";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { LeadFilters } from "@/services/salep-leads-service";
 import type { Lead } from "@/types/salep";
+import { createLeadFilters, leadQueryFilters } from "@/lib/lead-filters";
 import { SpseLeadDeleteDialog } from "./spse-lead-delete-dialog";
 import { SpseLeadDetailsDialog } from "./spse-lead-details-dialog";
 import { SpseLeadsTable } from "./spse-leads-table";
 import { SpseLeadsToolbar } from "./spse-leads-toolbar";
 import { SpseSyncDialog } from "./spse-sync-dialog";
+import { LeadQrCodeDialog } from "@/components/leads/lead-qrcode-dialog";
 
 export function SpseLeadsPageContent() {
   const { data: session } = useSession();
   const isMarketing = session?.role === "marketing";
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [salesStatus, setSalesStatus] = useState("all");
+  const [filterValues, setFilterValues] = useState(() => createLeadFilters("spse"));
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedScheduleLead, setSelectedScheduleLead] = useState<Lead | null>(null);
+  const [selectedQrLead, setSelectedQrLead] = useState<Lead | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Lead | null>(null);
   const [isSyncOpen, setIsSyncOpen] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -37,18 +37,14 @@ export function SpseLeadsPageContent() {
 
   const filters = useMemo<LeadFilters>(
     () => ({
-      source: "spse",
+      ...leadQueryFilters(filterValues, isMarketing),
       search: debouncedSearch,
-      status: isMarketing ? status : "all",
-      sales_status: isMarketing ? "all" : salesStatus,
       page: pagination.pageIndex + 1,
       limit: pagination.pageSize,
     }),
-    [debouncedSearch, isMarketing, pagination.pageIndex, pagination.pageSize, salesStatus, status],
+    [debouncedSearch, isMarketing, pagination.pageIndex, pagination.pageSize, filterValues],
   );
   const leads = useLeads(filters);
-  const updateMarketing = useUpdateLeadStatus();
-  const updateSales = useUpdateSalesStatus();
   const deleteLead = useDeleteLead();
 
   const resetPage = useCallback(() => {
@@ -61,54 +57,6 @@ export function SpseLeadsPageContent() {
       resetPage();
     },
     [resetPage],
-  );
-
-  const handleStatusChange = useCallback(
-    (value: string) => {
-      setStatus(value);
-      resetPage();
-    },
-    [resetPage],
-  );
-
-  const handleSalesStatusChange = useCallback(
-    (value: string) => {
-      setSalesStatus(value);
-      resetPage();
-    },
-    [resetPage],
-  );
-
-  const handleMarketingStatusUpdate = useCallback(
-    (leadId: string, status: Lead["marketing_status"]) => {
-      updateMarketing.mutate(
-        { leadId, status },
-        {
-          onSuccess: (updatedLead) => {
-            setSelectedLead((current) =>
-              current?.lead_id === updatedLead.lead_id ? updatedLead : current,
-            );
-          },
-        },
-      );
-    },
-    [updateMarketing],
-  );
-
-  const handleSalesStatusUpdate = useCallback(
-    (leadId: string, status: Lead["sales_status"]) => {
-      updateSales.mutate(
-        { leadId, status },
-        {
-          onSuccess: (updatedLead) => {
-            setSelectedLead((current) =>
-              current?.lead_id === updatedLead.lead_id ? updatedLead : current,
-            );
-          },
-        },
-      );
-    },
-    [updateSales],
   );
 
   const data = leads.data?.items ?? [];
@@ -131,7 +79,7 @@ export function SpseLeadsPageContent() {
   }, [data.length, deleteLead, pagination.pageIndex, pendingDelete]);
 
   return (
-    <div className="space-y-5">
+    <div className="w-full min-w-0 max-w-full space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -167,16 +115,14 @@ export function SpseLeadsPageContent() {
         </p>
       )}
 
-      <section className="overflow-hidden rounded-[5px] border bg-card">
+      <section className="w-full min-w-0 max-w-full overflow-hidden rounded-[5px] border bg-card">
         <SpseLeadsToolbar
           isMarketing={isMarketing}
           search={search}
-          status={status}
-          salesStatus={salesStatus}
+          filterValues={filterValues}
           isRefreshing={leads.isRefetching}
           onSearchChange={handleSearchChange}
-          onStatusChange={handleStatusChange}
-          onSalesStatusChange={handleSalesStatusChange}
+          onFiltersChange={(value) => {setFilterValues(value); resetPage();}}
           onRefresh={() => void leads.refetch()}
           onOpenSync={() => setIsSyncOpen(true)}
         />
@@ -190,29 +136,16 @@ export function SpseLeadsPageContent() {
           onViewLead={setSelectedLead}
           onViewSchedule={setSelectedScheduleLead}
           onDeleteLead={setPendingDelete}
-          onMarketingStatusChange={handleMarketingStatusUpdate}
-          onSalesStatusChange={handleSalesStatusUpdate}
-          isUpdatingMarketing={updateMarketing.isPending}
-          isUpdatingSales={updateSales.isPending}
+          onGenerateQr={setSelectedQrLead}
         />
       </section>
 
       <SpseLeadDetailsDialog
         lead={selectedLead}
         isMarketing={isMarketing}
-        isUpdatingMarketing={updateMarketing.isPending}
-        isUpdatingSales={updateSales.isPending}
         onOpenChange={(open) => !open && setSelectedLead(null)}
-        onMarketingStatusChange={(status) => {
-          if (selectedLead) {
-            handleMarketingStatusUpdate(selectedLead.lead_id, status);
-          }
-        }}
-        onSalesStatusChange={(status) => {
-          if (selectedLead) {
-            handleSalesStatusUpdate(selectedLead.lead_id, status);
-          }
-        }}
+        onUpdated={setSelectedLead}
+        onGenerateQr={setSelectedQrLead}
       />
 
       <SpseLeadDeleteDialog
@@ -234,6 +167,12 @@ export function SpseLeadsPageContent() {
         open={isSyncOpen}
         onOpenChange={setIsSyncOpen}
         onSuccess={() => void leads.refetch()}
+      />
+
+      <LeadQrCodeDialog
+        lead={selectedQrLead}
+        open={selectedQrLead !== null}
+        onOpenChange={(open) => !open && setSelectedQrLead(null)}
       />
     </div>
   );

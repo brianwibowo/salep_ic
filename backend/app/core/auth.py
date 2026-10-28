@@ -28,6 +28,7 @@ async def enforce_access(request, call_next):
             return error_response('Silakan login terlebih dahulu', status_code=401)
         request.state.role = role
         request.state.username = identity.get('username')
+        request.state.user_id = identity.get('user_id')
         if role == 'super_admin':
             if not path.startswith('/api/v1/admin/'):
                 return error_response('Akses khusus Super Admin', status_code=403)

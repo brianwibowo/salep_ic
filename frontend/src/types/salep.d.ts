@@ -2,6 +2,22 @@ export type SalepRole = "marketing" | "sales" | "super_admin";
 
 export interface SalepSession {
   role: SalepRole;
+  user_id: string;
+  username: string;
+}
+
+export interface SalesUser {
+  user_id: string;
+  username: string;
+  active: boolean;
+}
+
+export interface LeadAssignment {
+  assignment_id: string;
+  sales_user_id: string;
+  sales_username: string | null;
+  assigned_by_user_id: string;
+  assigned_at: string;
 }
 
 export interface SalesStatusLog {
@@ -38,8 +54,17 @@ export interface Lead {
   evidence: string[];
   analyzed_at: string;
   marketing_status: "pending" | "valid" | "invalid";
+  review_version: number;
+  deleted_at?: string | null;
+  deleted_by_user_id?: string | null;
+  deleted_by_username?: string | null;
+  assignment: LeadAssignment | null;
   sales_status: "Belum Dihubungi" | "Sedang Dihubungi" | "Closing" | "Batal";
   sales_status_logs?: SalesStatusLog[];
+  marketing_reviewed_by_user_id?: string | null;
+  marketing_reviewed_by_username?: string | null;
+  marketing_reviewed_at?: string | null;
+  marketing_review_note?: string | null;
   created_at: string | null;
   notes: string | null;
   canonical_post_id?: string | null;

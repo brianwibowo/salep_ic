@@ -10,17 +10,21 @@ import {
   type PaginationState,
 } from "@tanstack/react-table";
 import {
-  ChevronDown,
   Compass,
   Eye,
   ExternalLink,
   Search,
   RefreshCw,
-  SlidersHorizontal,
   Trash2,
   Calendar,
   Clock,
   Loader2,
+  FileText,
+  Target,
+  AlertCircle,
+  Sparkles,
+  Tag,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
@@ -33,12 +37,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { LeadWorkflowPanel } from "@/components/leads/lead-workflow-panel";
+import { LeadFiltersPopover } from "@/components/leads/lead-filters-popover";
+import { SalesProgressCell } from "@/components/leads/lead-sales-progress";
+import { createLeadFilters, leadQueryFilters } from "@/lib/lead-filters";
 import {
   Table,
   TableBody,
@@ -49,6 +51,8 @@ import {
 } from "@/components/ui/table";
 import { SpseScheduleDialog } from "@/components/leads/spse-schedule-dialog";
 import { SocialMediaDiscoveryDialog } from "@/components/leads/social-media-discovery-dialog";
+import { LeadQrCodeDialog } from "@/components/leads/lead-qrcode-dialog";
+import { SpseScheduleCard } from "@/components/leads/spse-schedule-card";
 import { useSession } from "@/hooks/auth/use-auth";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useManualSearch } from "@/hooks/discovery/use-discovery";
@@ -56,18 +60,9 @@ import {
   useAnalyzeUrl,
   useDeleteLead,
   useLeads,
-  useUpdateLeadStatus,
-  useUpdateSalesStatus,
 } from "@/hooks/leads/use-leads";
 import { Lead } from "@/types/salep";
 import { formatDate } from "@/utils/formatting/string";
-
-const salesStatuses: Lead["sales_status"][] = [
-  "Belum Dihubungi",
-  "Sedang Dihubungi",
-  "Closing",
-  "Batal",
-];
 
 export function LeadsPageContent({
   sourcePreset = "all",
@@ -78,12 +73,11 @@ export function LeadsPageContent({
   const isMarketing = session?.role === "marketing";
   const [selectedSpseLead, setSelectedSpseLead] = useState<Lead | null>(null);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [source, setSource] = useState<string>(sourcePreset);
-  const [salesStatus, setSalesStatus] = useState("all");
+  const [filterValues, setFilterValues] = useState(() =>
+    createLeadFilters(sourcePreset),
+  );
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [salesStatusDraft, setSalesStatusDraft] = useState<Lead["sales_status"]>("Belum Dihubungi");
-  const [salesNote, setSalesNote] = useState("");
+  const [selectedQrLead, setSelectedQrLead] = useState<Lead | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Lead | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -93,15 +87,11 @@ export function LeadsPageContent({
   const page = pagination.pageIndex + 1;
   const filters = {
     search: debouncedSearch,
-    status: isMarketing ? status : "all",
-    source,
-    sales_status: salesStatus,
+    ...leadQueryFilters(filterValues, isMarketing),
     page,
     limit: pagination.pageSize,
   };
   const leads = useLeads(filters);
-  const updateMarketing = useUpdateLeadStatus();
-  const updateSales = useUpdateSalesStatus();
   const deleteLead = useDeleteLead();
   const searchMutation = useManualSearch();
   const analyzeUrlMutation = useAnalyzeUrl();
@@ -178,26 +168,7 @@ export function LeadsPageContent({
         header: "Status",
         cell: ({ row }) => {
           const lead = row.original;
-          return isMarketing && sourcePreset === "all" ? (
-            <select
-              aria-label={`Status marketing ${lead.author_name || lead.lead_id}`}
-              className="h-9 rounded-md border bg-background px-2"
-              value={lead.marketing_status}
-              disabled={updateMarketing.isPending}
-              onChange={(event) =>
-                updateMarketing.mutate({
-                  leadId: lead.lead_id,
-                  status: event.target.value as Lead["marketing_status"],
-                })
-              }
-            >
-              <option value="pending">Menunggu review</option>
-              <option value="valid">Valid</option>
-              <option value="invalid">Tidak valid</option>
-            </select>
-          ) : (
-            <StatusPill value={lead.marketing_status} />
-          );
+          return <StatusPill value={lead.marketing_status} />;
         },
       },
       {
@@ -205,57 +176,61 @@ export function LeadsPageContent({
         header: "Tindak lanjut",
         cell: ({ row }) => {
           const lead = row.original;
-          return isMarketing || sourcePreset !== "all" ? (
-            <StatusPill value={lead.sales_status} />
-          ) : (
-            <select
-              aria-label={`Status tindak lanjut ${lead.author_name || lead.lead_id}`}
-              className="h-9 rounded-md border bg-background px-2"
-              value={lead.sales_status}
-              disabled={updateSales.isPending}
-              onChange={(event) => {
-                setSalesStatusDraft(event.target.value as Lead["sales_status"]);
-                setSalesNote("");
-                setSelectedLead(lead);
-              }}
-            >
-              {salesStatuses.map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          );
+          return <SalesProgressCell lead={lead} />;
         },
       },
       {
-        id: "post",
-        header: "Tautan & Jadwal",
-        cell: ({ row }) => {
-          const lead = row.original;
-          const isSpse = lead.source === "spse";
-          return (
-            <div className="flex flex-col gap-1.5 whitespace-nowrap">
-              <a
-                className="inline-flex items-center gap-1 text-primary hover:underline"
-                href={lead.source_url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {isSpse ? "Pengumuman" : "Buka"}{" "}
-                <ExternalLink className="size-3.5" />
-              </a>
-              {isSpse && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedSpseLead(lead)}
-                  className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  <Clock className="size-3" /> Jadwal Lelang
-                </button>
-              )}
-            </div>
-          );
-        },
+        id: "assigned-sales",
+        header: "Sales PIC",
+        cell: ({ row }) => (
+          <span className="text-sm">
+            {row.original.assignment?.sales_username || "Belum ditugaskan"}
+          </span>
+        ),
       },
+      // {
+      //   id: "post",
+      //   header: "Tautan & Jadwal",
+      //   cell: ({ row }) => {
+      //     const lead = row.original;
+      //     const isSpse = lead.source === "spse";
+      //     return (
+      //       <div className="flex flex-col gap-1.5 whitespace-nowrap">
+      //         <div className="flex items-center gap-1.5">
+      //           <a
+      //             className="inline-flex items-center gap-1 text-primary hover:underline"
+      //             href={lead.source_url}
+      //             target="_blank"
+      //             rel="noreferrer"
+      //           >
+      //             {isSpse ? "Pengumuman" : "Buka"}{" "}
+      //             <ExternalLink className="size-3.5" />
+      //           </a>
+      //         </div>
+      //         {lead.source_url && (
+      //           <button
+      //             type="button"
+      //             onClick={() => setSelectedQrLead(lead)}
+      //             className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-600 hover:text-[#9D0A0E] hover:underline dark:text-slate-400 dark:hover:text-red-400"
+      //             title="Generate QR code untuk buka di HP"
+      //           >
+      //             <QrCode className="size-3.5 text-[#9D0A0E]" />
+      //             <span>Generate QR</span>
+      //           </button>
+      //         )}
+      //         {isSpse && (
+      //           <button
+      //             type="button"
+      //             onClick={() => setSelectedSpseLead(lead)}
+      //             className="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+      //           >
+      //             <Clock className="size-3" /> Jadwal Lelang
+      //           </button>
+      //         )}
+      //       </div>
+      //     );
+      //   },
+      // },
       {
         id: "actions",
         header: "Aksi",
@@ -263,20 +238,34 @@ export function LeadsPageContent({
           const lead = row.original;
           return (
             <div className="flex items-center gap-1 whitespace-nowrap">
+              {/* {lead.source_url && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Generate QR Code"
+                  title="Generate QR Code"
+                  className="text-slate-600 hover:text-[#9D0A0E] hover:bg-[#9D0A0E]/10"
+                  onClick={() => setSelectedQrLead(lead)}
+                >
+                  <QrCode className="size-4" />
+                </Button>
+              )} */}
               <Button
                 type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Lihat detail lead"
-                title="Detail"
+                variant={isMarketing ? "outline" : "ghost"}
+                size={isMarketing ? "sm" : "icon-sm"}
+                aria-label={
+                  isMarketing ? "Review dan assign lead" : "Lihat detail lead"
+                }
+                title={isMarketing ? "Review & assign" : "Detail"}
                 className="text-slate-700 hover:text-slate-950"
                 onClick={() => {
                   setSelectedLead(lead);
-                  setSalesStatusDraft(lead.sales_status);
-                  setSalesNote("");
                 }}
               >
                 <Eye className="size-4" />
+                {isMarketing && <span>Review & assign</span>}
               </Button>
               {isMarketing && (
                 <Button
@@ -296,7 +285,7 @@ export function LeadsPageContent({
         },
       },
     ],
-    [isMarketing, sourcePreset, updateMarketing, updateSales],
+    [isMarketing],
   );
 
   const data = leads.data?.items ?? [];
@@ -313,7 +302,7 @@ export function LeadsPageContent({
   });
 
   return (
-    <div className="space-y-5">
+    <div className="w-full min-w-0 max-w-full space-y-5">
       <div>
         <h1 className="text-2xl font-semibold">
           {sourcePreset === "social_media"
@@ -367,7 +356,7 @@ export function LeadsPageContent({
         </div>
       )}
 
-      <section className="overflow-hidden rounded-[5px] border bg-card">
+      <section className="w-full min-w-0 max-w-full overflow-hidden rounded-[5px] border bg-card">
         <div className="border-b p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             {/* Sisi Kiri: Search Input & Filter */}
@@ -382,88 +371,15 @@ export function LeadsPageContent({
                 />
               </label>
 
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-9 rounded-[5px] shadow-none"
-                  >
-                    <SlidersHorizontal className="size-4" />
-                    Filter
-                    <ChevronDown className="size-4 text-muted-foreground" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="start"
-                  className="w-72 space-y-4 rounded-[5px]"
-                >
-                  {isMarketing && (
-                    <label className="block space-y-1.5 text-sm font-medium">
-                      Status validasi
-                      <select
-                        className="h-9 w-full rounded-[5px] border bg-background px-3 font-normal"
-                        value={status}
-                        onChange={(event) =>
-                          setFilter(setStatus)(event.target.value)
-                        }
-                      >
-                        <option value="all">Semua status marketing</option>
-                        <option value="pending">Menunggu review</option>
-                        <option value="valid">Valid</option>
-                        <option value="invalid">Tidak valid</option>
-                      </select>
-                    </label>
-                  )}
-                  {sourcePreset !== "spse" && (
-                    <label className="block space-y-1.5 text-sm font-medium">
-                      Sumber
-                      <select
-                        className="h-9 w-full rounded-[5px] border bg-background px-3 font-normal"
-                        value={source}
-                        onChange={(event) =>
-                          setFilter(setSource)(event.target.value)
-                        }
-                      >
-                        {sourcePreset === "social_media" ? (
-                          <>
-                            <option value="social_media">
-                              Semua sosial media
-                            </option>
-                            <option value="threads">Threads</option>
-                            <option value="linkedin">LinkedIn</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="all">Semua sumber</option>
-                            <option value="social_media">Sosial Media</option>
-                            <option value="threads">Threads</option>
-                            <option value="linkedin">LinkedIn</option>
-                            <option value="spse">SPSE</option>
-                          </>
-                        )}
-                      </select>
-                    </label>
-                  )}
-                  {!isMarketing && (
-                    <label className="block space-y-1.5 text-sm font-medium">
-                      Status tindak lanjut
-                      <select
-                        className="h-9 w-full rounded-[5px] border bg-background px-3 font-normal"
-                        value={salesStatus}
-                        onChange={(event) =>
-                          setFilter(setSalesStatus)(event.target.value)
-                        }
-                      >
-                        <option value="all">Semua tindak lanjut</option>
-                        {salesStatuses.map((item) => (
-                          <option key={item}>{item}</option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </PopoverContent>
-              </Popover>
+              <LeadFiltersPopover
+                values={filterValues}
+                onChange={(value) => {
+                  setFilterValues(value);
+                  setPagination((current) => ({ ...current, pageIndex: 0 }));
+                }}
+                isMarketing={isMarketing}
+                sourcePreset={sourcePreset}
+              />
 
               <Button
                 type="button"
@@ -503,7 +419,8 @@ export function LeadsPageContent({
                   >
                     <Compass className="size-4" />
                     Discovery
-                    {(searchMutation.isPending || analyzeUrlMutation.isPending) && (
+                    {(searchMutation.isPending ||
+                      analyzeUrlMutation.isPending) && (
                       <span className="relative flex size-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#9D0A0E] opacity-75"></span>
                         <span className="relative inline-flex size-2 rounded-full bg-[#9D0A0E]"></span>
@@ -580,241 +497,221 @@ export function LeadsPageContent({
           if (!open) setSelectedLead(null);
         }}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto rounded-[5px] sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] w-full max-w-[95vw] sm:max-w-3xl md:max-w-4xl lg:max-w-5xl overflow-hidden p-0 rounded-lg flex flex-col gap-0 shadow-xl border border-border/80">
           {selectedLead && (
             <>
-              <DialogHeader>
-                <DialogTitle>Detail Lead</DialogTitle>
-                <DialogDescription>
-                  {selectedLead.author_name || "Prospek tanpa nama"} ·{" "}
-                  {selectedLead.source}
-                </DialogDescription>
-              </DialogHeader>
-              {selectedLead.quality_flags?.includes("llm_analysis_failed") && (
-                <div
-                  role="status"
-                  className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200"
-                >
-                  Analisis AI belum tersedia. Konten sumber disimpan sebagai data
-                  mentah; periksa posting ini secara manual sebelum mengubahnya
-                  menjadi lead valid.
-                </div>
-              )}
-              <div className="space-y-5">
-                <dl className="grid gap-4 rounded-[5px] border p-4 sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Skor lead</dt>
-                    <dd className="mt-1 font-semibold">
-                      {selectedLead.quality_flags?.includes("llm_analysis_failed")
-                        ? "Belum dianalisis"
-                        : `${selectedLead.lead_score}/100`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">
-                      Keyakinan analisis
-                    </dt>
-                    <dd className="mt-1 font-semibold">
-                      {selectedLead.quality_flags?.includes("llm_analysis_failed")
-                        ? "Belum dianalisis"
-                        : `${Math.round(selectedLead.confidence * 100)}%`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">
-                      Status marketing
-                    </dt>
-                    <dd className="mt-1 font-medium capitalize">
-                      {selectedLead.marketing_status}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">
-                      Tindak lanjut
-                    </dt>
-                    <dd className="mt-1 font-medium">
-                      {selectedLead.sales_status}
-                    </dd>
-                  </div>
-                  {selectedLead.industry && (
-                    <div>
-                      <dt className="text-xs text-muted-foreground">
-                        Industri
-                      </dt>
-                      <dd className="mt-1 font-medium">
-                        {selectedLead.industry.replace(/_/g, " ")}
-                      </dd>
-                    </div>
-                  )}
-                  {selectedLead.matched_keyword && (
-                    <div>
-                      <dt className="text-xs text-muted-foreground">Keyword</dt>
-                      <dd className="mt-1 font-medium">
+              {/* Header Popup Dialog */}
+              <div className="border-b border-border/80 bg-muted/20 px-6 py-4 pr-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full border border-[#9D0A0E]/30 bg-[#9D0A0E]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#9D0A0E] capitalize">
+                      {selectedLead.source}
+                    </span>
+                    {selectedLead.matched_keyword && (
+                      <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        <Tag className="size-3" />
                         {selectedLead.matched_keyword}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-                {isMarketing && sourcePreset !== "all" && (
-                  <label className="block max-w-sm space-y-2 text-sm font-medium">
-                    Ubah status marketing
-                    <select
-                      className="h-10 w-full rounded-[5px] border bg-background px-3"
-                      value={selectedLead.marketing_status}
-                      disabled={updateMarketing.isPending}
-                      onChange={(event) =>
-                        updateMarketing.mutate(
-                          {
-                            leadId: selectedLead.lead_id,
-                            status: event.target.value as Lead["marketing_status"],
-                          },
-                          { onSuccess: setSelectedLead },
-                        )
-                      }
-                    >
-                      <option value="pending">Menunggu review</option>
-                      <option value="valid">Valid</option>
-                      <option value="invalid">Tidak valid</option>
-                    </select>
-                  </label>
-                )}
-                {!isMarketing && (
-                  <section className="space-y-3 rounded-[5px] border p-4">
-                    <div>
-                      <h3 className="text-sm font-semibold">Catatan tindak lanjut</h3>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Setiap pembaruan status harus disertai catatan. Catatan akan tersimpan sebagai riwayat.
-                      </p>
-                    </div>
-                    <label className="block space-y-2 text-sm font-medium">
-                      Status tindak lanjut
-                      <select
-                        className="h-10 w-full rounded-[5px] border bg-background px-3"
-                        value={salesStatusDraft}
-                        disabled={updateSales.isPending}
-                        onChange={(event) => setSalesStatusDraft(event.target.value as Lead["sales_status"])}
-                      >
-                        {salesStatuses.map((item) => (
-                          <option key={item}>{item}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block space-y-2 text-sm font-medium">
-                      Catatan
-                      <Textarea
-                        value={salesNote}
-                        onChange={(event) => setSalesNote(event.target.value)}
-                        placeholder="Contoh: sudah menghubungi via WhatsApp, menunggu jadwal demo."
-                        maxLength={2000}
-                        disabled={updateSales.isPending}
-                      />
-                    </label>
+                      </span>
+                    )}
+                  </div>
+                  <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+                    {selectedLead.author_name || "Prospek Tanpa Nama"}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    {selectedLead.created_at
+                      ? `Ditemukan pada ${formatDate(selectedLead.created_at)}`
+                      : "Detail informasi prospek penjualan"}
+                  </DialogDescription>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  {selectedLead.source_url && (
                     <Button
                       type="button"
-                      disabled={!salesNote.trim() || updateSales.isPending}
-                      onClick={() => updateSales.mutate(
-                        {
-                          leadId: selectedLead.lead_id,
-                          status: salesStatusDraft,
-                          note: salesNote.trim(),
-                        },
-                        {
-                          onSuccess: (updated) => {
-                            setSelectedLead(updated);
-                            setSalesStatusDraft(updated.sales_status);
-                            setSalesNote("");
-                          },
-                        },
-                      )}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1.5 rounded-md border-border/80 text-xs font-medium hover:bg-muted"
+                      onClick={() => setSelectedQrLead(selectedLead)}
                     >
-                      {updateSales.isPending ? "Menyimpan..." : "Simpan catatan & status"}
+                      <QrCode className="size-3.5 text-[#9D0A0E]" />
+                      <span>Generate QR</span>
                     </Button>
-                  </section>
-                )}
-                <section className="space-y-3">
-                  <h3 className="text-sm font-semibold">Log catatan</h3>
-                  {selectedLead.sales_status_logs?.length ? (
-                    <ol className="space-y-3">
-                      {[...selectedLead.sales_status_logs].reverse().map((log) => (
-                        <li key={log.id} className="rounded-[5px] border p-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                            <span>{log.from_status} → {log.to_status}</span>
-                            <time dateTime={log.changed_at}>
-                              {new Date(log.changed_at).toLocaleString("id-ID")}
-                            </time>
-                          </div>
-                          <p className="mt-2 whitespace-pre-wrap text-sm">{log.note}</p>
-                          {log.changed_by && (
-                            <p className="mt-2 text-xs text-muted-foreground">Oleh {log.changed_by}</p>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  ) : (
-                    <p className="rounded-[5px] border border-dashed p-3 text-sm text-muted-foreground">
-                      Belum ada catatan tindak lanjut.
-                    </p>
                   )}
-                </section>
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold">Konten</h3>
-                  <p className="whitespace-pre-wrap rounded-[5px] bg-muted/50 p-4 text-sm leading-6">
-                    {selectedLead.content}
-                  </p>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-md border-border/80 text-xs font-medium hover:bg-muted"
+                  >
+                    <a
+                      href={selectedLead.source_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <span>Buka Sumber</span>
+                      <ExternalLink className="size-3.5 text-muted-foreground" />
+                    </a>
+                  </Button>
                 </div>
-                {selectedLead.needs.length > 0 && (
-                  <div>
-                    <h3 className="mb-2 text-sm font-semibold">Kebutuhan</h3>
-                    <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                      {selectedLead.needs.map((need) => (
-                        <li key={need}>{need}</li>
-                      ))}
-                    </ul>
+              </div>
+
+              {/* Body Popup Dialog */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 min-h-0">
+                {selectedLead.quality_flags?.includes(
+                  "llm_analysis_failed",
+                ) && (
+                  <div
+                    role="status"
+                    className="mb-5 rounded-md border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-900 dark:text-amber-200"
+                  >
+                    Analisis AI belum selesai secara optimal. Periksa konten
+                    sumber di bawah ini sebelum mengonfirmasi status valid.
                   </div>
                 )}
-                {selectedLead.pain_points.length > 0 && (
-                  <div>
-                    <h3 className="mb-2 text-sm font-semibold">Kendala</h3>
-                    <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                      {selectedLead.pain_points.map((pain) => (
-                        <li key={pain}>{pain}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {selectedLead.recommended_services.length > 0 && (
-                  <div>
-                    <h3 className="mb-2 text-sm font-semibold">
-                      Rekomendasi layanan
-                    </h3>
-                    <div className="space-y-2">
-                      {selectedLead.recommended_services.map((service) => (
-                        <div
-                          key={service.product_id}
-                          className="rounded-[5px] border p-3"
-                        >
-                          <div className="flex items-center justify-between gap-3 text-sm font-medium">
-                            <span>{service.product_name}</span>
-                            <span className="shrink-0 text-primary">
-                              {service.match_score}%
-                            </span>
-                          </div>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {service.reason}
-                          </p>
-                        </div>
-                      ))}
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Kolom Kiri: Detail Informasi & Analisis Prospek (7 cols) */}
+                  <div className="lg:col-span-7 space-y-5">
+                    {/* Metrik Skor & Kategori */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 rounded-lg border border-border/70 bg-muted/20 p-3 text-xs">
+                      <div>
+                        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                          Skor Lead
+                        </span>
+                        <span className="mt-1 inline-flex items-center font-bold text-sm text-[#9D0A0E]">
+                          {selectedLead.quality_flags?.includes(
+                            "llm_analysis_failed",
+                          )
+                            ? "—"
+                            : `${selectedLead.lead_score}/100`}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                          Keyakinan AI
+                        </span>
+                        <span className="mt-1 inline-flex items-center font-bold text-sm text-foreground">
+                          {selectedLead.quality_flags?.includes(
+                            "llm_analysis_failed",
+                          )
+                            ? "—"
+                            : `${Math.round(selectedLead.confidence * 100)}%`}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                          Industri
+                        </span>
+                        <span className="mt-1 block font-semibold text-foreground truncate capitalize">
+                          {selectedLead.industry
+                            ? selectedLead.industry.replace(/_/g, " ")
+                            : "Umum"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                          Sumber
+                        </span>
+                        <span className="mt-1 block font-semibold text-foreground truncate capitalize">
+                          {selectedLead.source}
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Pantau Jadwal & Progres Lelang SPSE jika source spse */}
+                    {selectedLead.source === "spse" && (
+                      <SpseScheduleCard lead={selectedLead} />
+                    )}
+
+                    {/* Isi Konten */}
+                    <div className="rounded-lg border border-border/80 bg-card p-4 space-y-2 shadow-xs">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <FileText className="size-3.5 text-slate-500" />
+                        <span>Konten Postingan / Kebutuhan</span>
+                      </div>
+                      <p className="whitespace-pre-wrap rounded-md bg-muted/30 p-3.5 text-xs font-normal leading-relaxed text-foreground select-text border border-border/50">
+                        {selectedLead.content}
+                      </p>
+                    </div>
+
+                    {/* Kebutuhan (Needs) */}
+                    {selectedLead.needs.length > 0 && (
+                      <div className="rounded-lg border border-border/80 bg-card p-4 space-y-2 shadow-xs">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          <Target className="size-3.5 text-blue-600 dark:text-blue-400" />
+                          <span>Kebutuhan Teridentifikasi</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {selectedLead.needs.map((need) => (
+                            <span
+                              key={need}
+                              className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300"
+                            >
+                              {need}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Kendala (Pain Points) */}
+                    {selectedLead.pain_points.length > 0 && (
+                      <div className="rounded-lg border border-border/80 bg-card p-4 space-y-2 shadow-xs">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          <AlertCircle className="size-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>Kendala / Pain Points</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {selectedLead.pain_points.map((pain) => (
+                            <span
+                              key={pain}
+                              className="inline-flex items-center rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
+                            >
+                              {pain}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rekomendasi Layanan */}
+                    {selectedLead.recommended_services.length > 0 && (
+                      <div className="rounded-lg border border-border/80 bg-card p-4 space-y-3 shadow-xs">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          <Sparkles className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <span>Rekomendasi Layanan & Solusi Fit</span>
+                        </div>
+                        <div className="space-y-2">
+                          {selectedLead.recommended_services.map((service) => (
+                            <div
+                              key={service.product_id}
+                              className="rounded-md border border-border/70 bg-muted/20 p-3"
+                            >
+                              <div className="flex items-center justify-between gap-3 text-xs font-semibold text-foreground">
+                                <span>{service.product_name}</span>
+                                <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                                  Match {service.match_score}%
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                {service.reason}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                <a
-                  href={selectedLead.source_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                >
-                  Buka posting sumber <ExternalLink className="size-4" />
-                </a>
+
+                  {/* Kolom Kanan: Review & Penugasan Sales (5 cols) */}
+                  <div className="lg:col-span-5 space-y-4">
+                    <LeadWorkflowPanel
+                      key={selectedLead.lead_id}
+                      lead={selectedLead}
+                      isMarketing={isMarketing}
+                      onUpdated={setSelectedLead}
+                    />
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -831,14 +728,18 @@ export function LeadsPageContent({
           <DialogHeader>
             <DialogTitle>Hapus lead?</DialogTitle>
             <DialogDescription>
-              Lead dari {pendingDelete?.author_name || "prospek tanpa nama"}{" "}
-              akan dihapus permanen dari database SALEP.
+              Apakah Anda yakin ingin menghapus lead{" "}
+              <span className="font-semibold text-foreground">
+                {pendingDelete?.author_name || "prospek tanpa nama"}
+              </span>{" "}
+              ini?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
+              className="cursor-pointer"
               disabled={deleteLead.isPending}
               onClick={() => setPendingDelete(null)}
             >
@@ -847,6 +748,7 @@ export function LeadsPageContent({
             <Button
               type="button"
               variant="destructive"
+              className="cursor-pointer"
               disabled={!pendingDelete || deleteLead.isPending}
               onClick={() => {
                 if (!pendingDelete) return;
@@ -878,6 +780,11 @@ export function LeadsPageContent({
         onOpenChange={setIsDiscoveryOpen}
         searchMutation={searchMutation}
         analyzeUrlMutation={analyzeUrlMutation}
+      />
+      <LeadQrCodeDialog
+        lead={selectedQrLead}
+        open={selectedQrLead !== null}
+        onOpenChange={(open) => !open && setSelectedQrLead(null)}
       />
     </div>
   );

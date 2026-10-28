@@ -165,7 +165,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="w-full min-w-0 max-w-full space-y-5">
       <div>
         <h1 className="text-2xl font-semibold">Kelola Akun</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -246,7 +246,7 @@ export default function AdminUsersPage() {
         </Alert>
       )}
 
-      <section className="overflow-hidden rounded-[5px] border bg-card">
+      <section className="w-full min-w-0 max-w-full overflow-hidden rounded-[5px] border bg-card">
         <div className="border-b p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>

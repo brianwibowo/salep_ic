@@ -64,6 +64,10 @@ class LeadRepository:
                         sales_status TEXT NOT NULL DEFAULT 'Belum Dihubungi',
                         sales_status_logs TEXT NOT NULL DEFAULT '[]',
                         notes TEXT,
+                        marketing_reviewed_by_user_id TEXT,
+                        marketing_reviewed_by_username TEXT,
+                        marketing_reviewed_at TEXT,
+                        marketing_review_note TEXT,
                         canonical_post_id TEXT,
                         deterministic_relevance_score INTEGER NOT NULL DEFAULT 0,
                         deterministic_relevance_label TEXT NOT NULL DEFAULT 'unreviewed',
@@ -97,6 +101,10 @@ class LeadRepository:
                     "is_spam": "INTEGER NOT NULL DEFAULT 0",
                     "quality_flags": "TEXT",
                     "sales_status_logs": "TEXT NOT NULL DEFAULT '[]'",
+                    "marketing_reviewed_by_user_id": "TEXT",
+                    "marketing_reviewed_by_username": "TEXT",
+                    "marketing_reviewed_at": "TEXT",
+                    "marketing_review_note": "TEXT",
                 }
                 for column, definition in additions.items():
                     if column not in existing_columns:
@@ -624,7 +632,16 @@ class LeadRepository:
         finally:
             conn.close()
 
-    def update_marketing_status(self, lead_id: str, new_status: str) -> dict[str, Any] | None:
+    def update_marketing_status(
+        self,
+        lead_id: str,
+        new_status: str,
+        *,
+        reviewed_by_user_id: str | None = None,
+        reviewed_by_username: str | None = None,
+        review_note: str | None = None,
+        **_: Any,
+    ) -> dict[str, Any] | None:
         """Update qualification status (valid, invalid, pending)."""
         clean_status = new_status.strip().lower()
         if clean_status not in {"valid", "invalid", "pending"}:
@@ -634,14 +651,26 @@ class LeadRepository:
         try:
             now_str = datetime.now(timezone.utc).isoformat()
             with conn:
-                conn.execute(
-                    """
-                    UPDATE leads
-                    SET marketing_status = ?, updated_at = ?
-                    WHERE lead_id = ?
-                    """,
-                    (clean_status, now_str, lead_id),
-                )
+                if reviewed_by_user_id:
+                    conn.execute(
+                        """
+                        UPDATE leads
+                        SET marketing_status = ?, marketing_reviewed_by_user_id = ?,
+                            marketing_reviewed_by_username = ?, marketing_reviewed_at = ?,
+                            marketing_review_note = ?, updated_at = ?
+                        WHERE lead_id = ?
+                        """,
+                        (clean_status, reviewed_by_user_id, reviewed_by_username, now_str, review_note, now_str, lead_id),
+                    )
+                else:
+                    conn.execute(
+                        """
+                        UPDATE leads
+                        SET marketing_status = ?, updated_at = ?
+                        WHERE lead_id = ?
+                        """,
+                        (clean_status, now_str, lead_id),
+                    )
             return self.get_lead(lead_id)
         finally:
             conn.close()
