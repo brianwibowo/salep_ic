@@ -545,7 +545,13 @@ export function LeadsPageContent({
                     <a
                       href={selectedLead.source_url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener"
+                      {...(selectedLead.source === "spse"
+                        ? {
+                            referer: "https://spse.inaproc.id/",
+                            referrer: "https://spse.inaproc.id/",
+                          }
+                        : {})}
                     >
                       <span>Buka Sumber</span>
                       <ExternalLink className="size-3.5 text-muted-foreground" />

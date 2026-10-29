@@ -86,7 +86,13 @@ export function SpseLeadDetailsDialog({
                   size="sm"
                   className="h-8 gap-1.5 rounded-md border-border/80 text-xs font-medium hover:bg-muted"
                 >
-                  <a href={lead.source_url} target="_blank" rel="noreferrer">
+                  <a
+                    href={lead.source_url}
+                    target="_blank"
+                    rel="noopener"
+                    referer="https://spse.inaproc.id/"
+                    referrer="https://spse.inaproc.id/"
+                  >
                     <span>Portal SPSE</span>
                     <ExternalLink className="size-3.5 text-muted-foreground" />
                   </a>

@@ -286,7 +286,9 @@ export function SpseScheduleCard({
                 <a
                   href={data.source_url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener"
+                  referer="https://spse.inaproc.id/"
+                  referrer="https://spse.inaproc.id/"
                   className="inline-flex items-center gap-1 text-[#9D0A0E] hover:underline font-medium"
                 >
                   Buka Portal SPSE <ExternalLink className="size-3" />

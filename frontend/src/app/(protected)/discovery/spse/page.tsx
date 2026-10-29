@@ -150,7 +150,9 @@ export default function SPSEDiscoveryPage() {
             <a
               href={defaults.data?.source || "https://spse.inaproc.id/nasional"}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener"
+              referer="https://spse.inaproc.id/"
+              referrer="https://spse.inaproc.id/"
               className="inline-flex h-9 items-center gap-2 px-2 text-sm text-muted-foreground hover:text-foreground"
             >
               Buka SPSE Nasional <ExternalLink className="size-3.5" />
